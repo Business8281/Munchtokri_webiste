@@ -1,0 +1,716 @@
+.main {
+    overflow-x: hidden;
+}
+
+/* Hero Section */
+.hero {
+    position: relative;
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    color: white;
+}
+
+.heroContainer {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 4rem;
+    width: 100%;
+}
+
+.heroVideo {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+    pointer-events: none;
+    background-color: #000;
+}
+
+.heroOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+        circle at 20% 50%,
+        rgba(0, 0, 0, 0.6) 0%,
+        rgba(0, 0, 0, 0.3) 50%,
+        rgba(0, 0, 0, 0.5) 100%
+    );
+    z-index: 1;
+}
+
+.heroContent {
+    flex: 1;
+}
+
+.heroLabel {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    margin-bottom: 2rem;
+}
+
+.heroTitle {
+    font-size: 4rem;
+    line-height: 1.1;
+    margin-bottom: 2rem;
+}
+
+.heroTitle span {
+    color: var(--accent);
+}
+
+.heroDesc {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    opacity: 0.9;
+    margin-bottom: 3rem;
+    max-width: 500px;
+}
+
+.heroBtns {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.heroImage {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    position: relative;
+}
+
+.heroImg {
+    width: 100%;
+    max-width: 500px;
+    height: auto;
+    border-radius: 24px;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+    border: 8px solid rgba(255, 255, 255, 0.1);
+    object-fit: cover;
+    aspect-ratio: 1/1;
+}
+
+/* Features */
+.features {
+    padding: 4rem 0;
+    background: var(--primary);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Build Your Mixture Section */
+.buildMix {
+    padding: 8rem 0;
+    background: #fff;
+    position: relative;
+    overflow: hidden;
+}
+
+.buildMixContainer {
+    display: flex;
+    align-items: center;
+    gap: 5rem;
+}
+
+.buildMixContent {
+    flex: 1.2;
+}
+
+.buildMixContent h2 span {
+    color: var(--secondary);
+    display: block;
+}
+
+.buildMixContent p {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+}
+
+.buildMixFeatures {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 3rem 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.buildMixFeatures li {
+    font-weight: 600;
+    color: var(--primary);
+    font-size: 0.95rem;
+}
+
+.buildMixImage {
+    flex: 1;
+    position: relative;
+}
+
+.bannerImg {
+    width: 100%;
+    height: auto;
+    border-radius: 30px;
+    border: 8px solid white;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+}
+
+.bannerImg:hover {
+    transform: rotate(0deg);
+}
+
+/* Snack Combos Section */
+.combos {
+    padding: 8rem 0;
+    background: #f9f9f9;
+    position: relative;
+    overflow: hidden;
+}
+
+.combosContainer {
+    display: flex;
+    align-items: center;
+    gap: 5rem;
+}
+
+.combosImage {
+    flex: 1;
+    position: relative;
+}
+
+.comboImg {
+    width: 100%;
+    height: auto;
+    border-radius: 30px;
+    border: 8px solid white;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+}
+
+.comboImg:hover {
+    transform: rotate(0deg);
+}
+
+.combosContent {
+    flex: 1.2;
+}
+
+.combosContent h2 span {
+    color: var(--primary);
+    display: block;
+}
+
+.combosContent p {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+}
+
+.featureGrid {
+    display: flex;
+    justify-content: space-between;
+    text-align: center;
+}
+
+.featureItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    color: white;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.featureIcon {
+    width: 64px;
+    height: 64px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--accent);
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.featureItem:hover .featureIcon {
+    background: var(--accent);
+    color: var(--primary);
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(255, 183, 3, 0.3);
+}
+
+/* Sections General */
+.sectionTitle {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+}
+
+.hero .sectionTitle {
+    color: white;
+}
+
+.sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 1rem;
+}
+
+.sectionSubtitle {
+    color: var(--text-secondary);
+    margin-bottom: 3rem;
+}
+
+.viewAll {
+    color: var(--secondary);
+    font-weight: 700;
+}
+
+/* Best Sellers */
+.bestSellers {
+    padding: 6rem 0;
+    background: white;
+}
+
+.carouselContainer {
+    position: relative;
+    margin: 0 -1rem;
+    padding: 0 1rem;
+}
+
+.productCarousel {
+    display: flex;
+    gap: 2rem;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+    padding: 2rem 0;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;  /* IE and Edge */
+    -webkit-overflow-scrolling: touch;
+}
+
+.productCarousel::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+}
+
+.carouselItem {
+    flex: 0 0 calc(25% - 1.5rem);
+    min-width: 280px;
+    scroll-snap-align: start;
+    display: flex;
+}
+
+.navBtn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: white;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.3s ease;
+    color: var(--primary);
+}
+
+.navBtn:hover {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.prevBtn {
+    left: -1rem;
+}
+
+.nextBtn {
+    right: -1rem;
+}
+
+/* Heritage */
+.heritage {
+    padding: 6rem 0;
+    background: #fdfdfd;
+}
+
+.heritageContainer {
+    display: flex;
+    align-items: center;
+    gap: 5rem;
+}
+
+.heritageImage {
+    flex: 1;
+}
+
+.heritageImg {
+    width: 100%;
+    max-width: 600px;
+    height: auto;
+    border-radius: 24px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    border: 8px solid white;
+    object-fit: cover;
+}
+
+.heritageContent {
+    flex: 1;
+}
+
+.heritageContent p {
+    line-height: 1.8;
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+}
+
+.stats {
+    display: flex;
+    gap: 3rem;
+    margin-top: 3rem;
+}
+
+.stat {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat strong {
+    font-size: 2rem;
+    color: var(--primary);
+    font-family: var(--font-display);
+}
+
+.stat span {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* Testimonials */
+.testimonials {
+    padding: 6rem 0;
+    background: white;
+}
+
+.testimonials .sectionTitle {
+    text-align: center;
+    margin-bottom: 4rem;
+}
+
+.testimonialGrid {
+    display: flex;
+    gap: 2rem;
+    overflow-x: auto;
+    padding: 2rem 1rem 3rem;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-behavior: smooth;
+    margin: 0 -1rem;
+    -webkit-overflow-scrolling: touch;
+}
+
+.testimonialGrid::-webkit-scrollbar {
+    display: none;
+}
+
+.testimonialCard {
+    background: var(--primary);
+    color: white;
+    padding: 3rem;
+    border-radius: 20px;
+    flex: 0 0 450px;
+    scroll-snap-align: center;
+    transition: transform 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.testimonialCard:hover {
+    transform: translateY(-5px);
+}
+
+.stars {
+    display: flex;
+    gap: 4px;
+    color: var(--accent);
+    margin-bottom: 1.5rem;
+}
+
+.testimonialCard p {
+    font-size: 1.1rem;
+    font-style: italic;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+}
+
+.user {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.avatar {
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+}
+
+.user strong {
+    display: block;
+}
+
+.user span {
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
+/* CTA */
+.cta {
+    padding: 6rem 0;
+}
+
+.ctaBox {
+    background: var(--secondary);
+    color: white;
+    padding: 5rem;
+    border-radius: 30px;
+    text-align: center;
+}
+
+.ctaBox h2 {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+}
+
+.ctaBox p {
+    font-size: 1.25rem;
+    margin-bottom: 3rem;
+    opacity: 0.9;
+}
+
+.ctaBtn {
+    background: white;
+    color: var(--secondary);
+}
+
+.ctaBtn:hover {
+    background: var(--gray-light);
+}
+
+@media (max-width: 992px) {
+
+    .heroContainer,
+    .heritageContainer,
+    .buildMixContainer,
+    .combosContainer {
+        flex-direction: column;
+        text-align: center;
+        gap: 3rem;
+        padding: 0 1rem;
+    }
+
+    .heroImage {
+        display: none;
+    }
+
+    .heroBtns {
+        justify-content: center;
+    }
+
+    .hero {
+        min-height: 80vh;
+    }
+
+    .heroOverlay {
+        background: rgba(0, 0, 0, 0.3);
+    }
+
+    .heroTitle {
+        font-size: 2.5rem;
+    }
+
+    .heroContent,
+    .heroImage,
+    .heritageContent,
+    .heritageImage,
+    .buildMixContent,
+    .buildMixImage,
+    .combosContent,
+    .combosImage {
+        width: 100%;
+    }
+
+    .productGrid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+
+    .testimonialGrid {
+        padding: 1rem 1rem 2rem;
+    }
+
+    .testimonialCard {
+        flex: 0 0 320px;
+        padding: 2rem;
+    }
+
+    .featureGrid {
+        display: flex;
+        overflow-x: auto;
+        gap: 1.5rem;
+        padding: 1rem 0;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .featureGrid::-webkit-scrollbar {
+        display: none;
+    }
+
+    .featureItem {
+        min-width: 70%;
+        scroll-snap-align: center;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 2rem;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .section {
+        padding: 2.5rem 0;
+    }
+
+    .ctaBox h2 {
+        font-size: 2.5rem;
+    }
+
+    .buildMixFeatures {
+        grid-template-columns: 1fr;
+        text-align: left;
+        max-width: 300px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero {
+        min-height: 70vh;
+        padding-top: 40px;
+    }
+
+    .bestSellers,
+    .buildMix,
+    .combos,
+    .heritage,
+    .features,
+    .testimonials,
+    .cta {
+        padding: 2.5rem 0 !important;
+    }
+
+    .heroTitle {
+        font-size: 2rem !important;
+        margin-bottom: 1.5rem;
+    }
+
+    .productCarousel {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        overflow-x: visible;
+        padding: 1rem 0;
+    }
+
+    .carouselItem {
+        flex: none;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .navBtn {
+        display: none;
+    }
+
+    .carouselContainer {
+        margin: 0;
+        padding: 0;
+    }
+
+    .sectionTitle {
+        font-size: 1.6rem !important;
+        margin-bottom: 0.5rem;
+        line-height: 1.2;
+    }
+
+    .sectionHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .viewAll {
+        font-size: 0.9rem;
+        text-align: left;
+    }
+
+    .stats {
+        flex-direction: row;
+        gap: 1.5rem;
+        overflow-x: auto;
+        padding: 0 1rem 1.5rem;
+        margin: 0 -1.5rem;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+    }
+
+    .stat {
+        min-width: 80%;
+        flex: 0 0 80%;
+        scroll-snap-align: center;
+        background: white;
+        padding: 2rem;
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        text-align: center;
+    }
+
+    .ctaBox {
+        padding: 3rem 1.5rem;
+        border-radius: 20px;
+    }
+
+    .ctaBox h2 {
+        font-size: 2rem !important;
+    }
+}

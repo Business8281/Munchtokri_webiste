@@ -1,0 +1,224 @@
+.dashboardContent {
+    padding: 2rem;
+}
+
+@media (max-width: 576px) {
+    .dashboardContent {
+        padding: 1rem;
+    }
+}
+
+.pageTitle {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+    color: var(--text-primary);
+}
+
+.statGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* Matching previous inline but now in CSS */
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+@media (max-width: 1024px) {
+    .statGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .statGrid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+
+.statCard {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+}
+
+@media (max-width: 576px) {
+    .statCard {
+        padding: 1.5rem;
+    }
+    
+    .statValue {
+        font-size: 1.25rem;
+    }
+}
+
+.statLabel {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.statValue {
+    font-size: 1.5rem;
+    font-weight: 800;
+}
+
+.recentOrders {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+}
+
+.sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.viewBtn {
+    color: var(--secondary);
+    font-weight: 600;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font-family: inherit;
+    font-size: 1rem;
+}
+
+.statusDropdown {
+    padding: 0.5rem;
+    border: 1px solid var(--gray-light);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    background-color: white;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.statusDropdown:focus {
+    border-color: var(--secondary);
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.table th {
+    padding: 1rem;
+    border-bottom: 1px solid var(--gray-light);
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+}
+
+.table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--gray-light);
+    font-size: 0.95rem;
+}
+
+.statusBadge {
+    background: rgba(0, 128, 128, 0.1);
+    color: var(--primary);
+    padding: 4px 12px;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+@media (max-width: 1200px) {
+    .statGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .recentOrders {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 1.25rem;
+        margin: 0 -1rem;
+        width: calc(100% + 2rem);
+        border-radius: 0;
+        box-shadow: none;
+        border-top: 1px solid var(--gray-light);
+        border-bottom: 1px solid var(--gray-light);
+    }
+
+    .table {
+        min-width: 700px;
+    }
+    
+    .table th, .table td {
+        padding: 0.875rem 1rem;
+    }
+}
+
+.orderDetailsGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.inputGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
+
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.inputGroup label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.inputGroup input,
+.inputGroup textarea {
+    padding: 0.8rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    width: 100%;
+    transition: all 0.2s;
+    background: #f8fafc;
+}
+
+.inputGroup input:focus,
+.inputGroup textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+}
+
+@media (max-width: 1200px) {
+    .inputGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .orderDetailsGrid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .inputGrid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}

@@ -1,0 +1,225 @@
+.vendorContainer {
+    min-height: 100vh;
+    background-color: #fafafa;
+}
+
+.hero {
+    padding: 6rem 0 4rem;
+    background: linear-gradient(135deg, #008080 0%, #004d4d 100%);
+    color: white;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url("https://www.transparenttextures.com/patterns/cubes.png");
+    opacity: 0.1;
+    pointer-events: none;
+}
+
+.heroLabel {
+    display: inline-block;
+    font-size: 0.875rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    color: var(--accent);
+}
+
+.heroTitle {
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+    font-weight: 800;
+}
+
+.heroDesc {
+    font-size: 1.125rem;
+    max-width: 600px;
+    margin: 0 auto;
+    opacity: 0.9;
+    line-height: 1.6;
+}
+
+.section {
+    padding: 5rem 0;
+}
+
+.contentRow {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 4rem;
+    align-items: start;
+}
+
+@media (max-width: 991px) {
+    .contentRow {
+        grid-template-columns: 1fr;
+    }
+}
+
+.infoSide {
+    padding-right: 2rem;
+}
+
+.sectionTitle {
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+}
+
+.sectionTitle span {
+    color: var(--primary);
+}
+
+.infoGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+@media (max-width: 576px) {
+    .infoSide {
+        padding-right: 0;
+        overflow: hidden;
+    }
+
+    .infoGrid {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        padding: 0.5rem 0.5rem 2rem;
+        margin: 0 -1.5rem;
+        padding-left: 1.5rem;
+        gap: 1rem;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    
+    .infoGrid::-webkit-scrollbar {
+        display: none;
+    }
+
+    .infoCard {
+        flex: 0 0 260px;
+        scroll-snap-align: center;
+        margin-bottom: 0.5rem;
+        padding: 1.5rem;
+    }
+}
+
+.infoCard {
+    background: white;
+    padding: 2rem;
+    border-radius: 1.5rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+    border: 1px solid var(--gray-medium);
+}
+
+.infoCard:hover {
+    transform: translateY(-5px);
+    border-color: var(--primary);
+}
+
+.infoIcon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.infoCard h3 {
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
+    color: var(--text-primary);
+}
+
+.infoCard p {
+    color: var(--text-secondary);
+    line-height: 1.5;
+    font-size: 0.95rem;
+}
+
+.formSide {
+    position: sticky;
+    top: 100px;
+}
+
+.formCard {
+    background: white;
+    padding: 3rem;
+    border-radius: 2rem;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+    border: 1px solid var(--gray-medium);
+}
+
+.formGroup {
+    margin-bottom: 1.5rem;
+}
+
+.formLabel {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+    color: var(--text-secondary);
+}
+
+.input, .textarea {
+    width: 100%;
+    padding: 1rem 1.25rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--gray-medium);
+    background: #fcfcfc;
+    font-family: inherit;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.input:focus, .textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: white;
+    box-shadow: 0 0 0 4px rgba(0, 128, 128, 0.1);
+}
+
+.textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.submitBtn {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 1.1rem !important;
+    font-weight: 700 !important;
+    font-size: 1.1rem !important;
+}
+
+.successCard {
+    text-align: center;
+    padding: 2rem 0;
+}
+
+.successIcon {
+    font-size: 4rem;
+    margin-bottom: 1.5rem;
+}
+
+.successContent h2 {
+    color: var(--primary);
+    margin-bottom: 0.75rem;
+}
+
+.successContent p {
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+}

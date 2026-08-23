@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Customer Dashboard - Munch Tokri</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#e11d48",
+                        "brand-teal": "#008080",
+                        "background-light": "#f7f7f6",
+                        "background-dark": "#1c1716",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .sidebar-active {
+            background-color: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased">
+<div class="flex min-h-screen">
+<!-- Sidebar Navigation -->
+<aside class="w-72 bg-brand-teal dark:bg-zinc-900 border-r border-white/10 hidden md:flex flex-col sticky top-0 h-screen text-white">
+<div class="p-8 flex flex-col h-full">
+<!-- Brand Identity -->
+<div class="mb-10 flex items-center gap-3">
+<div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white"><span class="material-symbols-outlined">shopping_basket</span></div>
+<div>
+<h2 class="text-white font-bold text-lg leading-tight">Munch Tokri</h2>
+<p class="text-white/70 text-xs uppercase tracking-widest">Traditional Delights</p>
+</div>
+</div>
+<!-- User Profile Summary -->
+<div class="flex items-center gap-4 mb-10 p-2">
+<div class="relative">
+<div class="bg-white dark:bg-zinc-900 rounded-xl p-5 shadow-sm border-2 border-primary relative group" data-alt="User profile portrait of a smiling man" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC6jr3AwcQSY214kZWZBL3__y_mGIaR5-Fmq1vzW-2XQGmJKBLBcIEaW6FjCASv0rawhGCWTJDW6TZz2nwdCKHdWpo-ALknszwBx-DAl_J2O666h_zWZYTN_-ZNZo_jaCZ50A_eKbMBorggb3PGlAWzDMmtaSdSPzwSnf1pphHM1f-qkq2Box8vk98b18-FbMCJ-tpyO_AdB15SYqrc5K72mZAyocvLde4lL749M3nif7KeiHgwL0ppG-zFZYKfyH0taNiZFJSauR0V')">
+</div>
+<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+</div>
+<div class="flex flex-col">
+<h3 class="font-bold text-sm">Ramesh Kumar</h3>
+<p class="text-xs text-slate-500">Premium Member</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-full sidebar-active group transition-all" href="#">
+<span class="material-symbols-outlined">grid_view</span>
+<span class="font-medium text-sm">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full text-white/80 hover:bg-white/10 group transition-all" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-medium text-sm">Profile Info</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full text-white/80 hover:bg-white/10 group transition-all" href="#">
+<span class="material-symbols-outlined">package_2</span>
+<span class="font-medium text-sm">My Orders</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full text-white/80 hover:bg-white/10 group transition-all" href="#">
+<span class="material-symbols-outlined">favorite</span>
+<span class="font-medium text-sm">Wishlist</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full text-white/80 hover:bg-white/10 group transition-all" href="#">
+<span class="material-symbols-outlined">location_on</span>
+<span class="font-medium text-sm">Saved Addresses</span>
+</a>
+</nav>
+<!-- Logout -->
+<div class="mt-auto pt-6 border-t border-white/10">
+<a class="flex items-center gap-3 px-4 py-3 rounded-full text-red-200 hover:bg-red-900/20 transition-all" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-medium text-sm">Logout</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 p-4 md:p-10 overflow-y-auto">
+<!-- Header -->
+<header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
+<div>
+<h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Namaste, Ramesh</h1>
+<p class="text-slate-500 dark:text-slate-400 mt-1">Here's what's happening with your Munch Tokri favorites today.</p>
+</div>
+<button class="bg-primary text-white px-6 py-3 rounded-full font-bold text-sm shadow-lg shadow-red-500/20 flex items-center gap-2 hover:opacity-90 transition-all">
+<span class="material-symbols-outlined text-sm">shopping_bag</span>
+                    Shop New Arrivals
+                </button>
+</header>
+<!-- Recent Order Section -->
+<section class="mb-12">
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-xl font-bold text-brand-teal flex items-center gap-2">
+<span class="material-symbols-outlined">local_shipping</span>
+                        Active Order
+                    </h2>
+<a class="text-sm font-semibold text-brand-teal underline" href="#">View All Orders</a>
+</div>
+<div class="bg-white dark:bg-zinc-900 rounded-xl overflow-hidden shadow-sm border border-slate-100 dark:border-zinc-800 flex flex-col lg:flex-row">
+<!-- Order Preview Image -->
+<div class="w-full lg:w-72 h-48 lg:h-auto bg-slate-100 dark:bg-zinc-800 bg-center bg-cover" data-alt="Assorted roasted snacks in traditional packaging" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAuGY3TM3wbEdYilHDAv_2YoeObKeuoNGLaZoAKTwRVKki98g3UGupbfGHfb4RNnxvbTsiZV1dzaeyK-BlIn6pSqvpG1jl0aq3uQlwvSCUMB__-1XNZaHWIiQqzWDN1Z_nofhFOJ0VzAn7x8x0urZZK7c8LFgYahFqzuUGxt0aKkGEqdsUYMLv4Y1SQqWcX0Zs86i0-Ma7p-pMEwioDCMUtQv5D1rPN3DTpIGpOKdyro-AIlf7V5m0sA1q091Zxjzvc9KfuZptknsR2')">
+</div>
+<!-- Order Details -->
+<div class="flex-1 p-6 md:p-8">
+<div class="flex flex-wrap items-start justify-between gap-4 mb-6">
+<div>
+<span class="inline-block px-3 py-1 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 rounded-full text-xs font-bold uppercase tracking-wider mb-2">In Transit</span>
+<h3 class="text-2xl font-bold">Order #HA-89231</h3>
+<p class="text-slate-500 text-sm mt-1">Placed on Oct 24, 2023 • 3 Items • Total: ₹850.00</p>
+</div>
+<button class="bg-primary/10 text-primary px-6 py-2 rounded-full font-bold text-sm hover:bg-primary hover:text-white transition-all">
+                                Track Order
+                            </button>
+</div>
+<!-- Tracking Timeline -->
+<div class="relative">
+<div class="absolute top-4 left-0 w-full h-0.5 bg-slate-100 dark:bg-zinc-800"></div>
+<div class="relative z-10 grid grid-cols-4 gap-2">
+<!-- Step 1 -->
+<div class="flex flex-col items-center text-center">
+<div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-sm leading-none">check</span>
+</div>
+<span class="text-xs font-bold block">Placed</span>
+<span class="text-[10px] text-slate-400">Oct 24, 10:00 AM</span>
+</div>
+<!-- Step 2 -->
+<div class="flex flex-col items-center text-center">
+<div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-sm leading-none">check</span>
+</div>
+<span class="text-xs font-bold block">Processing</span>
+<span class="text-[10px] text-slate-400">Oct 24, 02:30 PM</span>
+</div>
+<!-- Step 3 -->
+<div class="flex flex-col items-center text-center">
+<div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-sm leading-none">local_shipping</span>
+</div>
+<span class="text-xs font-bold block">Shipped</span>
+<span class="text-[10px] text-slate-400">Oct 25, 09:00 AM</span>
+</div>
+<!-- Step 4 -->
+<div class="flex flex-col items-center text-center">
+<div class="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-400 flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-sm leading-none">inventory_2</span>
+</div>
+<span class="text-xs font-bold block text-slate-400">Delivered</span>
+<span class="text-[10px] text-slate-400">Est. Oct 27</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+<!-- Wishlist Section -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-xl font-bold text-brand-teal flex items-center gap-2">
+<span class="material-symbols-outlined">favorite</span>
+                            Wishlist
+                        </h2>
+<button class="text-sm font-semibold text-brand-teal">Edit</button>
+</div>
+<div class="bg-white dark:bg-zinc-900 rounded-xl p-4 shadow-sm border border-slate-100 dark:border-zinc-800">
+<div class="space-y-4">
+<!-- Wishlist Item 1 -->
+<div class="flex items-center gap-4 group">
+<div class="w-16 h-16 rounded-lg bg-slate-50 dark:bg-zinc-800 bg-center bg-cover flex-shrink-0" data-alt="Pack of spicy roasted chickpeas" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBV5OC3BlJELdTpLJ8NilQ9dRFvrUonCtrNT_NRT-VMddmAYio0yqe-6vDnyH2jjmomnMeVPCSi5TfPAtj7QcG1AdpDJlH_KBCqDEX9VOCCojRqk_lW7NwI5MoZfxOSTmRjOVZHtyzCi0xzlM0_0RVZz77FBUKb1xKp0rBmCDpMjaygmgtZeB8YockMLuFVlLGe-sdPHBmTw56QIxC5742UpoQLi4B0zkDzY6yElHDZ2Uqy4zQ5uu4Ozi7ST622fLGD5bEil3qyYOmF')">
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="font-bold text-sm truncate">Spicy Roasted Chickpeas</h4>
+<p class="text-xs text-slate-500">250g • ₹120.00</p>
+</div>
+<button class="text-sm font-semibold text-brand-teal">
+<span class="material-symbols-outlined">add_shopping_cart</span>
+</button>
+</div>
+<!-- Wishlist Item 2 -->
+<div class="flex items-center gap-4 group">
+<div class="w-16 h-16 rounded-lg bg-slate-50 dark:bg-zinc-800 bg-center bg-cover flex-shrink-0" data-alt="Handcrafted peanut brittle" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCe1qaEna3W_14drq3zXP06Zdk2vYCQkYnSkKbGjNW5Yl0FCE8iSEk2Z_0Z3wnTNrRyKqQevs4IRsBKWYqMCTMMHO35E-7ts-s99zZDDwM5f_NaZ7uZUATnKpzJ6_T8Qd9HBhsL9Mglhyums81qvkQ4kaqRcqp9dTblEELP31_yIFwvBd7Fsu2xTpoan8e9_4SG-pT9BqBHDOcev-WBjsQZdl132iIQ8zqdLOYfsQaJSk2Xw4OFtrpiJkU3X2K2jOSvY-N2pdkWfMLS')">
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="font-bold text-sm truncate">Peanut Brittle (Chikki)</h4>
+<p class="text-xs text-slate-500">500g • ₹280.00</p>
+</div>
+<button class="text-sm font-semibold text-brand-teal">
+<span class="material-symbols-outlined">add_shopping_cart</span>
+</button>
+</div>
+</div>
+<button class="w-full mt-6 py-3 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-slate-400 text-sm font-medium hover:border-brand-teal/50 hover:text-brand-teal transition-all">
+                            View All Items
+                        </button>
+</div>
+</section>
+<!-- Addresses Section -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-xl font-bold text-brand-teal flex items-center gap-2">
+<span class="material-symbols-outlined">map</span>
+                            Saved Addresses
+                        </h2>
+<button class="text-sm font-semibold text-brand-teal">+ Add New</button>
+</div>
+<div class="grid grid-cols-1 gap-4">
+<!-- Address 1 -->
+<div class="bg-white dark:bg-zinc-900 rounded-xl p-5 shadow-sm border-2 border-primary relative group">
+<div class="absolute top-4 right-4 flex gap-2">
+<span class="text-sm font-semibold text-brand-teal underline">Default</span>
+</div>
+<div class="flex items-start gap-4">
+<div class="text-sm font-semibold text-brand-teal underline">
+<span class="material-symbols-outlined">home</span>
+</div>
+<div class="flex-1">
+<h4 class="font-bold text-sm">Home</h4>
+<p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                                        #12, 4th Cross, 2nd Main<br/>
+                                        Jayanagar 4th Block, Bangalore - 560011<br/>
+                                        Karnataka, India
+                                    </p>
+<div class="mt-3 flex gap-4 text-xs font-bold text-brand-teal/70">
+<button class="hover:underline">Edit</button>
+<button class="hover:underline text-red-400">Delete</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Profile Info Quick View -->
+<section class="mt-12">
+<div class="bg-brand-teal rounded-xl p-8 text-white relative overflow-hidden">
+<!-- Subtle background pattern -->
+<div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(#ffffff 2px, transparent 2px); background-size: 24px 24px;"></div>
+<div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+<div class="flex flex-col md:flex-row items-center gap-6">
+<div class="w-24 h-24 rounded-full border-4 border-white/20 bg-center bg-cover" data-alt="User profile portrait closeup" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBt83rDZn4fiofSVfHCXmoF1Wf8PMT_gamGkahy-G9nANvpZ1syMDDm6Q-Kaz652u4Y88cpncWn5_w5IPReuI5WF9s905OXAGQ5p4n2dQgDnrodUA_qoNJcl-ouzD9-1fYnW8UnjWFqG8Fb7y_BiiNruzwgQpuJLTdkgnn7-0F167bRbKT0qAyO4BPoNEEwY6nks_dPjMmr88ZXutYCotcT2YCZ8RIN80W3wM42CgMoBYVnGu-7MD_ckKDnImGAstGShBREI3zYZue7')">
+</div>
+<div class="text-center md:text-left">
+<h3 class="text-2xl font-bold">Ramesh Kumar</h3>
+<p class="text-white/70">ramesh.k@example.com • +91 98765 43210</p>
+<div class="flex items-center justify-center md:justify-start gap-2 mt-2">
+<span class="inline-flex items-center gap-1 px-3 py-1 bg-white/10 rounded-full text-xs">
+<span class="material-symbols-outlined text-[14px]">stars</span>
+                                        Level 4 Heritage Scout
+                                    </span>
+</div>
+</div>
+</div>
+<button class="bg-primary text-white px-8 py-3 rounded-full font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-red-900/20">
+                            Update Profile Details
+                        </button>
+</div>
+</div>
+</section>
+<!-- Footer Meta -->
+<footer class="mt-16 text-center pb-8">
+<p class="text-slate-400 text-sm">© 2023 Munch Tokri - Bringing Tradition to Your Doorstep.</p>
+<div class="flex justify-center gap-4 mt-2">
+<a class="text-slate-400 hover:text-primary text-xs" href="#">Privacy Policy</a>
+<a class="text-slate-400 hover:text-primary text-xs" href="#">Terms of Service</a>
+<a class="text-slate-400 hover:text-primary text-xs" href="#">Need Help?</a>
+</div>
+</footer>
+</main>
+</div>
+</body></html>

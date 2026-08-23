@@ -1,0 +1,368 @@
+.aboutContainer {
+    background-color: var(--background);
+    color: var(--text-primary);
+    font-family: var(--font-main);
+    overflow-x: hidden;
+}
+
+.section {
+    padding: 8rem 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.container {
+    width: 90%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+/* Hero Section - Mirroring Home Hero */
+.hero {
+    background: var(--primary);
+    color: white;
+    padding: 8rem 0;
+    position: relative;
+}
+
+.heroContent {
+    flex: 1.2;
+}
+
+.heroLabel {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    margin-bottom: 2rem;
+    color: white;
+    font-weight: 600;
+}
+
+.heroTitle {
+    font-size: 4.5rem;
+    line-height: 1.1;
+    margin-bottom: 2rem;
+    font-family: var(--font-display);
+    color: white;
+}
+
+.heroTitle span {
+    color: var(--accent);
+}
+
+.heroDesc {
+    font-size: 1.15rem;
+    line-height: 1.8;
+    opacity: 0.95;
+    margin-bottom: 3rem;
+    max-width: 600px;
+}
+
+/* Sections Layouts */
+.flexLayout {
+    display: flex;
+    align-items: center;
+    gap: 6rem;
+}
+
+.imageLeft {
+    flex-direction: row-reverse;
+}
+
+.textSide {
+    flex: 1.2;
+}
+
+.imageSide {
+    flex: 1;
+    position: relative;
+    display: flex;
+    justify-content: center;
+}
+
+/* Polaroid Image Style - Mirroring Home Page bannerImg */
+.contentImage {
+    width: 100%;
+    height: auto;
+    border-radius: 30px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+    border: 8px solid white;
+    transform: rotate(2deg);
+    transition: transform 0.3s ease;
+}
+
+.imageLeft .contentImage {
+    transform: rotate(-2deg);
+}
+
+.contentImage:hover {
+    transform: rotate(0deg);
+}
+
+.sectionTitle {
+    font-size: 3rem;
+    margin-bottom: 2rem;
+    font-family: var(--font-display);
+    color: var(--text-primary);
+}
+
+.sectionTitle span {
+    color: var(--secondary);
+}
+
+/* Multi-colored headings for variety */
+.storyHeading span { color: var(--secondary); }
+.genHeading span { color: var(--primary); }
+.modernHeading span { color: var(--accent); }
+
+/* Philosophy - Mirroring Home Featured/Primary sections */
+.philosophy {
+    background: var(--primary);
+    color: white;
+}
+
+.philosophy .sectionTitle {
+    color: white;
+}
+
+/* Feature Circles */
+.featuresGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 2rem;
+    margin-top: 5rem;
+}
+
+.featureItem {
+    text-align: center;
+    transition: transform 0.3s ease;
+}
+
+@media (max-width: 768px) {
+    .featuresGrid {
+        display: flex;
+        overflow-x: auto;
+        gap: 1.5rem;
+        padding: 1rem 0;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        margin-top: 3rem;
+    }
+
+    .featuresGrid::-webkit-scrollbar {
+        display: none;
+    }
+
+    .featureItem {
+        min-width: 70%;
+        scroll-snap-align: center;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 2.5rem 1.5rem;
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+}
+
+.featureIcon {
+    width: 72px;
+    height: 72px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    font-size: 2rem;
+    color: var(--accent);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.featureItem:hover .featureIcon {
+    background: var(--accent);
+    color: var(--primary);
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 10px 30px rgba(255, 183, 3, 0.4);
+}
+
+/* Product Tags */
+.productAssortment {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-top: 3rem;
+}
+
+@media (max-width: 768px) {
+    .productAssortment {
+        display: flex;
+        overflow-x: auto;
+        gap: 1rem;
+        padding: 1rem 0;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .productAssortment::-webkit-scrollbar {
+        display: none;
+    }
+
+    .productTag {
+        min-width: 60%;
+        scroll-snap-align: center;
+        white-space: nowrap;
+    }
+}
+
+.productTag {
+    background: white;
+    padding: 1.25rem;
+    border-radius: 12px;
+    text-align: center;
+    font-weight: 700;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    border: 1px solid var(--gray-medium);
+    color: var(--primary);
+    font-size: 1rem;
+}
+
+/* Promise - Highlight Box */
+.centeredHighlight {
+    background: var(--secondary);
+    color: white;
+    text-align: center;
+    padding: 8rem 0;
+}
+
+.centeredHighlight h2 {
+    color: white;
+    font-size: 3.5rem;
+    margin-bottom: 2rem;
+    font-family: var(--font-display);
+}
+
+/* CTA - Mirroring Home Page ctaBox */
+.ctaSection {
+    padding: 6rem 0;
+}
+
+.ctaBox {
+    background: var(--secondary);
+    color: white;
+    padding: 5rem;
+    border-radius: 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.headingFont {
+    font-family: var(--font-display);
+    font-size: 3.5rem;
+    margin-bottom: 2rem;
+    color: white;
+}
+
+.promiseImg {
+    width: 100%;
+    max-width: 800px;
+    height: auto;
+    border-radius: 24px;
+    border: 8px solid white;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+    margin-top: 2rem;
+}
+
+.ctaBtn {
+    background: white !important;
+    color: var(--primary) !important;
+}
+
+.ctaBtn:hover {
+    background: var(--gray-light) !important;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .flexLayout {
+        flex-direction: column;
+        text-align: center;
+        gap: 3rem;
+    }
+    
+    .heroTitle {
+        font-size: 3rem;
+    }
+    
+    .sectionTitle {
+        font-size: 2.5rem;
+    }
+
+    .ctaBox {
+        padding: 4rem 1.5rem;
+        border-radius: 24px;
+    }
+
+    .headingFont {
+        font-size: 2.2rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .promiseImg {
+        border-width: 4px;
+        border-radius: 16px;
+    }
+
+    .productAssortment {
+        margin-top: 2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .section {
+        padding: 4rem 0;
+    }
+
+    .hero {
+        padding: 4rem 1rem;
+    }
+
+    .heroTitle {
+        font-size: 2.25rem !important;
+        margin-bottom: 1.5rem;
+    }
+
+    .sectionTitle {
+        font-size: 1.8rem !important;
+        margin-bottom: 1.5rem;
+    }
+
+    .featuresGrid {
+        margin-top: 2rem;
+    }
+
+    .featureItem {
+        min-width: 85%;
+        padding: 2rem 1rem;
+    }
+
+    .productTag {
+        min-width: 75%;
+        padding: 1rem;
+    }
+
+    .ctaBox {
+        padding: 3rem 1rem;
+    }
+
+    .headingFont {
+        font-size: 1.8rem;
+    }
+}

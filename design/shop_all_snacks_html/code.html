@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Munch Tokri | Authentic Indian Snacks</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#008080",
+                        "secondary": "#e53e3e",
+                        "background-light": "#f7f7f6",
+                        "background-dark": "#1c1716",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .product-card:hover .quick-view { opacity: 1; transform: translateY(0); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .filled-icon { font-variation-settings: 'FILL' 1; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
+<!-- Top Navigation Bar -->
+<header class="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-primary/10 px-4 md:px-10 lg:px-20 py-3">
+<div class="max-w-[1440px] mx-auto flex items-center justify-between gap-8">
+<div class="flex items-center gap-8 shrink-0">
+<div class="flex items-center gap-3">
+<div class="bg-primary text-white p-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined">shopping_basket</span>
+</div>
+<h2 class="text-primary text-xl font-bold tracking-tight">Munch Tokri</h2>
+</div>
+<nav class="hidden lg:flex items-center gap-6">
+<a class="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary font-medium text-sm transition-colors" href="#">Home</a>
+<a class="text-primary font-semibold text-sm" href="#">Shop</a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary font-medium text-sm transition-colors" href="#">Savories</a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary font-medium text-sm transition-colors" href="#">Sweets</a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary font-medium text-sm transition-colors" href="#">About</a>
+</nav>
+</div>
+<div class="flex flex-1 justify-end items-center gap-4">
+<div class="hidden md:flex relative flex-1 max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-primary/5 border-none rounded-full focus:ring-2 focus:ring-primary/20 text-sm" placeholder="Search for Bhujia, Gachak, Murukku..." type="text"/>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 hover:bg-primary/10 rounded-full transition-colors relative">
+<span class="material-symbols-outlined">favorite</span>
+</button>
+<button class="p-2 hover:bg-primary/10 rounded-full transition-colors relative">
+<span class="material-symbols-outlined">shopping_bag</span>
+<span class="absolute top-1 right-1 bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-primary/20 border border-primary/10 overflow-hidden ml-2">
+<img class="w-full h-full object-cover" data-alt="User profile avatar smiling" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAZDkT0M5zgmY7h-vS_elB-Xo2aLM7pA1_dYdeh9Ju_SSO-VaTjEzvtkqPvSlZUnBpj_VzAttCRMB8kme-Q5l8NwOjRXstUotF3HnzznRI9-O3wB3cIrxizuQswv6GqUpKwFNiWwUo1c6Qisg076yRfh1Z6lql_FqEygCUNA4HDx1cyaRKjPPAptrxdmil3YJ8jum9GODRnAnYadAKFdao5tarhXUb_TxlLmOwR-pFkTg5ehQ_uEKAdLw5lJPOAgbNJlBGYhvFMIls3"/>
+</div>
+</div>
+</div>
+</div>
+</header>
+<main class="max-w-[1440px] mx-auto px-4 md:px-10 lg:px-20 py-8">
+<!-- Breadcrumbs -->
+<nav class="flex items-center gap-2 text-sm text-slate-500 mb-8">
+<a class="hover:text-primary" href="#">Home</a>
+<span class="material-symbols-outlined text-xs">chevron_right</span>
+<span class="text-primary font-medium">All Snacks</span>
+</nav>
+<div class="flex flex-col lg:flex-row gap-10">
+<!-- Sidebar Filters -->
+<aside class="w-full lg:w-64 shrink-0 space-y-8">
+<div>
+<h3 class="text-lg font-bold text-primary mb-4 flex items-center gap-2"><span class="material-symbols-outlined">filter_list</span> Filters</h3>
+<!-- Categories -->
+<div class="border-t border-primary/10 py-4">
+<h4 class="font-semibold text-sm mb-3">Categories</h4>
+<div class="space-y-2">
+<label class="flex items-center gap-2 cursor-pointer group">
+<input checked="" class="rounded-full text-primary focus:ring-primary/30 border-primary/20" type="checkbox"/>
+<span class="text-sm group-hover:text-primary transition-colors">Savories (42)</span>
+</label>
+<label class="flex items-center gap-2 cursor-pointer group">
+<input class="rounded-full text-primary focus:ring-primary/30 border-primary/20" type="checkbox"/>
+<span class="text-sm group-hover:text-primary transition-colors">Sweets (28)</span>
+</label>
+<label class="flex items-center gap-2 cursor-pointer group">
+<input class="rounded-full text-primary focus:ring-primary/30 border-primary/20" type="checkbox"/>
+<span class="text-sm group-hover:text-primary transition-colors">Healthy Roasted (15)</span>
+</label>
+<label class="flex items-center gap-2 cursor-pointer group">
+<input class="rounded-full text-primary focus:ring-primary/30 border-primary/20" type="checkbox"/>
+<span class="text-sm group-hover:text-primary transition-colors">Gift Boxes (5)</span>
+</label>
+</div>
+</div>
+<!-- Price Range -->
+<div class="border-t border-primary/10 py-4">
+<h4 class="font-semibold text-sm mb-4">Price Range</h4>
+<div class="px-2">
+<input class="w-full h-1 bg-primary/20 rounded-lg appearance-none cursor-pointer accent-primary" max="1500" min="50" type="range"/>
+<div class="flex justify-between mt-2 text-xs font-medium text-slate-500">
+<span>₹50</span>
+<span>₹1500+</span>
+</div>
+</div>
+</div>
+<!-- Sort By -->
+<div class="border-t border-primary/10 py-4">
+<h4 class="font-semibold text-sm mb-3">Popularity &amp; Sorting</h4>
+<div class="space-y-2">
+<button class="w-full flex items-center justify-between px-3 py-2 rounded-full bg-primary text-white text-xs font-bold">
+<span>Best Sellers</span>
+<span class="material-symbols-outlined text-xs filled-icon">check_circle</span>
+</button>
+<button class="w-full flex items-center justify-between px-3 py-2 rounded-full hover:bg-primary/10 text-xs font-medium transition-colors">
+<span>Trending Now</span>
+</button>
+<button class="w-full flex items-center justify-between px-3 py-2 rounded-full hover:bg-primary/10 text-xs font-medium transition-colors">
+<span>Price: Low to High</span>
+</button>
+</div>
+</div>
+<!-- Featured -->
+<div class="bg-primary/5 rounded-xl p-4 mt-8">
+<span class="text-[10px] font-bold uppercase tracking-wider text-primary/60">Featured Offer</span>
+<p class="text-sm font-bold text-primary mt-1 leading-tight">Authentic Mysore Pak</p>
+<p class="text-xs text-slate-500 mt-1">Free delivery on orders above ₹499</p>
+<button class="mt-3 w-full py-2 bg-primary text-white text-xs font-bold rounded-full">Shop Now</button>
+</div>
+</div>
+</aside>
+<!-- Product Grid -->
+<section class="flex-1">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+<div>
+<h1 class="text-2xl font-bold text-primary">Savories &amp; Snacks</h1>
+<p class="text-sm text-slate-500">Showing 1-12 of 85 products</p>
+</div>
+<div class="flex gap-2">
+<button class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-background-dark border border-primary/10 rounded-full text-sm font-medium">
+<span class="material-symbols-outlined text-sm">sort</span> Sort: Popularity
+                        </button>
+</div>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+<!-- Product Card 1 -->
+<div class="product-card group relative bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-primary/5 shadow-sm hover:shadow-xl transition-all">
+<div class="relative aspect-square overflow-hidden bg-slate-100">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Crispy traditional spiral chakli snacks" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDC7yF_4Q_kkpAv1oHIUm1aJlZW7tQPiT95rwY1ByzDrzayM-GS77R3d2krwn4PxINTyX6K3rV6YQVnWKZsBYunlmLvsGUlFCEOCxwX3qxIkADH82XeaMNy9HoUNvUkuhuMHubewzn31ZKJtiKfED9nrTwJnE4okSWhblYq00h-o4Z0IQC6U4k9j3Dr4gmd6ciqSXvDNPIQ2axJ695NZs8aYkhNH8c2a7rO8LLs8Pb94QAN-s_o7-lZASistzYrR5Z87h6MZnvjcr6I"/>
+<div class="absolute top-3 left-3 flex flex-col gap-2">
+<span class="bg-primary text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">Best Seller</span>
+<span class="text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider bg-secondary">-15% OFF</span>
+</div>
+<button class="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur rounded-full text-primary hover:bg-primary hover:text-white transition-all">
+<span class="material-symbols-outlined text-xl">favorite</span>
+</button>
+<div class="quick-view absolute bottom-4 left-0 right-0 px-4 opacity-0 translate-y-4 transition-all duration-300">
+<button class="w-full py-2.5 bg-white/90 backdrop-blur text-primary text-xs font-bold rounded-full shadow-lg hover:bg-primary hover:text-white">Quick View</button>
+</div>
+</div>
+<div class="p-4">
+<div class="flex items-center gap-1 mb-1">
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon">star</span>
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon">star</span>
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon">star</span>
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon">star</span>
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon text-slate-300">star</span>
+<span class="text-[10px] text-slate-400 font-medium ml-1">(124)</span>
+</div>
+<h3 class="font-bold text-slate-800 dark:text-slate-100 truncate">Traditional Butter Chakli</h3>
+<p class="text-xs text-slate-500 mb-3">Net Wt: 250g • Handcrafted</p>
+<div class="flex items-center justify-between">
+<div class="flex items-baseline gap-2">
+<span class="text-lg font-bold text-primary">₹145</span>
+<span class="text-xs text-slate-400 line-through">₹170</span>
+</div>
+<button class="flex items-center justify-center p-2 bg-primary text-white rounded-full hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-xl">add_shopping_cart</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Product Card 2 -->
+<div class="product-card group relative bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-primary/5 shadow-sm hover:shadow-xl transition-all">
+<div class="relative aspect-square overflow-hidden bg-slate-100">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Traditional Kodubale savory rings" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA_q7eWh3vmfhFsW54LAQwc2BPLUrXtC_z89-IVo-PeHmww39Hx2vKerPm1geyxaHbbKw2D2vV_W0pCiaQb4t4WbBhyfDox6OMa8eO2l30CZafDcRaXtOE8_xKrsot4WpA9b75Qt0pYckvp8lOChdVdopyoVpyaIPaVGI6R9MTRfm6L3wzyDt8ovHVUrxguMchq5JHR3X9-tWJOtoIRdTS88_VM-vDSia8sDPKdVzqAPPeov22ZafUxueZ4vT5hlt5HRPDTJoecNPqt"/>
+<button class="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur rounded-full text-primary hover:bg-primary hover:text-white transition-all">
+<span class="material-symbols-outlined text-xl">favorite</span>
+</button>
+<div class="quick-view absolute bottom-4 left-0 right-0 px-4 opacity-0 translate-y-4 transition-all duration-300">
+<button class="w-full py-2.5 bg-white/90 backdrop-blur text-primary text-xs font-bold rounded-full shadow-lg hover:bg-primary hover:text-white">Quick View</button>
+</div>
+</div>
+<div class="p-4">
+<div class="flex items-center gap-1 mb-1">
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon">star</span>
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon">star</span>
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon">star</span>
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon text-slate-300">star</span>
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon text-slate-300">star</span>
+<span class="text-[10px] text-slate-400 font-medium ml-1">(42)</span>
+</div>
+<h3 class="font-bold text-slate-800 dark:text-slate-100 truncate">Spicy Kodubale Rings</h3>
+<p class="text-xs text-slate-500 mb-3">Net Wt: 200g • Spicy &amp; Crunchy</p>
+<div class="flex items-center justify-between">
+<div class="flex items-baseline gap-2">
+<span class="text-lg font-bold text-primary">₹120</span>
+</div>
+<button class="flex items-center justify-center p-2 bg-primary text-white rounded-full hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-xl">add_shopping_cart</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Product Card 3 -->
+<div class="product-card group relative bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-primary/5 shadow-sm hover:shadow-xl transition-all">
+<div class="relative aspect-square overflow-hidden bg-slate-100">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Traditional Indian laddus sweet treats" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDZdOXlURsMflGacLD5bd0weYCtPCD4SIL6QRJJNcSVj6Itm4GyGQ3_U-IB3AjaS8iNGwtPUvgoGP3zSNv17xbgjDGKNXrVTJxbRA3T7PQL7MohpPl_aTT62lSBy_y75Eln2YCDP5RTCEJl1ojmpRB2Immp6YfQDj7HIjNLCYv8yNqkLmtBsSayhqcB5Y1AqTyBi0oy51p7Knh1CZm7DFhNh8BBXh3vGYK2SozkVXG8h1ujdk6goApedoEtDUk-3Aj-0v_PeIlPif4"/>
+<div class="absolute top-3 left-3 flex flex-col gap-2">
+<span class="bg-green-600 text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">Organic</span>
+</div>
+<button class="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur rounded-full text-primary hover:bg-primary hover:text-white transition-all">
+<span class="material-symbols-outlined text-xl">favorite</span>
+</button>
+<div class="quick-view absolute bottom-4 left-0 right-0 px-4 opacity-0 translate-y-4 transition-all duration-300">
+<button class="w-full py-2.5 bg-white/90 backdrop-blur text-primary text-xs font-bold rounded-full shadow-lg hover:bg-primary hover:text-white">Quick View</button>
+</div>
+</div>
+<div class="p-4">
+<div class="flex items-center gap-1 mb-1">
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon">star</span>
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon">star</span>
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon">star</span>
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon">star</span>
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon">star</span>
+<span class="text-[10px] text-slate-400 font-medium ml-1">(210)</span>
+</div>
+<h3 class="font-bold text-slate-800 dark:text-slate-100 truncate">Moong Dal Laddu</h3>
+<p class="text-xs text-slate-500 mb-3">Net Wt: 400g • Zero Preservatives</p>
+<div class="flex items-center justify-between">
+<div class="flex items-baseline gap-2">
+<span class="text-lg font-bold text-primary">₹350</span>
+</div>
+<button class="flex items-center justify-center p-2 bg-primary text-white rounded-full hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-xl">add_shopping_cart</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Product Card 4 -->
+<div class="product-card group relative bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-primary/5 shadow-sm hover:shadow-xl transition-all">
+<div class="relative aspect-square overflow-hidden bg-slate-100">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Mixture snack with nuts and lentils" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC4IU-SVcu5EiskofiKXBAXbJYiC7pcU0PAQV5DufSEFrafE1SCeaVg81mVkMnxCUK-l3att7IIUoKfLZggRT2E2ZTx_bt6auAGyjRpiIrQac1LUi0cP1ywN8a07tSKPAgLsfIPJj39tghf6gipgGAnDL3lPo9FZAusBcovNLklUbFy0XEPq2nh6njw-sgcPystCMzq6UzDaoUFpM3631dyCxn74CBUaoCi8-eY21iiCHNdptp8rj1m6SJ4f_z_4e70UBw4tiTzEY02"/>
+<button class="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur rounded-full text-primary hover:bg-primary hover:text-white transition-all">
+<span class="material-symbols-outlined text-xl">favorite</span>
+</button>
+<div class="quick-view absolute bottom-4 left-0 right-0 px-4 opacity-0 translate-y-4 transition-all duration-300">
+<button class="w-full py-2.5 bg-white/90 backdrop-blur text-primary text-xs font-bold rounded-full shadow-lg hover:bg-primary hover:text-white">Quick View</button>
+</div>
+</div>
+<div class="p-4">
+<div class="flex items-center gap-1 mb-1">
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon">star</span>
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon">star</span>
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon">star</span>
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon text-slate-300">star</span>
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon text-slate-300">star</span>
+<span class="text-[10px] text-slate-400 font-medium ml-1">(56)</span>
+</div>
+<h3 class="font-bold text-slate-800 dark:text-slate-100 truncate">Special Mixture (Teeka)</h3>
+<p class="text-xs text-slate-500 mb-3">Net Wt: 250g • Traditional Recipe</p>
+<div class="flex items-center justify-between">
+<div class="flex items-baseline gap-2">
+<span class="text-lg font-bold text-primary">₹160</span>
+</div>
+<button class="flex items-center justify-center p-2 bg-primary text-white rounded-full hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-xl">add_shopping_cart</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Product Card 5 -->
+<div class="product-card group relative bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-primary/5 shadow-sm hover:shadow-xl transition-all">
+<div class="relative aspect-square overflow-hidden bg-slate-100">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Roasted chickpeas and grains snack" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBPCypJTB1JB5Yl-_xneOKCHYdEgBVUT7aUZwUaDemmaNARL4mMw_7ZDuXUHRnoHiyoM5Xo-WO2pq3ERUpgAuhcEFP_pTSTRAih3ID4GebLEHRekUO3WF8O74rAS_-GP820oWfE2Opgv1iEgX5Qnw7cCovcGbnBn5N_3aP7bUtyAmCZy8fzCzYArbo2XFzedUogD3nE-4_ApDannj7CNUOkyfxfDvs5JDbewhmKbuzQVEniGa9t3BUFIv8j06u8bV4JKi2Hr5SD4JBP"/>
+<div class="absolute top-3 left-3 flex flex-col gap-2">
+<span class="bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">Healthy Choice</span>
+</div>
+<button class="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur rounded-full text-primary hover:bg-primary hover:text-white transition-all">
+<span class="material-symbols-outlined text-xl">favorite</span>
+</button>
+<div class="quick-view absolute bottom-4 left-0 right-0 px-4 opacity-0 translate-y-4 transition-all duration-300">
+<button class="w-full py-2.5 bg-white/90 backdrop-blur text-primary text-xs font-bold rounded-full shadow-lg hover:bg-primary hover:text-white">Quick View</button>
+</div>
+</div>
+<div class="p-4">
+<div class="flex items-center gap-1 mb-1">
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon">star</span>
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon">star</span>
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon">star</span>
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon">star</span>
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon text-slate-300">star</span>
+<span class="text-[10px] text-slate-400 font-medium ml-1">(89)</span>
+</div>
+<h3 class="font-bold text-slate-800 dark:text-slate-100 truncate">Roasted Hurigalu Mix</h3>
+<p class="text-xs text-slate-500 mb-3">Net Wt: 200g • High Protein</p>
+<div class="flex items-center justify-between">
+<div class="flex items-baseline gap-2">
+<span class="text-lg font-bold text-primary">₹95</span>
+</div>
+<button class="flex items-center justify-center p-2 bg-primary text-white rounded-full hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-xl">add_shopping_cart</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Product Card 6 -->
+<div class="product-card group relative bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-primary/5 shadow-sm hover:shadow-xl transition-all">
+<div class="relative aspect-square overflow-hidden bg-slate-100">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Karnataka style sweets box" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDxSfetIHBg4HXgkwQpWbRt-1mI1Fmfvb2rkT9sd_VAXAEbGPz_d5y87TJXM9ZCdq7quavS_1w4YVapJzWDWKL-oZduVecNDFhhVI-g2aYN1kSQ1y8G7_y3qMkHlhI-DrXGVxhw-MnHEcDGCdm7iw7z_ljg3Y0HJpjw95K28z4M5z7XNvxJm3lUgc6yTdsVaqmvUGf1EZgZf7lSLVAGmHGATCra-VdYHAQoiqhzToAmhIh1E8UdZpIc-dKG7VxCRtrbaB2-zXe7DWVA"/>
+<button class="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur rounded-full text-primary hover:bg-primary hover:text-white transition-all">
+<span class="material-symbols-outlined text-xl">favorite</span>
+</button>
+<div class="quick-view absolute bottom-4 left-0 right-0 px-4 opacity-0 translate-y-4 transition-all duration-300">
+<button class="w-full py-2.5 bg-white/90 backdrop-blur text-primary text-xs font-bold rounded-full shadow-lg hover:bg-primary hover:text-white">Quick View</button>
+</div>
+</div>
+<div class="p-4">
+<div class="flex items-center gap-1 mb-1">
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon">star</span>
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon">star</span>
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon">star</span>
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon">star</span>
+<span class="material-symbols-outlined text-yellow-500 text-xs filled-icon">star</span>
+<span class="text-[10px] text-slate-400 font-medium ml-1">(154)</span>
+</div>
+<h3 class="font-bold text-slate-800 dark:text-slate-100 truncate">Royal Mysore Pak</h3>
+<p class="text-xs text-slate-500 mb-3">Net Wt: 500g • Pure Desi Ghee</p>
+<div class="flex items-center justify-between">
+<div class="flex items-baseline gap-2">
+<span class="text-lg font-bold text-primary">₹480</span>
+</div>
+<button class="flex items-center justify-center p-2 bg-primary text-white rounded-full hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-xl">add_shopping_cart</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Pagination -->
+<div class="mt-12 flex items-center justify-center gap-2">
+<button class="w-10 h-10 flex items-center justify-center rounded-full border border-primary/10 hover:bg-primary hover:text-white transition-colors">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-primary text-white font-bold">1</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full border border-primary/10 hover:bg-primary hover:text-white transition-colors">2</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full border border-primary/10 hover:bg-primary hover:text-white transition-colors">3</button>
+<span class="px-2">...</span>
+<button class="w-10 h-10 flex items-center justify-center rounded-full border border-primary/10 hover:bg-primary hover:text-white transition-colors">8</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full border border-primary/10 hover:bg-primary hover:text-white transition-colors">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</section>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-primary text-white/90 py-16 px-4 md:px-10 lg:px-20 mt-20">
+<div class="max-w-[1440px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+<div class="space-y-4">
+<div class="flex items-center gap-3">
+<div class="bg-white text-primary p-2 rounded-full">
+<span class="material-symbols-outlined">shopping_basket</span>
+</div>
+<h2 class="text-xl font-bold tracking-tight text-white">Munch Tokri</h2>
+</div>
+<p class="text-sm text-white/70 leading-relaxed">Bringing the authentic taste of India's favorite munchies to your doorstep. Handpicked flavors, traditional recipes, and pure joy in every tokri.</p>
+<div class="flex gap-4 pt-2">
+<a class="w-8 h-8 flex items-center justify-center bg-white/10 rounded-full hover:bg-white/20 transition-all" href="#">
+<span class="material-symbols-outlined text-sm">social_leaderboard</span>
+</a>
+<a class="w-8 h-8 flex items-center justify-center bg-white/10 rounded-full hover:bg-white/20 transition-all" href="#">
+<span class="material-symbols-outlined text-sm">alternate_email</span>
+</a>
+</div>
+</div>
+<div>
+<h4 class="font-bold text-white mb-6 uppercase tracking-widest text-xs">Categories</h4>
+<ul class="space-y-3 text-sm">
+<li><a class="hover:text-white transition-colors" href="#">Crispy Savories</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Traditional Sweets</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Healthy Roasted Grains</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Festive Gift Boxes</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-bold text-white mb-6 uppercase tracking-widest text-xs">Customer Service</h4>
+<ul class="space-y-3 text-sm">
+<li><a class="hover:text-white transition-colors" href="#">Shipping Policy</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Track Order</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Returns &amp; Refunds</a></li>
+<li><a class="hover:text-white transition-colors" href="#">FAQs</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-bold text-white mb-6 uppercase tracking-widest text-xs">Newsletter</h4>
+<p class="text-sm text-white/70 mb-4 leading-relaxed">Bringing the authentic taste of India's favorite munchies to your doorstep. Handpicked flavors, traditional recipes, and pure joy in every tokri.</p>
+<div class="relative">
+<input class="w-full bg-white/10 border-none rounded-full py-2.5 px-4 text-sm placeholder:text-white/40 focus:ring-1 focus:ring-white/40" placeholder="Email address" type="email"/>
+<button class="absolute right-1 top-1 bottom-1 px-4 bg-white text-primary text-xs font-bold rounded-full">Join</button>
+</div>
+</div>
+</div>
+<div class="max-w-[1440px] mx-auto border-t border-white/10 mt-16 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-white/40">
+<p>© 2024 Munch Tokri. All rights reserved.</p>
+<div class="flex gap-6">
+<a class="hover:text-white" href="#">Privacy Policy</a>
+<a class="hover:text-white" href="#">Terms of Service</a>
+</div>
+</div>
+</footer>
+</body></html>

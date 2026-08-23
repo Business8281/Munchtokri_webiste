@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Hurigalu Angadi | Admin Orders</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#008080",
+                        "accent-red": "#e11d48",
+                        "background-light": "#f7f7f6",
+                        "background-dark": "#1c1716",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-size: 24px; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased font-display">
+<div class="relative flex h-screen w-full overflow-hidden">
+<!-- Sidebar -->
+<aside class="w-64 border-r border-primary/10 dark:bg-background-dark flex flex-col shrink-0 bg-[#008080]">
+<div class="p-6 flex items-center gap-3">
+<div class="bg-white/20 p-2 rounded-lg text-white">
+<span class="material-symbols-outlined">storefront</span>
+</div>
+<div>
+<h2 class="text-white text-lg font-bold leading-tight tracking-tight">Munch Tokri</h2>
+<p class="text-white/70 text-xs font-medium">Admin Dashboard</p>
+</div>
+</div>
+<nav class="flex-1 px-4 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/10 rounded-xl transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-semibold">Dashboard</span>
+</a>
+<a class="bg-white/20 p-2 rounded-lg text-white" href="#">
+<span class="material-symbols-outlined">shopping_bag</span>
+<span class="text-sm font-semibold">Orders</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/10 rounded-xl transition-colors" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="text-sm font-semibold">Inventory</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/10 rounded-xl transition-colors" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="text-sm font-semibold">Customers</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/10 rounded-xl transition-colors" href="#">
+<span class="material-symbols-outlined">bar_chart</span>
+<span class="text-sm font-semibold">Reports</span>
+</a>
+</nav>
+<div class="p-4 border-t border-primary/10">
+<div class="flex items-center gap-3 p-3 rounded-xl bg-white/10">
+<div class="size-10 rounded-full bg-white/20 flex items-center justify-center text-white font-bold">A</div>
+<div class="overflow-hidden">
+<p class="text-xs font-bold truncate text-white">Admin User</p>
+<p class="text-[10px] text-white/60 truncate">Store Manager</p>
+</div>
+<span class="material-symbols-outlined text-white/60 ml-auto scale-75">settings</span>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col overflow-hidden bg-background-light dark:bg-background-dark">
+<!-- Top Nav -->
+<header class="h-16 border-b border-primary/10 bg-white dark:bg-background-dark flex items-center justify-between px-8 shrink-0">
+<div class="flex items-center gap-4 flex-1 max-w-xl">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+<input class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20" placeholder="Search orders, customers..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex items-center gap-2 px-4 py-2 border border-primary/20 rounded-full text-xs font-bold hover:bg-primary/5 transition-colors text-primary">
+<span class="material-symbols-outlined text-sm">download</span>
+                    Export CSV
+                </button>
+<div class="h-8 w-px bg-slate-200"></div>
+<button class="relative p-2 text-slate-600 hover:bg-slate-100 rounded-full">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-accent-red rounded-full border-2 border-white"></span>
+</button>
+</div>
+</header>
+<!-- Content Area -->
+<div class="flex-1 overflow-y-auto p-8 space-y-8">
+<!-- Summary Stats -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="bg-white dark:bg-background-dark p-6 rounded-xl border border-primary/10 flex items-center gap-4">
+<div class="size-12 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center text-amber-700">
+<span class="material-symbols-outlined">receipt_long</span>
+</div>
+<div>
+<p class="text-sm text-slate-500 font-medium">Total Orders</p>
+<p class="text-2xl font-bold">1,284 <span class="text-xs text-green-600 font-normal ml-1">+12%</span></p>
+</div>
+</div>
+<div class="bg-white dark:bg-background-dark p-6 rounded-xl border border-primary/10 flex items-center gap-4">
+<div class="size-12 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-700">
+<span class="material-symbols-outlined">pending_actions</span>
+</div>
+<div>
+<p class="text-sm text-slate-500 font-medium">Pending Processing</p>
+<p class="text-2xl font-bold">42 <span class="text-xs text-red-600 font-normal ml-1">-5%</span></p>
+</div>
+</div>
+<div class="bg-white dark:bg-background-dark p-6 rounded-xl border border-primary/10 flex items-center gap-4">
+<div class="size-12 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-green-700">
+<span class="material-symbols-outlined">payments</span>
+</div>
+<div>
+<p class="text-sm text-slate-500 font-medium">Revenue Today</p>
+<p class="text-2xl font-bold">₹12,450 <span class="text-xs text-green-600 font-normal ml-1">+18%</span></p>
+</div>
+</div>
+</div>
+<!-- Table Controls -->
+<div class="space-y-4">
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+<div>
+<h1 class="text-3xl font-black tracking-tight text-primary">Order Management</h1>
+<p class="text-slate-500 text-sm mt-1">Manage and track all customer snack orders across the country.</p>
+</div>
+<div class="flex items-center gap-2">
+<button class="bg-primary text-white px-6 py-2.5 rounded-full text-sm font-bold shadow-lg shadow-primary/20 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">add</span>
+                            Create New Order
+                        </button>
+</div>
+</div>
+<!-- Filters -->
+<div class="bg-white dark:bg-background-dark border border-primary/10 p-2 rounded-2xl flex flex-wrap items-center justify-between gap-2 shadow-sm">
+<div class="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+<button class="px-4 py-1.5 text-xs font-bold bg-white dark:bg-slate-700 rounded-lg shadow-sm">All Orders</button>
+<button class="px-4 py-1.5 text-xs font-bold text-slate-500 hover:text-primary">Processing</button>
+<button class="px-4 py-1.5 text-xs font-bold text-slate-500 hover:text-primary">Shipped</button>
+<button class="px-4 py-1.5 text-xs font-bold text-slate-500 hover:text-primary">Delivered</button>
+</div>
+<div class="flex items-center gap-3 px-2">
+<div class="flex items-center gap-2 text-xs font-bold text-slate-500 border border-slate-200 rounded-xl px-3 py-1.5 cursor-pointer hover:bg-slate-50">
+<span class="material-symbols-outlined text-sm">calendar_month</span>
+                            Last 30 Days
+                        </div>
+<div class="flex items-center gap-2 text-xs font-bold text-slate-500 border border-slate-200 rounded-xl px-3 py-1.5 cursor-pointer hover:bg-slate-50">
+<span class="material-symbols-outlined text-sm">filter_list</span>
+                            Advanced Filters
+                        </div>
+</div>
+</div>
+</div>
+<!-- Table Container -->
+<div class="bg-white dark:bg-background-dark border border-primary/10 rounded-2xl shadow-sm overflow-hidden">
+<!-- Bulk Actions (Visible on select - shown for demo) -->
+<div class="hidden bg-primary/5 px-6 py-3 border-b border-primary/10 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<span class="text-xs font-bold text-primary">4 orders selected</span>
+<div class="h-4 w-px bg-primary/20"></div>
+<div class="flex items-center gap-2">
+<button class="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider bg-white rounded-lg border border-primary/10 hover:bg-primary hover:text-white transition-all">Mark Shipped</button>
+<button class="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider bg-white rounded-lg border border-primary/10 hover:bg-primary hover:text-white transition-all">Bulk Invoice</button>
+<button class="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider bg-white rounded-lg border border-red-100 text-red-600 hover:bg-red-600 hover:text-white transition-all">Cancel</button>
+</div>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-slate-50/50 dark:bg-slate-800/50 text-slate-500 text-[11px] font-black uppercase tracking-widest border-b border-primary/5">
+<th class="py-4 px-6 w-12">
+<input class="rounded text-primary focus:ring-primary/20 border-slate-300" type="checkbox"/>
+</th>
+<th class="py-4 px-6">Order ID</th>
+<th class="py-4 px-6">Customer</th>
+<th class="py-4 px-6">Date</th>
+<th class="py-4 px-6 text-right">Total Amount</th>
+<th class="py-4 px-6">Status</th>
+<th class="py-4 px-6 text-center">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-primary/5">
+<!-- Row 1 -->
+<tr class="hover:bg-primary/[0.02] transition-colors group">
+<td class="py-4 px-6">
+<input class="rounded text-primary focus:ring-primary/20 border-slate-300" type="checkbox"/>
+</td>
+<td class="py-4 px-6 font-bold text-sm">#HA-1024</td>
+<td class="py-4 px-6">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">RK</div>
+<span class="text-sm font-semibold">Rajesh Kumar</span>
+</div>
+</td>
+<td class="py-4 px-6 text-sm text-slate-500">Oct 24, 2023</td>
+<td class="py-4 px-6 text-right font-bold text-sm">₹450.00</td>
+<td class="py-4 px-6">
+<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-100">
+<span class="size-1.5 rounded-full bg-amber-500"></span>
+                                        Processing
+                                    </span>
+</td>
+<td class="py-4 px-6 text-center">
+<button class="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all">
+<span class="material-symbols-outlined text-xl">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-primary/[0.02] transition-colors group">
+<td class="py-4 px-6">
+<input class="rounded text-primary focus:ring-primary/20 border-slate-300" type="checkbox"/>
+</td>
+<td class="py-4 px-6 font-bold text-sm">#HA-1023</td>
+<td class="py-4 px-6">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">PA</div>
+<span class="text-sm font-semibold">Priya Anish</span>
+</div>
+</td>
+<td class="py-4 px-6 text-sm text-slate-500">Oct 24, 2023</td>
+<td class="py-4 px-6 text-right font-bold text-sm">₹1,280.00</td>
+<td class="py-4 px-6">
+<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-green-50 text-green-700 border border-green-100">
+<span class="size-1.5 rounded-full bg-green-500"></span>
+                                        Delivered
+                                    </span>
+</td>
+<td class="py-4 px-6 text-center">
+<button class="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all">
+<span class="material-symbols-outlined text-xl">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-primary/[0.02] transition-colors group">
+<td class="py-4 px-6">
+<input class="rounded text-primary focus:ring-primary/20 border-slate-300" type="checkbox"/>
+</td>
+<td class="py-4 px-6 font-bold text-sm">#HA-1022</td>
+<td class="py-4 px-6">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">VS</div>
+<span class="text-sm font-semibold">Vikram Singh</span>
+</div>
+</td>
+<td class="py-4 px-6 text-sm text-slate-500">Oct 23, 2023</td>
+<td class="py-4 px-6 text-right font-bold text-sm">₹840.00</td>
+<td class="py-4 px-6">
+<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-100">
+<span class="size-1.5 rounded-full bg-blue-500"></span>
+                                        Shipped
+                                    </span>
+</td>
+<td class="py-4 px-6 text-center">
+<button class="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all">
+<span class="material-symbols-outlined text-xl">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-primary/[0.02] transition-colors group">
+<td class="py-4 px-6">
+<input class="rounded text-primary focus:ring-primary/20 border-slate-300" type="checkbox"/>
+</td>
+<td class="py-4 px-6 font-bold text-sm">#HA-1021</td>
+<td class="py-4 px-6">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">MC</div>
+<span class="text-sm font-semibold">Meera C.</span>
+</div>
+</td>
+<td class="py-4 px-6 text-sm text-slate-500">Oct 23, 2023</td>
+<td class="py-4 px-6 text-right font-bold text-sm">₹150.00</td>
+<td class="py-4 px-6">
+<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-50 text-slate-700 border border-slate-100">
+<span class="size-1.5 rounded-full bg-slate-400"></span>
+                                        Processing
+                                    </span>
+</td>
+<td class="py-4 px-6 text-center">
+<button class="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all">
+<span class="material-symbols-outlined text-xl">more_vert</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="px-8 py-4 bg-slate-50/50 dark:bg-slate-800/50 border-t border-primary/5 flex items-center justify-between">
+<p class="text-xs font-semibold text-slate-500">Showing 1 to 10 of 1,284 orders</p>
+<div class="flex items-center gap-1">
+<button class="size-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-white">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<button class="size-8 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">1</button>
+<button class="size-8 rounded-full text-xs font-bold text-slate-600 hover:bg-white flex items-center justify-center">2</button>
+<button class="size-8 rounded-full text-xs font-bold text-slate-600 hover:bg-white flex items-center justify-center">3</button>
+<button class="size-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-white">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

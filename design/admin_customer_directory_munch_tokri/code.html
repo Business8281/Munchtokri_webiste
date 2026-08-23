@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Customer Management | Hurigalu Angadi Admin</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#008080",
+                        "brand-red": "#e53e3e",
+                        "background-light": "#f7f7f6",
+                        "background-dark": "#1c1716",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<!-- Top Navigation Bar -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-primary/10 px-6 py-3 bg-white dark:bg-background-dark sticky top-0 z-50">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3 text-primary">
+<div class="size-8 bg-primary rounded-lg flex items-center justify-center text-white">
+<span class="material-symbols-outlined">shopping_basket</span>
+</div>
+<h2 class="text-primary text-lg font-bold leading-tight tracking-tight">Munch Tokri</h2>
+</div>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-slate-600 dark:text-slate-400 hover:text-primary text-sm font-medium transition-colors" href="#">Dashboard</a>
+<a class="text-primary text-sm font-bold border-b-2 border-primary pb-1" href="#">Customers</a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-primary text-sm font-medium transition-colors" href="#">Orders</a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-primary text-sm font-medium transition-colors" href="#">Inventory</a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-primary text-sm font-medium transition-colors" href="#">Settings</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-slate-500 hover:bg-primary/5 rounded-full transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="h-8 w-[1px] bg-slate-200 dark:bg-slate-800"></div>
+<div class="flex items-center gap-3">
+<div class="text-right hidden sm:block">
+<p class="text-xs font-bold text-slate-900 dark:text-slate-100">Admin User</p>
+<p class="text-[10px] text-slate-500">Store Manager</p>
+</div>
+<div class="bg-primary/10 rounded-full size-10 flex items-center justify-center overflow-hidden border border-primary/20">
+<img alt="User Avatar" class="w-full h-full object-cover" data-alt="Administrative user profile illustration" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD4Mf4DK3NDTeZzal9ryIuX5IWEsDcC9d6MD249PZp4AuafrLKB-u79YbkcyGoY5nqtCbgsQPsyDQFK22nRUzOQLupasFzSF6gFYSbJc-AfHLhMbZVvOuGKSlUJAEVnYtNDS72_37As5IshYCsTf67hE6BbAQ_SJSUY5IsGiFWYNCjzWT58IPCy8IiqtaPI0040iP2V9VNMpUu1wsZC8d43-cLNY0n-yNmTUdmfvos4yUuwcbI8vid-EFP7W80_QIj0i1urDIda4zjy"/>
+</div>
+</div>
+</div>
+</header>
+<main class="flex-1 max-w-[1280px] mx-auto w-full p-4 md:p-8 space-y-8">
+<!-- Page Title & Quick Stats Section -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+<div class="space-y-1">
+<h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Customer Directory</h1>
+<p class="text-slate-500 dark:text-slate-400 text-sm">Managing 1,240 customers across 5 regions</p>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center justify-center gap-2 rounded-full px-5 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-50 transition-all shadow-sm">
+<span class="material-symbols-outlined text-lg">download</span>
+                            Export Data
+                        </button>
+<button class="flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-white font-bold text-sm hover:opacity-90 transition-all shadow-md bg-brand-red">
+<span class="material-symbols-outlined text-lg">person_add</span>
+                            Add Customer
+                        </button>
+</div>
+</div>
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-primary/10 rounded-lg text-primary">
+<span class="material-symbols-outlined">group</span>
+</div>
+<span class="text-emerald-600 text-xs font-bold bg-emerald-50 px-2 py-1 rounded-full">+12%</span>
+</div>
+<p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Total Customers</p>
+<h3 class="text-2xl font-black mt-1">1,240</h3>
+</div>
+<div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-primary/10 rounded-lg text-primary">
+<span class="material-symbols-outlined">person_add</span>
+</div>
+<span class="text-emerald-600 text-xs font-bold bg-emerald-50 px-2 py-1 rounded-full">+5.2%</span>
+</div>
+<p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">New Sign-ups (Mo)</p>
+<h3 class="text-2xl font-black mt-1">128</h3>
+</div>
+<div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-primary/10 rounded-lg text-primary">
+<span class="material-symbols-outlined">payments</span>
+</div>
+<span class="text-emerald-600 text-xs font-bold bg-emerald-50 px-2 py-1 rounded-full">+8%</span>
+</div>
+<p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Avg. Lifetime Value</p>
+<h3 class="text-2xl font-black mt-1">₹4,250</h3>
+</div>
+<div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-primary/10 rounded-lg text-primary">
+<span class="material-symbols-outlined">bolt</span>
+</div>
+<span class="text-primary text-xs font-bold bg-primary/5 px-2 py-1 rounded-full">Stable</span>
+</div>
+<p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Active This Week</p>
+<h3 class="text-2xl font-black mt-1">85</h3>
+</div>
+</div>
+<!-- Table Controls -->
+<div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+<div class="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row gap-4 items-center justify-between">
+<div class="relative w-full sm:max-w-md">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+<input class="w-full pl-12 pr-4 py-2.5 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-sm transition-all" placeholder="Search by name, email, or phone..." type="text"/>
+</div>
+<div class="flex items-center gap-2 w-full sm:w-auto">
+<button class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-full border border-slate-200 dark:border-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors">
+<span class="material-symbols-outlined text-lg">filter_list</span>
+                                Filter
+                            </button>
+<button class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-full border border-slate-200 dark:border-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors">
+<span class="material-symbols-outlined text-lg">sort</span>
+                                Sort
+                            </button>
+</div>
+</div>
+<!-- Customer Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-slate-50 dark:bg-slate-800/50">
+<th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Customer</th>
+<th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Contact Info</th>
+<th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Total Orders</th>
+<th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Total Spend</th>
+<th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Last Active</th>
+<th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-center">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+<!-- Row 1 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-orange-100 flex items-center justify-center overflow-hidden">
+<img alt="Rahul K." data-alt="Portrait of Rahul K. customer avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHAoinzXromE_kMuXC-b9ygA7BFJMmlNcEi9lhM2jqhH_x61sq1PdDQUqDoBewSB0YxlybbZhBK3B7Yy29MIjQKNHRvuvodeSdC4BDjayXtetG9yA_XNH3xgNbVOgIYR-24i6D_WJUEF2j6FkRjDh4yUUFcx3Q8zJU7xAVpm22f7800CEMJ4zXLLWMygSkUTilXneegVpQwtwn4l9Bab1jYKO6OX5KzBIbV_FPRevdnfXG7b2GyoiFcDDaAt1c7e6bYtArwRw7HmtT"/>
+</div>
+<div>
+<p class="text-sm font-bold text-slate-900 dark:text-white">Rahul K.</p>
+<p class="text-xs text-slate-500">ID: #CUS-8902</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="text-sm">
+<p class="text-slate-700 dark:text-slate-300">rahul.k@example.com</p>
+<p class="text-xs text-slate-500">+91 98765 43210</p>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-brand-red/10 text-brand-red">Orders</span>
+</td>
+<td class="px-6 py-4 font-bold text-sm text-slate-900 dark:text-white">
+                                        ₹12,450.00
+                                    </td>
+<td class="px-6 py-4 text-sm text-slate-500">
+                                        Oct 24, 2023
+                                    </td>
+<td class="px-6 py-4">
+<div class="flex justify-center gap-2">
+<button class="p-1.5 hover:bg-primary/5 rounded-full text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">visibility</span>
+</button>
+<button class="p-1.5 hover:bg-primary/5 rounded-full text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">edit</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden">
+<img alt="Saritha V." data-alt="Portrait of Saritha V. customer avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8YfMmf6x5fEXGVPpgfenIDdUJNDNcoOOb473CxrunF1dUQnT5deu9vFj6lvVPbJizNNZalCS923hRGWYApMR7Bqh128ihtPPNK1fXngNwAB0U-Wa-qQENUQ8XiSHb2uwF1xY2B4X5epOuwVPySIGLPIVtratvaywEjBXUbKGtl63TCr2nEdlXxqgnAmbS_9AGb92mwIub4qQbD99f2VwyLDiRpkbRuxmXY0JNfIMB0qv-0oUnhqISlP8_bvRqWCNA51Vj-IQ0CP5t"/>
+</div>
+<div>
+<p class="text-sm font-bold text-slate-900 dark:text-white">Saritha V.</p>
+<p class="text-xs text-slate-500">ID: #CUS-8915</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="text-sm">
+<p class="text-slate-700 dark:text-slate-300">saritha.v@gmail.com</p>
+<p class="text-xs text-slate-500">+91 98450 12345</p>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-brand-red/10 text-brand-red">Orders</span>
+</td>
+<td class="px-6 py-4 font-bold text-sm text-slate-900 dark:text-white">
+                                        ₹8,920.50
+                                    </td>
+<td class="px-6 py-4 text-sm text-slate-500">
+                                        Today, 10:45 AM
+                                    </td>
+<td class="px-6 py-4">
+<div class="flex justify-center gap-2">
+<button class="p-1.5 hover:bg-primary/5 rounded-full text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">visibility</span>
+</button>
+<button class="p-1.5 hover:bg-primary/5 rounded-full text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">edit</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-emerald-100 flex items-center justify-center overflow-hidden">
+<img alt="Amit Shah" data-alt="Portrait of Amit Shah customer avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_Gyj7Zs1LiAp8tR3k74VpXR_eAqzOX7s0cej1nzVI6r_UGHAFawGy-SAyddB2cMoHOAHfuaGbQCrYpKoYkkV0rWdqw82SnCrMuZEDXaKZvGWxY5aTh4eGl9U3gEQOqmnRKxMHYej-KMoxMrQjZkmU0LChcpJXMWtRaZv55iQk7JKLX2OPHiWlNcpT_CXOwhzrRlHK4_pppMerekXRFsksa1_t8a5gjYPqo--YGz0qi21jv7n4xRyfEF6-YmV2iO2deW0U3nhSwjCA"/>
+</div>
+<div>
+<p class="text-sm font-bold text-slate-900 dark:text-white">Amit Shah</p>
+<p class="text-xs text-slate-500">ID: #CUS-8942</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="text-sm">
+<p class="text-slate-700 dark:text-slate-300">amit.grainco@web.in</p>
+<p class="text-xs text-slate-500">+91 91234 56789</p>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-brand-red/10 text-brand-red">Orders</span>
+</td>
+<td class="px-6 py-4 font-bold text-sm text-slate-900 dark:text-white">
+                                        ₹24,100.00
+                                    </td>
+<td class="px-6 py-4 text-sm text-slate-500">
+                                        Oct 22, 2023
+                                    </td>
+<td class="px-6 py-4">
+<div class="flex justify-center gap-2">
+<button class="p-1.5 hover:bg-primary/5 rounded-full text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">visibility</span>
+</button>
+<button class="p-1.5 hover:bg-primary/5 rounded-full text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">edit</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
+<img alt="Meera Reddy" data-alt="Portrait of Meera Reddy customer avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuArUQxUjbJ6NAxLNzbAoYooLRfCOarc7NFDwqfrrOwJ1WbN5iM7o3AGnP_R8RqU8foW-8_Yl1_ZNL07zMOEpQ6o4shtdbcATYGg68A5KeKNnJEoMTwtUFvYrK30DD5e0Tm7STvN6jqjKdwxt6viuhOJ7RqJIs_ca3aitcKN37RKIpb_wbfPZRInGd-T70A3PaGdiaQJ_X3-sscwuWH6TVS9xsnxGpnyHx56Ms4c62q9PFaYXH4OB8YYmBGqo_JQV6rkGS56islhCWey"/>
+</div>
+<div>
+<p class="text-sm font-bold text-slate-900 dark:text-white">Meera Reddy</p>
+<p class="text-xs text-slate-500">ID: #CUS-8955</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="text-sm">
+<p class="text-slate-700 dark:text-slate-300">m.reddy@icloud.com</p>
+<p class="text-xs text-slate-500">+91 88888 77777</p>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-brand-red/10 text-brand-red">Orders</span>
+</td>
+<td class="px-6 py-4 font-bold text-sm text-slate-900 dark:text-white">
+                                        ₹3,150.25
+                                    </td>
+<td class="px-6 py-4 text-sm text-slate-500">
+                                        Yesterday
+                                    </td>
+<td class="px-6 py-4">
+<div class="flex justify-center gap-2">
+<button class="p-1.5 hover:bg-primary/5 rounded-full text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">visibility</span>
+</button>
+<button class="p-1.5 hover:bg-primary/5 rounded-full text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">edit</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="p-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+<p class="text-xs text-slate-500 font-medium">Showing 1 to 10 of 1,240 customers</p>
+<div class="flex gap-1">
+<button class="size-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-slate-50 transition-colors">
+<span class="material-symbols-outlined text-lg">chevron_left</span>
+</button>
+<button class="size-8 flex items-center justify-center rounded-full text-white text-xs font-bold bg-brand-red">1</button>
+<button class="size-8 flex items-center justify-center rounded-full text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold transition-colors">2</button>
+<button class="size-8 flex items-center justify-center rounded-full text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold transition-colors">3</button>
+<span class="px-2 text-slate-400">...</span>
+<button class="size-8 flex items-center justify-center rounded-full text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold transition-colors">124</button>
+<button class="size-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-slate-50 transition-colors">
+<span class="material-symbols-outlined text-lg">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Regions Quick View (Horizontal Scrollable) -->
+<div class="space-y-4">
+<h2 class="text-lg font-bold text-slate-900 dark:text-white">Customers by Region</h2>
+<div class="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
+<div class="min-w-[200px] bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+<div class="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">location_on</span>
+</div>
+<div>
+<p class="text-xs text-slate-500 font-semibold uppercase">Bengaluru</p>
+<p class="text-lg font-black">642</p>
+</div>
+</div>
+<div class="min-w-[200px] bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+<div class="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">location_on</span>
+</div>
+<div>
+<p class="text-xs text-slate-500 font-semibold uppercase">Mysuru</p>
+<p class="text-lg font-black">215</p>
+</div>
+</div>
+<div class="min-w-[200px] bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+<div class="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">location_on</span>
+</div>
+<div>
+<p class="text-xs text-slate-500 font-semibold uppercase">Hubballi</p>
+<p class="text-lg font-black">156</p>
+</div>
+</div>
+<div class="min-w-[200px] bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+<div class="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">location_on</span>
+</div>
+<div>
+<p class="text-xs text-slate-500 font-semibold uppercase">Mangaluru</p>
+<p class="text-lg font-black">128</p>
+</div>
+</div>
+<div class="min-w-[200px] bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+<div class="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">location_on</span>
+</div>
+<div>
+<p class="text-xs text-slate-500 font-semibold uppercase">Other</p>
+<p class="text-lg font-black">99</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-white dark:bg-background-dark border-t border-slate-100 dark:border-slate-800 py-6 px-6">
+<div class="max-w-[1280px] mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+<p class="text-sm text-slate-500">© 2023 Munch Tokri Admin Portal. All rights reserved.</p>
+<div class="flex gap-6">
+<a class="text-sm text-slate-500 hover:text-primary" href="#">Privacy Policy</a>
+<a class="text-sm text-slate-500 hover:text-primary" href="#">System Status</a>
+<a class="text-sm text-slate-500 hover:text-primary" href="#">Support</a>
+</div>
+</div>
+</footer>
+</div>
+</div>
+</body></html>

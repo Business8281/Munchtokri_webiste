@@ -1,0 +1,553 @@
+.container {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2.5rem;
+}
+
+.header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--dark);
+    margin: 0;
+}
+
+.addBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.8rem 1.5rem;
+    background: linear-gradient(135deg, var(--primary) 0%, #006666 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 128, 128, 0.2);
+}
+
+.addBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 128, 128, 0.3);
+}
+
+/* Advanced Form Styling */
+.formCard {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 24px;
+    padding: 2.5rem;
+    margin-bottom: 3rem;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
+}
+
+.formGrid {
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 3rem;
+}
+
+.imageUploadSection {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.imageGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.imagePreviewBox {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid #e9ecef;
+    background: #f8f9fa;
+}
+
+.imagePreviewBox img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.removeImageBtn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #fa5252;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.removeImageBtn:hover {
+    background: #fa5252;
+    color: white;
+}
+
+.primaryBadge {
+    position: absolute;
+    bottom: 0.5rem;
+    left: 0.5rem;
+    background: var(--primary);
+    color: white;
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.addMoreImages {
+    width: 100%;
+    aspect-ratio: 1;
+    background: #f8f9fa;
+    border: 2px dashed #e9ecef;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--primary);
+    transition: all 0.3s ease;
+    gap: 0.5rem;
+}
+
+.addMoreImages:hover {
+    background: #e6fcf5;
+    border-color: var(--primary);
+}
+
+.addMoreImages span {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.uploadInput {
+    display: none;
+}
+
+.fieldsSection {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.inputGroup label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #495057;
+    margin-left: 0.2rem;
+}
+
+.inputGroup input,
+.inputGroup select,
+.inputGroup textarea {
+    padding: 1rem 1.2rem;
+    border: 1.5px solid #e9ecef;
+    border-radius: 14px;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    background: #fff;
+}
+
+.inputGroup input:focus,
+.inputGroup select:focus,
+.inputGroup textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(0, 128, 128, 0.1);
+    outline: none;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.submitActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.cancelBtn {
+    padding: 0.8rem 2rem;
+    border: none;
+    background: #f1f3f5;
+    color: #495057;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.saveBtn {
+    padding: 0.8rem 3rem;
+    border: none;
+    background: var(--primary);
+    color: white;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.saveBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Table Styling */
+.tableCard {
+    background: white;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+    overflow: hidden;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th {
+    text-align: left;
+    padding: 1.2rem 1.5rem;
+    background: #f8f9fa;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #868e96;
+    font-weight: 600;
+}
+
+.table td {
+    padding: 1.2rem 1.5rem;
+    border-bottom: 1px solid #f1f3f5;
+    vertical-align: middle;
+}
+
+.productCell {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+}
+
+.productThumb {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    object-fit: cover;
+    background: #f8f9fa;
+}
+
+.productInfo h4 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--dark);
+}
+
+.productInfo p {
+    margin: 0.2rem 0 0;
+    font-size: 0.85rem;
+    color: #adb5bd;
+}
+
+.statusBadge {
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.inStock {
+    background: #e6fcf5;
+    color: #099268;
+}
+
+.lowStock {
+    background: #fff9db;
+    color: #f08c00;
+}
+
+.outOfStock {
+    background: #fff5f5;
+    color: #fa5252;
+}
+
+.actionsCell {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.editActionBtn,
+.deleteActionBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.editActionBtn {
+    background: #e7f5ff;
+    color: #1c7ed6;
+}
+
+.editActionBtn:hover {
+    background: #d0ebff;
+}
+
+.deleteActionBtn {
+    background: #fff5f5;
+    color: #fa5252;
+}
+
+.deleteActionBtn:hover,
+.deleteFormBtn:hover {
+    background: #ffe3e3;
+    border-color: #ffc9c9;
+}
+
+/* Inline Edit Styles */
+.editingRow {
+    background: #f8f9fa;
+}
+
+.activeEditBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--dark);
+    color: white;
+    border: 1px solid transparent;
+}
+
+.inlineFormContainer {
+    background: #f8f9fa;
+    padding: 2rem;
+    border-left: 4px solid var(--primary);
+    margin: 0.5rem 1.5rem 2rem 1.5rem;
+    border-radius: 0 0 16px 16px;
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.inlineHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.inlineHeader h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: var(--primary);
+}
+
+.inlineHeader button {
+    background: none;
+    border: none;
+    color: #adb5bd;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.inlineHeader button:hover {
+    background: #e9ecef;
+    color: var(--dark);
+}
+
+.deleteFormBtn {
+    padding: 0.8rem 2rem;
+    border: none;
+    background: #fff5f5;
+    color: #fa5252;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    margin-right: auto;
+    border: 1px solid transparent;
+}
+
+.deleteFormBtn:hover {
+    background: #ffe3e3;
+    border-color: #ffc9c9;
+}
+
+/* Base Responsive Breakpoints */
+@media (max-width: 900px) {
+    .formGrid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+    .row {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+    
+    .header h1 {
+        font-size: 1.5rem;
+    }
+
+    .tableCard {
+        overflow-x: auto;
+        margin: 0 -1rem;
+        width: calc(100% + 2rem);
+        border-radius: 0;
+    }
+    
+    .table {
+        min-width: 950px; /* Increased to prevent squashing */
+    }
+    
+    .table th, .table td {
+        padding: 0.75rem 1rem; /* Tighter padding */
+    }
+
+    .productCell {
+        min-width: 280px; /* Ensure product info doesn't squash */
+    }
+
+    .statusBadge {
+        white-space: nowrap;
+        min-width: 100px;
+        text-align: center;
+        display: inline-block;
+    }
+
+    .formCard {
+        padding: 1.25rem;
+        border-radius: 16px;
+    }
+    
+    .imageGrid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .submitActions {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .saveBtn, .cancelBtn, .deleteFormBtn {
+        width: 100%;
+        margin: 0;
+        justify-content: center;
+    }
+    
+    .deleteFormBtn {
+        order: 3; /* Move delete to bottom of stack */
+    }
+}
+
+@media (max-width: 480px) {
+    .imageGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+ 
+ .labelSection {
+     display: flex;
+     flex-direction: column;
+     gap: 1rem;
+     padding: 1.5rem;
+     background: #fdfaf5;
+     border: 1px dashed #e9ecef;
+     border-radius: 16px;
+ }
+ 
+ .sectionLabel {
+     font-size: 0.85rem;
+     font-weight: 700;
+     color: #495057;
+     text-transform: uppercase;
+     letter-spacing: 0.05em;
+ }
+ 
+ .checkboxRow {
+     display: flex;
+     flex-wrap: wrap;
+     gap: 2rem;
+ }
+ 
+ .checkboxLabel {
+     display: flex;
+     align-items: center;
+     gap: 0.75rem;
+     cursor: pointer;
+     font-weight: 600;
+     font-size: 0.95rem;
+     color: var(--dark);
+     transition: all 0.2s ease;
+ }
+ 
+ .checkboxLabel:hover {
+     color: var(--primary);
+ }
+ 
+ .checkboxLabel input[type="checkbox"] {
+     width: 20px;
+     height: 20px;
+     accent-color: var(--primary);
+     cursor: pointer;
+ }

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Munch Tokri - Build Your Own Mix</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Playfair+Display:wght@700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#008080",
+                        "accent": "#D32F2F",
+                        "background-light": "#f7fcfc",
+                        "background-dark": "#0a1a1a",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "heritage": ["Playfair Display", "serif"]
+                    },
+                    borderRadius: { "DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #3e272333;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
+<!-- Header Section -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-primary/10 px-6 md:px-20 py-4 bg-background-light/80 backdrop-blur-md sticky top-0 z-50">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3 text-primary">
+<span class="material-symbols-outlined text-3xl">shopping_basket</span>
+<h2 class="text-primary text-xl font-bold leading-tight tracking-[-0.015em] font-heritage">Munch Tokri</h2>
+</div>
+<nav class="hidden lg:flex items-center gap-8">
+<a class="text-primary text-sm font-semibold hover:opacity-70 transition-opacity" href="#">Our Snacks</a>
+<a class="text-primary text-sm font-semibold hover:opacity-70 transition-opacity" href="#">Gift Boxes</a>
+<a class="text-primary text-sm font-semibold hover:opacity-70 transition-opacity" href="#">Bulk Orders</a>
+<a class="text-primary text-sm font-semibold hover:opacity-70 transition-opacity" href="#">About Us</a>
+</nav>
+</div>
+<div class="flex flex-1 justify-end gap-4 md:gap-6">
+<label class="hidden md:flex flex-col min-w-40 h-10 max-w-64">
+<div class="flex w-full flex-1 items-stretch rounded-full h-full bg-primary/5">
+<div class="text-primary/60 flex items-center justify-center pl-4">
+<span class="material-symbols-outlined text-xl">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 border-none bg-transparent focus:ring-0 h-full placeholder:text-primary/40 px-4 text-sm" placeholder="Find a snack..."/>
+</div>
+</label>
+<div class="flex gap-2">
+<button class="flex items-center justify-center rounded-full size-10 bg-primary/5 text-primary hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined">shopping_bag</span>
+</button>
+<button class="flex items-center justify-center rounded-full size-10 bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined">person</span>
+</button>
+</div>
+</div>
+</header>
+<main class="flex-grow max-w-7xl mx-auto w-full px-4 md:px-10 py-8 lg:py-12">
+<!-- Hero Title -->
+<div class="mb-10 max-w-2xl">
+<h1 class="text-primary text-4xl md:text-5xl font-heritage mb-4 leading-tight">Curate Your Perfect Munch Tokri</h1>
+<p class="text-primary/70 text-lg leading-relaxed">
+                    Handpick your favorite authentic Indian snacks to craft a blend that's uniquely yours. From spicy Masala Groundnuts to crunchy Omapudi, the perfect crunch is just a click away.
+                </p>
+</div>
+<!-- Stepper Indicator -->
+<div class="flex flex-col md:flex-row gap-8 mb-12">
+<div class="flex-1">
+<div class="flex items-center gap-4 border-b border-primary/10 pb-4 mb-10 overflow-x-auto whitespace-nowrap scrollbar-hide">
+<div class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-full" style="background-color: #008080;">
+<span class="text-xs font-bold bg-white/20 size-5 flex items-center justify-center rounded-full">1</span>
+<span class="text-sm font-bold">Choose Size</span>
+</div>
+<div class="flex items-center gap-2 px-4 py-2 bg-primary/5 text-primary/60 rounded-full">
+<span class="text-xs font-bold bg-primary/10 size-5 flex items-center justify-center rounded-full">2</span>
+<span class="text-sm font-bold">Add Ingredients</span>
+</div>
+<div class="flex items-center gap-2 px-4 py-2 bg-primary/5 text-primary/60 rounded-full">
+<span class="text-xs font-bold bg-primary/10 size-5 flex items-center justify-center rounded-full">3</span>
+<span class="text-sm font-bold">Name Your Mix</span>
+</div>
+</div>
+<!-- Layout: Main Content + Summary Sidebar -->
+<div class="flex flex-col lg:flex-row gap-12">
+<!-- LEFT COLUMN: BUILDER -->
+<div class="flex-1 space-y-12">
+<!-- Step 1: Bag Size -->
+<section>
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-primary">shopping_basket</span>
+<h3 class="text-xl font-bold text-primary">Step 1: Pick Your Bag Size</h3>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+<div class="group cursor-pointer p-6 rounded-xl border-2 border-primary bg-primary/5 relative transition-all">
+<div class="absolute top-4 right-4 text-primary">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+<div class="size-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 text-primary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl">eco</span>
+</div>
+<h4 class="font-bold text-lg text-primary">Small Bag</h4>
+<p class="text-sm text-primary/60 mb-2">Solo Snacking (250g)</p>
+<p class="font-bold text-primary">₹149</p>
+</div>
+<div class="group cursor-pointer p-6 rounded-xl border-2 border-primary/10 bg-white hover:border-primary/40 transition-all">
+<div class="size-16 rounded-full bg-primary/5 flex items-center justify-center mb-4 text-primary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl">groups</span>
+</div>
+<h4 class="font-bold text-lg text-primary">Medium Bag</h4>
+<p class="text-sm text-primary/60 mb-2">Crowd Pleaser (500g)</p>
+<p class="font-bold text-primary">₹289</p>
+</div>
+<div class="group cursor-pointer p-6 rounded-xl border-2 border-primary/10 bg-white hover:border-primary/40 transition-all">
+<div class="size-16 rounded-full bg-primary/5 flex items-center justify-center mb-4 text-primary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl">celebration</span>
+</div>
+<h4 class="font-bold text-lg text-primary">Family Pack</h4>
+<p class="text-sm text-primary/60 mb-2">Big Gathering (1kg)</p>
+<p class="font-bold text-primary">₹549</p>
+</div>
+</div>
+</section>
+<!-- Step 2: Ingredients -->
+<section>
+<div class="flex items-center justify-between mb-6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">nutrition</span>
+<h3 class="text-xl font-bold text-primary">Step 2: Add Ingredients</h3>
+</div>
+<span class="text-xs font-bold px-3 py-1 bg-primary/10 text-primary rounded-full uppercase tracking-wider">40% Filled</span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+<!-- Ingredient Card 1 -->
+<div class="flex flex-col bg-white rounded-xl overflow-hidden border border-primary/5 shadow-sm group">
+<div class="h-40 bg-cover bg-center overflow-hidden" data-alt="Close up of spicy masala roasted groundnuts" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCGU_B1pde0Bfkw816XOKKcgNCkUUjZzr-CkPd2gRzuJTP4NikMgE4G4DnE5rj5vPxqqkZHjAz7raSoWt2vl1p1AUvR7lxxH82BkbErcdOSX9IJZFXscwXGNb20fP9xJm9Ovlz-PKL787jRg5acnmtwfnjaJqOZg1_YpTDOwv9gKp4L8hjc7LaiNekFZXYGXcRk6EL4W_qiItBzdpLV1d0004VPTcFKHyLid0-xd2kdPcGXh4bhWtSVb476Hv02ZRjNtkYWY1wu2QsM')"></div>
+<div class="p-5">
+<div class="flex justify-between items-start mb-2">
+<h5 class="font-bold text-primary text-lg leading-tight">Masala Groundnuts</h5>
+<span class="text-primary font-bold">₹40/100g</span>
+</div>
+<p class="text-xs text-primary/60 mb-4">Roasted spicy peanuts with traditional Karnataka spices.</p>
+<div class="flex items-center justify-between gap-4">
+<div class="flex items-center bg-primary/5 rounded-full p-1 border border-primary/10">
+<button class="size-8 rounded-full flex items-center justify-center hover:bg-primary/10 text-primary transition-colors">
+<span class="material-symbols-outlined text-sm">remove</span>
+</button>
+<span class="px-4 font-bold text-sm text-primary">100g</span>
+<button class="size-8 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-colors shadow-sm" style="background-color: #008080;">
+<span class="material-symbols-outlined text-sm">add</span>
+</button>
+</div>
+<button class="bg-primary/10 text-primary px-4 py-2 rounded-full text-xs font-bold hover:bg-primary hover:text-white transition-all">Add All</button>
+</div>
+</div>
+</div>
+<!-- Ingredient Card 2 -->
+<div class="flex flex-col bg-white rounded-xl overflow-hidden border border-primary/5 shadow-sm group">
+<div class="h-40 bg-cover bg-center overflow-hidden" data-alt="Thin yellow omapudi crunchy snack" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAGwZ84hYSa8pz-6ehQ-O9ltQjgk4ri2BDoqqLAtz7N_s7XUjmo2TpAWnvFhHceWEhht9_FwfHfUwfBuKk6p3YLgxX5Vy-KBtAW7lRTb8afrdU4Yuon_03lmAYKP820JxOkGLSlIJktw8OzqyQQD7QTzfNG1W8tTotnlBNyr6O1zNQ4OUycFSoIPy4aVfApBhGJ9y1tPE1gDW4pFcvMWr_1lHJmKHLMVmhEslptZvGjFj14OWdM9H2lAWdbstY2A6YTr4_-aYklmyLi')"></div>
+<div class="p-5">
+<div class="flex justify-between items-start mb-2">
+<h5 class="font-bold text-primary text-lg leading-tight">Thin Omapudi</h5>
+<span class="text-primary font-bold">₹35/100g</span>
+</div>
+<p class="text-xs text-primary/60 mb-4">Delicate, golden sev infused with carom seed flavor.</p>
+<div class="flex items-center justify-between gap-4">
+<div class="flex items-center bg-primary/5 rounded-full p-1 border border-primary/10">
+<button class="size-8 rounded-full flex items-center justify-center hover:bg-primary/10 text-primary transition-colors">
+<span class="material-symbols-outlined text-sm">remove</span>
+</button>
+<span class="px-4 font-bold text-sm text-primary">0g</span>
+<button class="size-8 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-colors shadow-sm" style="background-color: #008080;">
+<span class="material-symbols-outlined text-sm">add</span>
+</button>
+</div>
+<button class="bg-primary/10 text-primary px-4 py-2 rounded-full text-xs font-bold hover:bg-primary hover:text-white transition-all">Add</button>
+</div>
+</div>
+</div>
+<!-- Ingredient Card 3 -->
+<div class="flex flex-col bg-white rounded-xl overflow-hidden border border-primary/5 shadow-sm group">
+<div class="h-40 bg-cover bg-center overflow-hidden" data-alt="Golden fried boondi snack balls" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAaW8x0HaTAoHcm_58-AtLiFanPWNJzja1Ij1vVHNJDusWSGm71hHwsfp8Ma3soX6qc9PnbnwjG1wdzWSPLzg4Qb9QRa5XmL8-qv0gOITGZ1cjHi8rGgtA3LdqZ99omveiKGZBqxBv0U0kQNa6Y_MQeiPTHDrRV8vpkMErhAEYUQLlgpZttmf6z9-RHuwAae5xBfbBYKMDOdbeqNeWTIgz_vPWfClS7Y6usQOechXn0iMXrTOTM7JsPDVtu_ke8LNKj0uUzjJn-zuAq')"></div>
+<div class="p-5">
+<div class="flex justify-between items-start mb-2">
+<h5 class="font-bold text-primary text-lg leading-tight">Spicy Boondi</h5>
+<span class="text-primary font-bold">₹30/100g</span>
+</div>
+<p class="text-xs text-primary/60 mb-4">Tiny fried droplets of gram flour batter, spiced with chili.</p>
+<div class="flex items-center justify-between gap-4">
+<div class="flex items-center bg-primary/5 rounded-full p-1 border border-primary/10">
+<button class="size-8 rounded-full flex items-center justify-center hover:bg-primary/10 text-primary transition-colors">
+<span class="material-symbols-outlined text-sm">remove</span>
+</button>
+<span class="px-4 font-bold text-sm text-primary">0g</span>
+<button class="size-8 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-colors shadow-sm" style="background-color: #008080;">
+<span class="material-symbols-outlined text-sm">add</span>
+</button>
+</div>
+<button class="bg-primary/10 text-primary px-4 py-2 rounded-full text-xs font-bold hover:bg-primary hover:text-white transition-all">Add</button>
+</div>
+</div>
+</div>
+<!-- Ingredient Card 4 -->
+<div class="flex flex-col bg-white rounded-xl overflow-hidden border border-primary/5 shadow-sm group">
+<div class="h-40 bg-cover bg-center overflow-hidden" data-alt="Fried curry leaves with aromatic spices" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBWdqMSKCExvMRret5DoSy485iz5JtT4NT901DEODV8ty3i97HwW7ynZy8xLV5RHqN2bNcsPeUtX8eLMeNydt6e-qcd3pmSm1dRKkiTLHVrB7S_ydb0KDhTEjz0pE_d8qIb6dckWNUfB0HV0GWd25FjydIRmIYFV0pGub8LMc7Bm3jO3FBWM5qSlZadWhGGa1E3p6BqJQEl2jxbNnrQYe9aifwUKVVAViJ7X3Mo8M31nZqTLJb49Ac3MXzHZT8qD6w411Wd_YE2e7yX')"></div>
+<div class="p-5">
+<div class="flex justify-between items-start mb-2">
+<h5 class="font-bold text-primary text-lg leading-tight">Roasted Curry Leaves</h5>
+<span class="text-primary font-bold">₹15/50g</span>
+</div>
+<p class="text-xs text-primary/60 mb-4">Hand-plucked and flash-fried for the perfect aromatic crunch.</p>
+<div class="flex items-center justify-between gap-4">
+<div class="flex items-center bg-primary/5 rounded-full p-1 border border-primary/10">
+<button class="size-8 rounded-full flex items-center justify-center hover:bg-primary/10 text-primary transition-colors">
+<span class="material-symbols-outlined text-sm">remove</span>
+</button>
+<span class="px-4 font-bold text-sm text-primary">0g</span>
+<button class="size-8 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-colors shadow-sm" style="background-color: #008080;">
+<span class="material-symbols-outlined text-sm">add</span>
+</button>
+</div>
+<button class="bg-primary/10 text-primary px-4 py-2 rounded-full text-xs font-bold hover:bg-primary hover:text-white transition-all">Add</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Step 3: Naming -->
+<section>
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-primary">edit_note</span>
+<h3 class="text-xl font-bold text-primary">Step 3: Name Your Creation</h3>
+</div>
+<div class="bg-white p-8 rounded-xl border border-primary/5 shadow-sm">
+<label class="block text-sm font-bold text-primary mb-2">Mix Label (Optional)</label>
+<input class="w-full rounded-full border-primary/20 bg-primary/5 py-4 px-6 focus:ring-primary focus:border-primary text-primary placeholder:text-primary/30" placeholder="e.g. Grandma's Secret Blend, Midnight Spice..." type="text"/>
+<p class="text-xs text-primary/50 mt-3 italic">This name will be printed on your custom bag label.</p>
+</div>
+</section>
+</div>
+<!-- RIGHT COLUMN: LIVE SUMMARY (STICKY) -->
+<div class="w-full lg:w-[380px]">
+<div class="sticky top-24 space-y-6">
+<div class="bg-primary text-white rounded-2xl p-8 shadow-xl" style="background-color: #008080;">
+<h4 class="font-heritage text-2xl mb-6">Mix Summary</h4>
+<!-- Bag Filling Visualization -->
+<div class="mb-8">
+<div class="flex justify-between items-end mb-2">
+<span class="text-xs font-bold opacity-70 uppercase tracking-widest">Bag Status</span>
+<span class="text-lg font-bold">100g / 250g</span>
+</div>
+<div class="w-full bg-white/20 h-4 rounded-full overflow-hidden">
+<div class="bg-white h-full transition-all duration-500" style="width: 40%;"></div>
+</div>
+</div>
+<!-- Ingredient Breakdown -->
+<div class="space-y-4 mb-8">
+<div class="flex items-center justify-between text-sm">
+<div class="flex items-center gap-2">
+<span class="size-2 rounded-full bg-white"></span>
+<span>Masala Groundnuts</span>
+</div>
+<span class="font-bold">100g (40%)</span>
+</div>
+<div class="border-t border-white/10 pt-4 flex justify-between items-center">
+<span class="text-white/70 text-sm">Bag Base (Small)</span>
+<span class="font-bold">₹149</span>
+</div>
+<div class="flex justify-between items-center text-sm">
+<span class="text-white/70">Ingredients Add-on</span>
+<span class="font-bold">₹40</span>
+</div>
+</div>
+<div class="border-t border-white/20 pt-6 mb-8">
+<div class="flex justify-between items-center">
+<span class="text-xl font-heritage">Total Price</span>
+<span class="text-3xl font-heritage">₹189</span>
+</div>
+</div>
+<button class="w-full bg-white text-primary font-bold py-4 rounded-full hover:bg-background-light transition-all flex items-center justify-center gap-2 shadow-lg group">
+<span>Add Custom Mix to Cart</span>
+<span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">shopping_cart</span>
+</button>
+<div class="mt-4 flex items-center justify-center gap-2 text-xs opacity-60">
+<span class="material-symbols-outlined text-sm">bolt</span>
+<span>Ships within 24 hours freshly packed</span>
+</div>
+</div>
+<!-- Trust Badge / Info Card -->
+<div class="bg-primary/5 border border-primary/10 rounded-xl p-6 flex items-start gap-4">
+<span class="material-symbols-outlined text-primary text-2xl">verified</span>
+<div>
+<h5 class="text-primary font-bold text-sm">Authenticity Guaranteed</h5>
+<p class="text-primary/60 text-xs mt-1">All snacks are made using traditional recipes and locally sourced ingredients from rural Karnataka.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer Section -->
+<footer class="bg-primary text-white/90 pt-16 pb-8" style="background-color: #008080;">
+<div class="max-w-7xl mx-auto px-10">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+<div class="col-span-1 md:col-span-1">
+<div class="flex items-center gap-3 text-white mb-6">
+<span class="material-symbols-outlined text-3xl">shopping_basket</span>
+<h2 class="text-xl font-bold font-heritage">Munch Tokri</h2>
+</div>
+<p class="text-sm leading-loose opacity-70">
+                            Bringing the authentic crunch of India's traditional snack homes directly to your doorstep. Pure ingredients, timeless taste with Munch Tokri.
+                        </p>
+</div>
+<div>
+<h4 class="font-bold mb-6 text-white uppercase tracking-widest text-xs">Shop</h4>
+<ul class="space-y-4 text-sm opacity-70">
+<li><a class="hover:text-white transition-colors" href="#">Daily Snacks</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Savory Mixes</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Health Mixes</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Special Offers</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-bold mb-6 text-white uppercase tracking-widest text-xs">Support</h4>
+<ul class="space-y-4 text-sm opacity-70">
+<li><a class="hover:text-white transition-colors" href="#">Track Order</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Shipping Policy</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Returns</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Contact Us</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-bold mb-6 text-white uppercase tracking-widest text-xs">Newsletter</h4>
+<p class="text-sm opacity-70 mb-4">Get notified about seasonal special batches.</p>
+<div class="flex rounded-full overflow-hidden border border-white/20 bg-white/5 p-1">
+<input class="bg-transparent border-none text-white px-4 py-2 w-full focus:ring-0 text-sm" placeholder="Your email" type="email"/>
+<button class="bg-white text-primary rounded-full px-6 text-sm font-bold">Join</button>
+</div>
+</div>
+</div>
+<div class="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs opacity-50">
+<p>© 2024 Hurigalu Angadi. Traditional Taste, Modern Craft.</p>
+<div class="flex gap-6">
+<a href="#">Privacy Policy</a>
+<a href="#">Terms of Service</a>
+<a href="#">Sitemap</a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+</body></html>

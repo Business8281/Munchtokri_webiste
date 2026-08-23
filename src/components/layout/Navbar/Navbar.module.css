@@ -1,0 +1,233 @@
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    background-color: #ffffff;
+    border-bottom: 1px solid var(--gray-medium);
+    height: 80px;
+    display: flex;
+    align-items: center;
+}
+
+.container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    flex-shrink: 0;
+}
+
+.logoWrapper {
+    display: flex;
+    align-items: center;
+}
+
+.logoImage {
+    object-fit: contain;
+    width: auto !important;
+    height: 60px !important;
+}
+
+.navLinks {
+    display: flex;
+    gap: 3.5rem;
+    align-items: center;
+}
+
+.navLink {
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--text-primary);
+    position: relative;
+    letter-spacing: -0.01em;
+}
+
+.navLink:after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: var(--secondary);
+    transition: width 0.3s ease;
+}
+
+.navLink:hover {
+    color: var(--secondary);
+}
+
+.navLink:hover:after {
+    width: 100%;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.searchBar {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.searchInput {
+    padding: 0.6rem 1rem 0.6rem 2.5rem;
+    border-radius: 20px;
+    border: 1px solid var(--gray-medium);
+    background-color: var(--gray-light);
+    font-size: 0.85rem;
+    width: 220px;
+    transition: all 0.3s ease;
+}
+
+.searchInput:focus {
+    width: 280px;
+    background-color: white;
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(0, 128, 128, 0.1);
+}
+
+.searchIcon {
+    position: absolute;
+    left: 1rem;
+    color: var(--text-secondary);
+}
+
+.userSection {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.avatar {
+    width: 36px;
+    height: 36px;
+    background-color: var(--primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    transition: transform 0.2s ease;
+}
+
+.avatar:hover {
+    transform: scale(1.1);
+}
+
+.actionIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    position: relative;
+    transition: color 0.2s ease;
+}
+
+.actionIcon:hover {
+    color: var(--secondary);
+}
+
+.badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background-color: var(--secondary);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+}
+
+.mobileMenu {
+    display: none;
+    color: var(--text-primary);
+}
+
+@media (max-width: 992px) {
+    .navbar {
+        height: 70px;
+    }
+
+    .container {
+        width: 100% !important;
+        padding: 0 1rem;
+    }
+
+    .logoImage {
+        width: auto !important;
+        height: 50px !important;
+        object-fit: contain;
+    }
+
+    .navLinks {
+        position: fixed;
+        top: 70px;
+        left: 0;
+        width: 100%;
+        background-color: white;
+        flex-direction: column;
+        padding: 2rem;
+        gap: 2rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        display: none;
+        z-index: 999;
+        border-bottom: 3px solid var(--secondary);
+    }
+
+    .navLinks.active {
+        display: flex;
+    }
+
+    .navLinks.dashboardHidden {
+        display: none !important;
+    }
+
+    .searchBar {
+        display: none;
+    }
+
+    .mobileMenu {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .navLink {
+        font-size: 1.25rem;
+        width: 100%;
+        text-align: center;
+        padding: 0.5rem 0;
+    }
+
+    .actions {
+        gap: 0.75rem;
+    }
+
+    .logoImage {
+        width: auto !important;
+        height: 45px !important;
+    }
+}

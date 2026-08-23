@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Munch Tokri Admin | Inventory Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0d9488",
+                        "primary-dark": "#0f766e",
+                        "accent-red": "#ef4444",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#0f172a",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.75rem", "lg": "1.5rem", "xl": "2rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 transition-colors duration-200">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+<div class="layout-container flex h-screen overflow-hidden">
+<!-- Teal Sidebar -->
+<aside class="w-64 bg-primary text-white flex-shrink-0 flex flex-col hidden lg:flex">
+<div class="p-6 flex items-center gap-3">
+<div class="size-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined">shopping_basket</span>
+</div>
+<h2 class="text-xl font-bold tracking-tight">Munch Tokri</h2>
+</div>
+<nav class="flex-1 px-4 space-y-1 mt-4">
+<a class="flex items-center gap-3 px-4 py-3 bg-white/10 rounded-xl font-medium" href="#">
+<span class="material-symbols-outlined">inventory_2</span> Inventory
+</a>
+<a class="flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-xl font-medium transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span> Dashboard
+</a>
+<a class="flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-xl font-medium transition-colors" href="#">
+<span class="material-symbols-outlined">orders</span> Orders
+</a>
+<a class="flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-xl font-medium transition-colors" href="#">
+<span class="material-symbols-outlined">group</span> Customers
+</a>
+<a class="flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-xl font-medium transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span> Settings
+</a>
+</nav>
+<div class="p-6 border-t border-white/10">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-white/20"></div>
+<div>
+<p class="text-sm font-bold">Admin User</p>
+<p class="text-xs text-white/60">Store Manager</p>
+</div>
+</div>
+</div>
+</aside>
+<div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+<!-- Header -->
+<header class="flex items-center justify-between px-6 lg:px-10 py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800">
+<div class="flex items-center gap-4 lg:hidden">
+<span class="material-symbols-outlined text-primary">menu</span>
+<h2 class="text-primary text-xl font-bold">Munch Tokri</h2>
+</div>
+<div class="hidden lg:block">
+<h1 class="text-xl font-bold text-slate-800 dark:text-white">Inventory Management</h1>
+<p class="text-xs text-slate-500">Manage your snack collection</p>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden md:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+<input class="pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-full text-sm w-64 focus:ring-2 focus:ring-primary/20" placeholder="Search snacks..." type="text"/>
+</div>
+<button class="bg-primary text-white px-5 py-2 rounded-full text-sm font-bold flex items-center gap-2 hover:bg-primary-dark transition-all shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-sm">add</span> Add Item
+</button>
+</div>
+</header>
+<main class="p-6 lg:p-10 bg-slate-50 dark:bg-slate-950 min-h-full">
+{{REPLACE_CONTENT_PLACEHOLDER}}
+</main>
+</div>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,336 @@
+.membershipPage {
+    background-color: var(--white);
+    color: var(--text-primary);
+    overflow-x: hidden;
+}
+
+/* Hero Section */
+.hero {
+    position: relative;
+    padding: 120px 0 80px;
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    overflow: hidden;
+}
+
+.heroBackground {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.blob1 {
+    position: absolute;
+    top: -10%;
+    left: -5%;
+    width: 40%;
+    height: 60%;
+    background: radial-gradient(circle, rgba(0, 128, 128, 0.08) 0%, transparent 70%);
+    filter: blur(80px);
+}
+
+.blob2 {
+    position: absolute;
+    bottom: -10%;
+    right: -5%;
+    width: 40%;
+    height: 60%;
+    background: radial-gradient(circle, rgba(244, 180, 26, 0.08) 0%, transparent 70%);
+    filter: blur(80px);
+}
+
+.heroContent {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 60px;
+    align-items: center;
+}
+
+@media (max-width: 1024px) {
+    .heroContent {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+    
+    .heroText {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+}
+
+.heroLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(0, 128, 128, 0.1);
+    color: var(--primary);
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 24px;
+    border: 1px solid rgba(0, 128, 128, 0.1);
+}
+
+.heroTitle {
+    font-size: clamp(3rem, 6vw, 5.5rem);
+    line-height: 0.95;
+    margin-bottom: 24px;
+    color: var(--gray-dark);
+}
+
+.heroTitle span {
+    color: var(--primary);
+}
+
+.heroDesc {
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+    max-width: 600px;
+    line-height: 1.6;
+    margin-bottom: 40px;
+}
+
+@media (max-width: 1024px) {
+    .heroDesc {
+        margin: 0 auto 40px;
+    }
+}
+
+/* Benefits Section */
+.benefits {
+    padding: 100px 0;
+    background: #ffffff;
+}
+
+.sectionHeader {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto 60px;
+}
+
+.sectionLabel {
+    color: var(--primary);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 0.875rem;
+    margin-bottom: 12px;
+    display: block;
+}
+
+.sectionTitle {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    color: var(--gray-dark);
+}
+
+.benefitGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+}
+
+@media (max-width: 1024px) {
+    .benefitGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .benefitGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.benefitCard {
+    padding: 30px;
+    background: #ffffff;
+    border: 1px solid #f1f5f9;
+    border-radius: 24px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+}
+
+.benefitCard:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    border-color: var(--primary);
+}
+
+.iconWrapper {
+    width: 60px;
+    height: 60px;
+    background: rgba(0, 128, 128, 0.1);
+    color: var(--primary);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+}
+
+.benefitCard h3 {
+    font-size: 1.5rem;
+    margin-bottom: 12px;
+    color: var(--gray-dark);
+}
+
+.benefitCard p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+/* Comparison Section */
+.comparison {
+    padding: 100px 0;
+    background: #f8fafc;
+}
+
+.tableWrapper {
+    max-width: 900px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 32px;
+    overflow: hidden;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+}
+
+.compareTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.compareTable th {
+    padding: 30px 20px;
+    text-align: center;
+    vertical-align: middle;
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    border-bottom: 2px solid #f1f5f9;
+    color: var(--gray-dark);
+    width: 30%;
+}
+
+.compareTable td {
+    padding: 24px 20px;
+    text-align: center;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+    color: var(--text-secondary);
+    width: 30%;
+}
+
+.featureCol {
+    text-align: left !important;
+    font-weight: 600;
+    color: var(--gray-dark) !important;
+    padding-left: 40px !important;
+    width: 40%;
+}
+
+.checkIcon, .xIcon {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.checkIcon {
+    color: #10b981;
+}
+
+.xIcon {
+    color: #ef4444;
+}
+
+.premiumText {
+    color: var(--primary) !important;
+    font-weight: 700;
+    text-align: center;
+}
+
+/* FAQ Section */
+.faq {
+    padding: 100px 0;
+    background: #ffffff;
+}
+
+.faqGrid {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.faqItem {
+    background: #f8fafc;
+    border-radius: 20px;
+    padding: 30px;
+}
+
+.faqItem h4 {
+    font-size: 1.125rem;
+    margin-bottom: 12px;
+    color: var(--gray-dark);
+}
+
+.faqItem p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+/* CTA Section */
+.cta {
+    padding: 100px 0;
+}
+
+.ctaBox {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+    border-radius: 40px;
+    padding: 80px 40px;
+    text-align: center;
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.ctaBox h2 {
+    font-size: 3.5rem;
+    margin-bottom: 24px;
+}
+
+.ctaBox p {
+    font-size: 1.25rem;
+    margin-bottom: 40px;
+    opacity: 0.9;
+}
+
+.ctaBtn {
+    background: white !important;
+    color: var(--primary) !important;
+    font-weight: 800 !important;
+}
+
+@media (max-width: 768px) {
+    .sectionTitle {
+        font-size: 2.25rem;
+    }
+    
+    .ctaBox h2 {
+        font-size: 2.5rem;
+    }
+    
+    .featureCol {
+        padding-left: 20px !important;
+    }
+}

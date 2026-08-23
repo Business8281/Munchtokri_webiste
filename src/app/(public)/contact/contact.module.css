@@ -1,0 +1,203 @@
+.contactContainer {
+    background-color: var(--background);
+    color: var(--text-primary);
+    font-family: var(--font-main);
+    overflow-x: hidden;
+}
+
+/* Hero Section */
+.hero {
+    background: var(--primary);
+    color: white;
+    padding: 6rem 0;
+    position: relative;
+    text-align: center;
+}
+
+.heroLabel {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+}
+
+.heroTitle {
+    font-size: 3.5rem;
+    margin-bottom: 1.5rem;
+    font-family: var(--font-display);
+}
+
+.heroTitle span {
+    color: var(--accent);
+}
+
+.heroDesc {
+    font-size: 1.15rem;
+    max-width: 700px;
+    margin: 0 auto;
+    opacity: 0.95;
+}
+
+/* Contact Info & Form Layout */
+.section {
+    padding: 6rem 0;
+}
+
+.sectionTitle {
+    font-size: 2.5rem;
+    margin-bottom: 2rem;
+    font-family: var(--font-display);
+    color: var(--text-primary);
+}
+
+.sectionTitle span {
+    color: var(--secondary);
+}
+
+.contentRow {
+    display: flex;
+    gap: 6rem;
+    align-items: flex-start;
+}
+
+.infoSide {
+    flex: 1;
+}
+
+.formSide {
+    flex: 1.2;
+}
+
+/* Contact Info Cards */
+.infoGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.infoCard {
+    background: white;
+    padding: 2.5rem;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--gray-medium);
+}
+
+.infoIcon {
+    width: 50px;
+    height: 50px;
+    background: rgba(0, 128, 128, 0.1);
+    color: var(--primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+}
+
+.infoCard h3 {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    font-family: var(--font-display);
+    color: var(--primary);
+}
+
+.infoCard p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+/* Contact Form */
+.formCard {
+    background: white;
+    padding: 3rem;
+    border-radius: 30px;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--gray-medium);
+}
+
+.formGroup {
+    margin-bottom: 2rem;
+}
+
+.formLabel {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.input, .textarea {
+    width: 100%;
+    padding: 1rem 1.25rem;
+    border: 2px solid var(--gray-medium);
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.input:focus, .textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: #f8ffff;
+}
+
+.textarea {
+    min-height: 150px;
+    resize: vertical;
+}
+
+.submitBtn {
+    width: 100%;
+    margin-top: 1rem;
+}
+
+
+/* Mobile Responsive */
+.contactLink {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.contactLink:hover {
+    color: var(--primary);
+    text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+    .hero {
+        padding: 4rem 1rem;
+    }
+
+    .heroTitle {
+        font-size: 2.25rem !important;
+        line-height: 1.1;
+    }
+
+    .sectionTitle {
+        font-size: 1.8rem !important;
+        text-align: center;
+    }
+
+    .section {
+        padding: 4rem 1rem;
+    }
+
+    .infoGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .formCard {
+        padding: 2rem 1.5rem;
+        border-radius: 20px;
+    }
+}

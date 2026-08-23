@@ -1,0 +1,254 @@
+.adminContainer {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    background: #f4f7f6;
+    font-family: var(--font-main);
+}
+
+.sidebar {
+    width: 240px;
+    background: var(--primary);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    z-index: 1001;
+    transition: transform 0.3s ease;
+    overflow-y: auto;
+}
+
+@media (max-width: 992px) {
+    .sidebar {
+        position: fixed;
+        left: 0;
+        width: 100%; /* Cover full width on mobile for better focus */
+        max-width: 300px;
+        transform: translateX(-100%);
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .sidebarOpen {
+        transform: translateX(0);
+    }
+}
+
+.sidebarHeader {
+    padding: 2rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.logoWrapper {
+    background: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    text-align: center;
+    margin-bottom: 0.5rem;
+    height: 40px;
+}
+
+.logoImage {
+    object-fit: contain;
+    width: auto;
+    height: 100%;
+}
+
+.sidebarHeader p {
+    font-size: 0.8rem;
+    opacity: 0.7;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 0.5rem;
+}
+
+.nav {
+    padding: 2rem 0;
+    flex: 1;
+}
+
+.navItem {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.875rem 1.5rem;
+    color: white;
+    opacity: 0.8;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.navItem:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.navItem.active {
+    opacity: 1;
+    background: white;
+    color: var(--primary);
+    border-left: 5px solid var(--secondary);
+}
+
+.sidebarFooter {
+    padding: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.backHome,
+.logoutBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+    opacity: 0.8;
+    color: white;
+    text-decoration: none;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.backHome:hover,
+.logoutBtn:hover {
+    opacity: 1;
+}
+
+.logoutBtn {
+    color: #ffcccc;
+}
+
+.contentArea {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.header {
+    background: white;
+    padding: 1.25rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    width: 95%;
+    margin: 0 auto;
+    border-radius: 0 0 12px 12px;
+    z-index: 100;
+}
+
+.menuToggle {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--primary);
+    cursor: pointer;
+    padding: 0.5rem;
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+}
+
+@media (max-width: 992px) {
+    .menuToggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+    }
+    
+    .header {
+        width: 100%;
+        border-radius: 0;
+        padding: 0.75rem 1rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .search {
+        display: none; /* Hide search on mobile header to save space */
+    }
+    
+    .profile span {
+        display: none; /* Hide 'Admin' text on small screens */
+    }
+}
+.search {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.searchIcon {
+    position: absolute;
+    left: 1rem;
+    opacity: 0.7;
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+.search input {
+    background: var(--gray-light);
+    border: none;
+    padding: 0.75rem 1.5rem 0.75rem 2.8rem;
+    border-radius: 8px;
+    width: 350px;
+    font-family: inherit;
+}
+
+.profile {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    background: var(--secondary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.main {
+    padding: 1.5rem 0;
+    width: 95%;
+    max-width: 100vw;
+    margin: 0 auto;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0; /* Important for flex child overflow */
+}
+
+@media (max-width: 640px) {
+    .main {
+        width: 100%;
+        padding: 1rem;
+    }
+}
