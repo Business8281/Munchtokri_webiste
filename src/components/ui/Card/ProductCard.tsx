@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Image from 'next/image';
 import Button from '@/components/ui/Button/Button';
 import styles from './ProductCard.module.css';
 import { useCart } from '@/contexts/CartContext';
 import Link from 'next/link';
 import StarRating from '@/components/ui/StarRating/StarRating';
+import { tracker } from '@/lib/analytics/tracker';
 
 interface ProductCardProps {
     id: string;
@@ -35,6 +36,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
     const { addToCart } = useCart();
     const displayImage = imageURL || image;
 
+    useEffect(() => {
+        tracker.track('product_impression', {
+            productId: id,
+            productName: name,
+            category: category || 'General',
+            price
+        });
+    }, [id, name, category, price]);
+
     const handleAddToCart = () => {
         // Calculate base weight if not provided
         const finalBaseWeight = baseWeight || (stock ? Number(String(stock).replace(/[^0-9]/g, '')) || 100 : 100);
@@ -61,7 +71,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 {!!discount && discount > 0 && <div className={`${styles.badge} ${styles.discount}`}>-{discount}% OFF</div>}
             </div>
 
-            <Link href={`/product/${id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', flex: 1 }}>
+            <Link
+                href={`/product/${id}`}
+                onClick={() => {
+                    tracker.track('product_click', {
+                        productId: id,
+                        productName: name,
+                        category: category || 'General',
+                        price
+                    });
+                }}
+                style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', flex: 1 }}
+            >
                 <div className={styles.imageWrapper}>
                     {displayImage && displayImage.trim() !== '' ? (
                         <Image

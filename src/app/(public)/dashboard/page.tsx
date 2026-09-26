@@ -6,6 +6,7 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, logOut, db as defaultDb } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { useOrders, updateCustomerProfile, useCustomer } from '@/hooks/useFirestore';
+import { formatOrderDate } from '@/lib/analytics/engine';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import {
@@ -465,7 +466,7 @@ function DashboardContent() {
                                                         {order.status}
                                                     </span>
                                                     <h3 style={{ margin: '0.5rem 0' }}>Order {order.orderNumber ? `#${order.orderNumber}` : `#${order.id?.slice(-6).toUpperCase()}`}</h3>
-                                                    <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Placed on {typeof order.date === 'string' ? new Date(order.date).toLocaleDateString() : order.date?.toDate ? new Date(order.date.toDate()).toLocaleDateString() : 'Recently'} • Total: {order.amount}</p>
+                                                    <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Placed on {formatOrderDate(order.date || (order as any).createdAt)} • Total: {order.amount}</p>
                                                     
                                                     {order.method?.payment && (
                                                         <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem', color: '#475569' }}>
@@ -539,7 +540,12 @@ function DashboardContent() {
                                                                     <div style={{ flex: 1 }}>
                                                                         {renderItemName(item.name)}
                                                                         <p style={{ margin: '0.25rem 0 0', color: '#64748b', fontSize: '0.75rem', fontWeight: 500 }}>
-                                                                            {item.quantity}{item.baseWeight === 1 ? ` Unit${item.quantity > 1 ? 's' : ''}` : 'g'} • ₹{(item.price / (item.baseWeight || 100)).toFixed(2)}
+                                                                            {(() => {
+                                                                                const cat = (item as any).category?.toLowerCase();
+                                                                                const isCombo = cat === 'combos' || cat === 'combo' || item.baseWeight === 1;
+                                                                                const isCustomMix = cat === 'custom mix' || item.name.startsWith('Custom Mix (');
+                                                                                return isCombo && !isCustomMix ? `${item.quantity} Unit(s)` : isCustomMix ? `${item.quantity}g` : `${item.quantity / (item.baseWeight || 100)} (${item.quantity}g)`;
+                                                                            })()} • ₹{((item.price * item.quantity) / (item.baseWeight || 100)).toFixed(2)}
                                                                         </p>
                                                                     </div>
                                                                 </div>

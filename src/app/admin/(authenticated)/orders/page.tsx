@@ -2,19 +2,29 @@
 
 export const dynamic = "force-dynamic";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOrders } from '@/hooks/useFirestore';
 import { ChevronDown, ChevronUp, Truck } from 'lucide-react';
 import { useNotification } from '@/contexts/NotificationContext';
 import styles from '../admin.module.css';
 import { httpsCallable } from 'firebase/functions';
-import { adminFunctions } from '@/lib/firebase';
+import { adminFunctions, db } from '@/lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { formatOrderDate } from '@/lib/analytics/engine';
 
 export default function OrdersPage() {
-    const { orders, loading, updateOrderStatus, updateOrderShipment } = useOrders(undefined, true);
+    const { orders, loading, updateOrderStatus, updateOrderShipment, updateVelocityShipment } = useOrders(undefined, true);
     const { showNotification } = useNotification();
     const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
     const [shipping, setShipping] = useState<string | null>(null);
+    const [storeSettings, setStoreSettings] = useState<any>(null);
+
+    useEffect(() => {
+        const unsubStore = onSnapshot(doc(db, 'settings', 'store'), (snap) => {
+            if (snap.exists()) setStoreSettings(snap.data());
+        });
+        return () => unsubStore();
+    }, []);
 
     const orderStatuses = [
         'Processing',
@@ -82,6 +92,32 @@ export default function OrdersPage() {
         }
     };
 
+    const handleVelocity = async (orderId: string) => {
+        setShipping(orderId);
+        try {
+            const createVelocityOrder = httpsCallable(adminFunctions, 'createVelocityOrder');
+            const result = await createVelocityOrder({ orderId });
+            const data = result.data as any;
+            
+            if (data && data.order_id && data.shipment_id) {
+                await updateVelocityShipment(orderId, {
+                    orderId: String(data.order_id),
+                    shipmentId: String(data.shipment_id),
+                    awbCode: String(data.awb_code)
+                });
+                showNotification(`Order shipped successfully! Velocity ID: ${data.order_id}`, 'success', { title: 'Shipment Created' });
+            } else {
+                const errorMessage = data?.message || "Please check administrative logs.";
+                showNotification(`Failed to create Velocity shipment. ${errorMessage}`, 'error', { title: 'Shipping Error' });
+            }
+        } catch (error: any) {
+            console.error("Velocity Shipping failed:", error);
+            showNotification(`Error: ${error.message || "Failed to connect to Velocity shipping service"}`, 'error', { title: 'System Error' });
+        } finally {
+            setShipping(null);
+        }
+    };
+
     return (
         <div>
             <div className={styles.sectionHeader}>
@@ -139,7 +175,7 @@ export default function OrdersPage() {
                                             </span>
                                         </td>
                                         <td>{row.amount}</td>
-                                        <td>{typeof row.date === 'string' ? new Date(row.date).toLocaleDateString() : (row.date as any)?.toDate ? new Date((row.date as any).toDate()).toLocaleDateString() : 'Just now'}</td>
+                                        <td>{formatOrderDate(row.date || (row as any).createdAt)}</td>
                                         <td>
                                             <select 
                                                 className={styles.statusDropdown}
@@ -169,7 +205,7 @@ export default function OrdersPage() {
                                                         {row.items && row.items.length > 0 ? (
                                                             <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                                                                 {row.items.map((item, idx) => {
-                                                                    const renderItemName = (name: string, quantity: number, category?: string, products?: any[]) => {
+                                                                    const renderItemName = (name: string, quantity: number, category?: string, products?: any[], baseWeight?: number) => {
                                                                         if (name.startsWith('Custom Mix (')) {
                                                                             const match = name.match(/Custom Mix \((.*)\)/);
                                                                             if (match && match[1]) {
@@ -203,12 +239,13 @@ export default function OrdersPage() {
                                                                             );
                                                                         }
 
-                                                                        return <span>{name} ({quantity}g)</span>;
+                                                                        const bw = baseWeight || 100;
+                                                                        return <span>{name} ({quantity / bw} Units, {quantity}g)</span>;
                                                                     };
 
                                                                     return (
                                                                         <li key={idx} style={{ padding: '0.5rem 0', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                                                            {renderItemName(item.name, item.quantity, (item as any).category, (item as any).products)}
+                                                                            {renderItemName(item.name, item.quantity, (item as any).category, (item as any).products, item.baseWeight)}
                                                                             <span style={{ fontWeight: 500, marginTop: '0.1rem' }}>₹{((item.price * item.quantity) / (item.baseWeight || 100)).toFixed(2)}</span>
                                                                         </li>
                                                                     );
@@ -292,7 +329,7 @@ export default function OrdersPage() {
                                                                 <strong>Delivery:</strong> {row.method.delivery}
                                                             </p>
                                                         )}
-                                                        <div style={{ marginTop: '1rem' }}>
+                                                        <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                                             {row.shiprocketShipmentId ? (
                                                                 <div style={{ padding: '0.75rem', backgroundColor: '#ecfdf5', borderRadius: '4px', border: '1px solid #10b981' }}>
                                                                     <p style={{ margin: 0, fontSize: '0.85rem', color: '#065f46' }}>
@@ -300,22 +337,55 @@ export default function OrdersPage() {
                                                                         Shipment ID: {row.shiprocketShipmentId}
                                                                     </p>
                                                                 </div>
+                                                            ) : row.velocityShipmentId ? (
+                                                                <div style={{ padding: '0.75rem', backgroundColor: '#eff6ff', borderRadius: '4px', border: '1px solid #3b82f6' }}>
+                                                                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#1e3a8a' }}>
+                                                                        <strong>Shipped via Velocity</strong><br />
+                                                                        Shipment ID: {row.velocityShipmentId}<br/>
+                                                                        AWB: {row.velocityAWB}
+                                                                    </p>
+                                                                </div>
                                                             ) : (
-                                                                <button 
-                                                                    className={styles.viewBtn}
-                                                                    onClick={() => handleShiprocket(row.id)}
-                                                                    disabled={shipping === row.id}
-                                                                    style={{ 
-                                                                        display: 'flex', 
-                                                                        alignItems: 'center', 
-                                                                        gap: '0.5rem',
-                                                                        backgroundColor: shipping === row.id ? '#94a3b8' : '#ef4444',
-                                                                        color: 'white'
-                                                                    }}
-                                                                >
-                                                                    <Truck size={16} />
-                                                                    {shipping === row.id ? 'Shipping...' : 'Ship with Shiprocket'}
-                                                                </button>
+                                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                                    {storeSettings?.enableShiprocket !== false && (
+                                                                        <button 
+                                                                            className={styles.viewBtn}
+                                                                            onClick={() => handleShiprocket(row.id)}
+                                                                            disabled={shipping === row.id}
+                                                                            style={{ 
+                                                                                display: 'flex', 
+                                                                                alignItems: 'center', 
+                                                                                gap: '0.5rem',
+                                                                                backgroundColor: shipping === row.id ? '#94a3b8' : '#ef4444',
+                                                                                color: 'white',
+                                                                                flex: 1,
+                                                                                justifyContent: 'center'
+                                                                            }}
+                                                                        >
+                                                                            <Truck size={16} />
+                                                                            {shipping === row.id ? 'Shipping...' : 'Shiprocket'}
+                                                                        </button>
+                                                                    )}
+                                                                    {storeSettings?.enableVelocity !== false && (
+                                                                        <button 
+                                                                            className={styles.viewBtn}
+                                                                            onClick={() => handleVelocity(row.id)}
+                                                                            disabled={shipping === row.id}
+                                                                            style={{ 
+                                                                                display: 'flex', 
+                                                                                alignItems: 'center', 
+                                                                                gap: '0.5rem',
+                                                                                backgroundColor: shipping === row.id ? '#94a3b8' : '#3b82f6',
+                                                                                color: 'white',
+                                                                                flex: 1,
+                                                                                justifyContent: 'center'
+                                                                            }}
+                                                                        >
+                                                                            <Truck size={16} />
+                                                                            {shipping === row.id ? 'Shipping...' : 'Velocity'}
+                                                                        </button>
+                                                                    )}
+                                                                </div>
                                                             )}
                                                         </div>
                                                     </div>

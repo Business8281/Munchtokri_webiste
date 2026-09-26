@@ -11,6 +11,7 @@ import Button from '@/components/ui/Button/Button';
 import StarRating from '@/components/ui/StarRating/StarRating';
 import ReviewForm from '@/components/ui/Review/ReviewForm';
 import ReviewList from '@/components/ui/Review/ReviewList';
+import { tracker } from '@/lib/analytics/tracker';
 import styles from './product.module.css';
 
 interface Product {
@@ -75,6 +76,14 @@ export default function ProductDetailsClient({ productId }: { productId: string 
                     });
                     setQuantity(data.stock ? Number(String(data.stock).replace(/[^0-9]/g, '')) || 100 : 100);
                     setSelectedImage(data.imageURL || data.image || null);
+
+                    tracker.track('product_view', {
+                        productId: docSnap.id,
+                        productName: data.name || '',
+                        category: data.category || '',
+                        price: data.price || 0,
+                        stock: data.stock || '100g'
+                    });
                 } else {
                     setError('Product not found.');
                 }
@@ -146,7 +155,14 @@ export default function ProductDetailsClient({ productId }: { productId: string 
                                     <button
                                         key={index}
                                         className={`${styles.thumbnailBtn} ${selectedImage === img ? styles.activeThumbnail : ''}`}
-                                        onClick={() => setSelectedImage(img)}
+                                        onClick={() => {
+                                            setSelectedImage(img);
+                                            tracker.track('product_image_click', {
+                                                productId: product.id,
+                                                productName: product.name,
+                                                imageIndex: index
+                                            });
+                                        }}
                                     >
                                         <img src={img} alt={`${product.name} thumbnail ${index + 1}`} />
                                     </button>
@@ -196,7 +212,9 @@ export default function ProductDetailsClient({ productId }: { productId: string 
                                 >
                                     -
                                 </button>
-                                <span className={styles.qtyValue} style={{ minWidth: '60px' }}>{quantity}g</span>
+                                <span className={styles.qtyValue} style={{ minWidth: '60px' }}>
+                                    {quantity / (product.baseWeight || 50)} ({quantity}g)
+                                </span>
                                 <button
                                     onClick={() => setQuantity(Math.min(5000, quantity + (product.baseWeight || 50)))} // Max 5kg at once
                                     className={styles.qtyBtn}

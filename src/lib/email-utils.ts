@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
+import { formatOrderDate } from '@/lib/analytics/engine';
 
 // SMTP Configuration (GoDaddy)
 const transporter = nodemailer.createTransport({
@@ -45,7 +46,7 @@ export async function generateOrderPDF(order: any) {
     doc.setDrawColor(240, 240, 240);
     doc.line(20, 67, pageWidth - 20, 67);
     doc.setFont("helvetica", "bold");
-    doc.text(`Order Date: ${new Date(order.date?.toDate?.() || order.date).toLocaleDateString()}`, 20, 73);
+    doc.text(`Order Date: ${formatOrderDate(order.date || order.createdAt)}`, 20, 73);
     doc.setFont("helvetica", "normal");
     doc.line(20, 77, pageWidth - 20, 77);
 
@@ -186,7 +187,7 @@ export async function sendOrderConfirmationEmail(order: any, pdfBuffer: ArrayBuf
                 <p>Hi ${order.customerName},</p>
                 <p>Thank you for ordering from <b>Munch Tokri</b>. Your order has been successfully placed.</p>
                 <hr style="border: none; border-top: 1px solid #eee">
-                <b>Order Date:</b> ${new Date(order.date?.toDate?.() || order.date).toLocaleDateString()}
+                <b>Order Date:</b> ${formatOrderDate(order.date || order.createdAt)}
                 <hr style="border: none; border-top: 1px solid #eee">
                 <table width="100%" style="margin-top:20px">
                     <tr>
@@ -293,7 +294,20 @@ export async function sendStatusUpdateEmail(order: any) {
             color = "#3498db";
             title = "Order Dispatched 🚚";
             message = `<p>Your order <b>#${order.orderNumber}</b> has been dispatched.</p>`;
-            if (order.shiprocketOrderId || order.trackingId) {
+            if (order.velocityAWB || order.velocityOrderId) {
+                const courier = order.courierName || "Velocity";
+                const trackingId = order.velocityAWB || order.velocityOrderId;
+                const trackingLink = `https://shipfastt.in/track/${trackingId}`;
+                extraContent = `
+                    <p><b>Courier:</b> ${courier}</p>
+                    <p><b>Tracking ID:</b> ${trackingId}</p>
+                    <div style="margin-top: 20px;">
+                        <a href="${trackingLink}" style="background:#d32f2f;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;display:inline-block;">
+                            Track Order
+                        </a>
+                    </div>
+                `;
+            } else if (order.shiprocketOrderId || order.trackingId) {
                 const courier = order.courierName || "Shiprocket";
                 const trackingId = order.trackingId || order.shiprocketOrderId;
                 const trackingLink = `https://shiprocket.co/tracking/${trackingId}`;

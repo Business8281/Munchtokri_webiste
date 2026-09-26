@@ -58,6 +58,12 @@ const shiprocketPickup = defineString("SHIPROCKET_PICKUP_LOCATION", {
   default: "Primary",
 });
 
+// Velocity parameters
+const velocityApiKey = defineString("VELOCITY_API_KEY");
+const velocityWarehouseId = defineString("VELOCITY_WAREHOUSE_ID", {
+  default: "",
+});
+
 // Razorpay parameters
 const razorpayKeyId = defineString("RAZORPAY_KEY_ID");
 const razorpayKeySecret = defineSecret("RAZORPAY_KEY_SECRET");
@@ -136,6 +142,9 @@ interface OrderData {
   items: OrderItem[];
   shiprocketOrderId?: string;
   shiprocketShipmentId?: string;
+  velocityOrderId?: string;
+  velocityShipmentId?: string;
+  velocityAWB?: string;
   earnedPoints?: number;
   discount?: number;
   membershipDiscount?: number;
@@ -261,7 +270,22 @@ async function sendStatusUpdateEmail(
       title = "Order Dispatched 🚚";
       message = `<p>Your order <b>#${order.orderNumber}</b> has been ` +
         "dispatched.</p>";
-      if (order.shiprocketOrderId || order.trackingId) {
+      if (order.velocityAWB || order.velocityOrderId) {
+        const courier = order.courierName || "Velocity";
+        const trackingId = order.velocityAWB || order.velocityOrderId;
+        const trackingLink = `https://shipfastt.in/track/${trackingId}`;
+        extraContent = `
+          <p><b>Courier:</b> ${courier}</p>
+          <p><b>Tracking ID:</b> ${trackingId}</p>
+          <div style="margin-top: 20px;">
+            <a href="${trackingLink}" style="background:#d32f2f;color:white;` +
+          "padding:12px 20px;text-decoration:none;border-radius:6px;" +
+          "display:inline-block;\">" +
+          "Track Order" +
+          "</a>" +
+          "</div>" +
+          "";
+      } else if (order.shiprocketOrderId || order.trackingId) {
         const courier = order.courierName || "Shiprocket";
         const trackingId = order.trackingId || order.shiprocketOrderId;
         const trackingLink = `https://shiprocket.co/tracking/${trackingId}`;
@@ -481,11 +505,11 @@ async function generateOrderPDF(
     const cat = item.category?.toLowerCase();
     const isCombo = cat === 'combos' || cat === 'combo' || item.baseWeight === 1;
     const isCustomMix = cat === 'custom mix' || item.category === 'Custom Mix';
-    
+
     // Quantity display (Units for combos, grams for everything else)
     const displayQty = isCombo && !isCustomMix ?
       `${item.quantity} Unit${item.quantity > 1 ? "s" : ""}` :
-      `${item.quantity}g`;
+      isCustomMix ? `${item.quantity}g` : `${item.quantity / (item.baseWeight || 100)} Units (${item.quantity}g)`;
 
     // Name display (Include sub-products for bundles)
     let displayName = item.name;
@@ -534,11 +558,11 @@ async function generateOrderPDF(
   const finalY = doc.lastAutoTable.finalY + 10;
   const subtotal = order.items.reduce((sum: number, item: OrderItem) =>
     sum + ((item.price / (item.baseWeight || 100)) * item.quantity), 0);
-  
+
   // Fetch store settings for shipping rules
   const storeSnap = await admin.firestore().collection("settings").doc("store").get();
   const storeSettings = storeSnap.exists ? storeSnap.data() : null;
-  
+
   let shippingCost = 0;
   if (storeSettings?.enableFlatRateShipping !== false) {
     const threshold = storeSettings?.freeShippingThreshold ?? 350;
@@ -666,11 +690,11 @@ async function sendOrderConfirmationEmail(
 ): Promise<void> { // Changed to void
   const subtotal = order.items.reduce((sum: number, item: OrderItem) =>
     sum + ((item.price / (item.baseWeight || 100)) * item.quantity), 0);
-  
+
   // Fetch store settings for shipping rules
   const storeSnap = await admin.firestore().collection("settings").doc("store").get();
   const storeSettings = storeSnap.exists ? storeSnap.data() : null;
-  
+
   let shippingCost = 0;
   if (storeSettings?.enableFlatRateShipping !== false) {
     const threshold = storeSettings?.freeShippingThreshold ?? 350;
@@ -693,7 +717,7 @@ async function sendOrderConfirmationEmail(
 
     const displayQty = isCombo && !isCustomMix ?
       `${item.quantity} Unit${item.quantity > 1 ? "s" : ""}` :
-      `${item.quantity}g`;
+      isCustomMix ? `${item.quantity}g` : `${item.quantity / (item.baseWeight || 100)} Units (${item.quantity}g)`;
 
     let displayName = item.name;
     if ((isCombo || isCustomMix) && item.products) {
@@ -898,11 +922,16 @@ async function sendAdminNotificationEmail(
         </div>
         <h3 style="color: #333; margin-top: 20px; font-size: 16px;">Items Ordered:</h3>
         <ul style="padding-left: 20px; margin: 10px 0;">
-          ${order.items.map((item) => `
+          ${order.items.map((item: any) => {
+      const isCombo = item.category?.toLowerCase() === 'combos' || item.category?.toLowerCase() === 'combo' || item.baseWeight === 1;
+      const isCustomMix = item.category?.toLowerCase() === 'custom mix' || item.category === 'Custom Mix';
+      const qtyStr = isCombo && !isCustomMix ? `${item.quantity} Unit(s)` : isCustomMix ? `${item.quantity}g` : `${item.quantity / (item.baseWeight || 100)} Units (${item.quantity}g)`;
+      return `
             <li style="margin-bottom: 8px;">
-              <strong>${item.name}</strong> x ${item.quantity}
+              <strong>${item.name}</strong> x ${qtyStr}
             </li>
-          `).join('')}
+          `;
+    }).join('')}
         </ul>
         <p>The invoice is attached for your reference.
           Please check the admin portal for further details.</p>
@@ -1013,12 +1042,18 @@ export const createShiprocketOrder = onCall(
         billing_email: order.customerEmail,
         billing_phone: order.shippingDetails.mobile,
         shipping_is_billing: true,
-        order_items: order.items.map((item: OrderItem) => ({
-          name: item.name,
-          sku: item.productId || item.name,
-          units: item.quantity,
-          selling_price: item.price / 100,
-        })),
+        order_items: order.items.map((item: OrderItem) => {
+          const cat = item.category?.toLowerCase();
+          const isCombo = cat === 'combos' || cat === 'combo' || item.baseWeight === 1;
+          const isCustomMix = cat === 'custom mix' || item.category === 'Custom Mix';
+          const units = (isCombo && !isCustomMix) ? item.quantity : Math.max(1, Math.floor(item.quantity / (item.baseWeight || 100)));
+          return {
+            name: item.name,
+            sku: item.productId || item.name,
+            units: units,
+            selling_price: item.price / (isCustomMix ? 1 : units), // Estimate per unit
+          };
+        }),
         payment_method: order.method?.payment === "COD" ? "COD" : "Prepaid",
         sub_total: parseFloat(order.amount.replace("₹", "").replace(",", "")),
         length: 10,
@@ -1062,6 +1097,136 @@ export const createShiprocketOrder = onCall(
         JSON.stringify(error.response?.data || error.message, null, 2));
       throw new HttpsError("internal",
         error.response?.data?.message || "Failed to create Shiprocket order");
+    }
+  });
+
+/**
+ * HTTPS Callable function to create an order in Velocity.
+ */
+export const createVelocityOrder = onCall(
+  { region: "asia-south1", invoker: "public" },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Authentication required");
+    }
+
+    const { orderId } = request.data;
+    if (!orderId) {
+      throw new HttpsError("invalid-argument", "Order ID is required");
+    }
+
+    const orderRef = admin.firestore().collection("orders").doc(orderId);
+    const orderDoc = await orderRef.get();
+
+    if (!orderDoc.exists) {
+      throw new HttpsError("not-found", "Order not found");
+    }
+
+    const order = orderDoc.data() as OrderData;
+
+    // Prevent duplicate shipments
+    if (order.velocityOrderId || order.velocityShipmentId) {
+      console.log("Order already has a Velocity shipment, skipping creation.");
+      return {
+        order_id: order.velocityOrderId,
+        shipment_id: order.velocityShipmentId,
+        awb_code: order.velocityAWB,
+        alreadyCreated: true,
+      };
+    }
+
+    const token = velocityApiKey.value().trim();
+    if (!token) {
+        throw new HttpsError("internal", "Velocity API key not configured");
+    }
+
+    try {
+      const orderAmount = parseFloat(order.amount.replace("₹", "").replace(",", ""));
+      const isCod = order.method?.payment === "COD";
+
+      const velocityOrder = {
+        order_id: order.orderNumber || orderId,
+        order_date: new Date().toISOString().slice(0, 16).replace("T", " "),
+        carrier_id: "",
+        billing_customer_name: order.customerName.split(" ")[0] || "Customer",
+        billing_last_name: order.customerName.split(" ").slice(1).join(" ") || "Name",
+        billing_address: order.shippingDetails.address.length < 10 ?
+          `${order.shippingDetails.address} - Address Details` :
+          order.shippingDetails.address,
+        billing_city: order.shippingDetails.city,
+        billing_pincode: order.shippingDetails.pincode,
+        billing_state: order.shippingDetails.state,
+        billing_country: "India",
+        billing_email: order.customerEmail,
+        billing_phone: order.shippingDetails.mobile,
+        shipping_is_billing: true,
+        print_label: true,
+        order_items: order.items.map((item: OrderItem) => {
+          const cat = item.category?.toLowerCase();
+          const isCombo = cat === 'combos' || cat === 'combo' || item.baseWeight === 1;
+          const isCustomMix = cat === 'custom mix' || item.category === 'Custom Mix';
+          const units = (isCombo && !isCustomMix) ? item.quantity : Math.max(1, Math.floor(item.quantity / (item.baseWeight || 100)));
+          return {
+            name: item.name,
+            sku: item.productId || item.name,
+            units: units,
+            selling_price: item.price / (isCustomMix ? 1 : units), // Estimate per unit
+            discount: 0,
+            tax: 0
+          };
+        }),
+        payment_method: isCod ? "COD" : "PREPAID",
+        sub_total: orderAmount,
+        cod_collectible: isCod ? orderAmount : 0,
+        length: 10,
+        breadth: 10,
+        height: 10,
+        weight: 0.5,
+        warehouse_id: velocityWarehouseId.value().trim()
+      };
+
+      console.log("Requesting Velocity order creation...");
+      const response = await axios.post(
+        "https://shazam.velocity.in/custom/api/v1/forward-order-orchestration",
+        velocityOrder,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": token,
+          },
+        }
+      );
+
+      console.log("Velocity Response:", response.data);
+
+      if (response.data.status !== 1 && response.data.status !== "SUCCESS" && !response.data.payload) {
+         throw new Error(JSON.stringify(response.data));
+      }
+
+      const payload = response.data.payload;
+      const shipmentData = {
+        order_id: payload.order_id,
+        shipment_id: payload.shipment_id,
+        awb_code: payload.awb_code
+      };
+
+      await orderRef.update({
+        velocityOrderId: shipmentData.order_id,
+        velocityShipmentId: shipmentData.shipment_id,
+        velocityAWB: shipmentData.awb_code,
+        status: "Dispatched",
+      });
+
+      return shipmentData;
+    } catch (err: unknown) {
+      const error = err as {
+        response?: { data?: { message?: string } | any },
+        message?: string
+      };
+      console.error("Velocity Order Error:",
+        JSON.stringify(error.response?.data || error.message, null, 2));
+      throw new HttpsError("internal",
+        error.response?.data?.message || "Failed to create Velocity order");
     }
   });
 
@@ -1616,7 +1781,7 @@ export const syncMembershipToCustomer = onDocumentWritten(
     if (!data || !data.userId) return;
 
     const db = admin.firestore();
-    
+
     // Check if the user has ANY active membership
     const activeSnap = await db.collection("memberships")
       .where("userId", "==", data.userId)

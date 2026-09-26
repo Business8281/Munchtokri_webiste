@@ -21,6 +21,7 @@ import {
     getTax,
     getOrderTotal,
 } from '@/lib/constants';
+import { tracker } from '@/lib/analytics/tracker';
 import styles from './checkout.module.css';
 
 const loadScript = (src: string): Promise<boolean> =>
@@ -63,6 +64,35 @@ export default function CheckoutPage() {
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formError, setFormError] = useState('');
+    const stepRef = React.useRef(step);
+    const isOrderPlacedRef = React.useRef(false);
+
+    useEffect(() => {
+        stepRef.current = step;
+    }, [step]);
+
+    useEffect(() => {
+        const stepNames = ['Shipping', 'Delivery', 'Payment', 'Review'];
+        tracker.track('checkout_start', {
+            step: 1,
+            stepName: 'Shipping',
+            cartTotal,
+            itemCount: cartItems.length
+        });
+
+        return () => {
+            if (!isOrderPlacedRef.current) {
+                const s = stepRef.current;
+                tracker.track('checkout_abandon', {
+                    lastStep: s,
+                    stepName: stepNames[s - 1] || 'Unknown',
+                    cartTotal,
+                    itemCount: cartItems.length,
+                    reasonSignal: 'User left checkout flow'
+                });
+            }
+        };
+    }, []);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -141,11 +171,36 @@ export default function CheckoutPage() {
     }, [storeSettings, formData.paymentMethod]);
 
     const handleNextStep = () => {
+        if (cartItems.length === 0) {
+            showNotification('Please add items to your cart.', 'error', { title: 'Empty Cart' });
+            router.push('/shop');
+            return;
+        }
         if (step === 1) {
             const error = validateShippingForm();
-            if (error) { setFormError(error); return; }
+            if (error) {
+                setFormError(error);
+                tracker.track('checkout_step', {
+                    step: 1,
+                    stepName: 'Shipping',
+                    hasValidationError: true,
+                    validationError: error
+                });
+                return;
+            }
         }
-        if (step < 4) setStep(s => s + 1);
+        if (step < 4) {
+            const nextStep = step + 1;
+            const stepNames = ['Shipping', 'Delivery', 'Payment', 'Review'];
+            tracker.track('checkout_step', {
+                step: nextStep,
+                stepName: stepNames[nextStep - 1],
+                cartTotal: effectiveSubtotal,
+                itemCount: cartItems.length,
+                paymentMethod: formData.paymentMethod
+            });
+            setStep(nextStep);
+        }
     };
 
     // ── Wholesale & Tiered Logic ──
@@ -342,6 +397,13 @@ export default function CheckoutPage() {
             const { discountType, discountValue, minOrderValue } = result.data;
             setAppliedCoupon({ discountType, discountValue, minOrderValue });
 
+            tracker.track('coupon_apply', {
+                code: promoCode.trim().toUpperCase(),
+                discountType,
+                discountValue,
+                minOrderValue
+            });
+
             showNotification(`Coupon applied!`, 'success', {
                 title: 'Discount Applied',
             });
@@ -349,6 +411,10 @@ export default function CheckoutPage() {
             const msg = err?.message || 'Invalid coupon code';
             setPromoError(msg);
             setAppliedCoupon(null);
+            tracker.track('coupon_error', {
+                code: promoCode.trim().toUpperCase(),
+                message: msg
+            });
             showNotification(msg, 'error', { title: 'Coupon Error' });
         }
     };
@@ -361,9 +427,15 @@ export default function CheckoutPage() {
             return;
         }
         if (cartItems.length === 0) {
-            showNotification('Your cart is empty.', 'error', { title: 'Empty Cart' });
+            showNotification('Please add items to your cart.', 'error', { title: 'Empty Cart' });
+            router.push('/shop');
             return;
         }
+
+        tracker.track('payment_initiate', {
+            paymentMethod: formData.paymentMethod,
+            amount: orderTotal
+        });
 
         setIsSubmitting(true); // Set BEFORE any async work
 
@@ -418,6 +490,16 @@ export default function CheckoutPage() {
                     redeemedPoints: redeemDiscount > 0 ? pointsToRedeem : undefined,
                     redeemDiscount: redeemDiscount > 0 ? redeemDiscount : undefined,
                 });
+
+                isOrderPlacedRef.current = true;
+                tracker.track('purchase_complete', {
+                    orderNumber: result.orderNumber,
+                    amount: orderTotal,
+                    paymentMethod: 'Cash on Delivery (COD)',
+                    isCod: true,
+                    itemCount: items.length
+                });
+
                 clearCart();
                 router.push(`/checkout/success?orderNumber=${result.orderNumber}`);
             } catch (err) {
@@ -491,6 +573,11 @@ export default function CheckoutPage() {
                         }) as { data: { status: string } };
 
                         if (verifyResult.data?.status !== 'success') {
+                            tracker.track('payment_failure', {
+                                paymentMethod: 'UPI / QR',
+                                amount: orderTotal,
+                                errorReason: 'Backend signature verification failed'
+                            });
                             showNotification(
                                 'Payment verification failed. Contact support with your payment ID.',
                                 'error',
@@ -499,6 +586,13 @@ export default function CheckoutPage() {
                             setIsSubmitting(false);
                             return;
                         }
+
+                        tracker.track('payment_success', {
+                            paymentMethod: 'UPI / QR',
+                            amount: orderTotal,
+                            razorpayOrderId: razorpayResponse.razorpay_order_id,
+                            razorpayPaymentId: razorpayResponse.razorpay_payment_id
+                        });
 
                         // ── STEP 2: Save order only after verified ───────────────────
                         const result = await addOrder({
@@ -525,10 +619,24 @@ export default function CheckoutPage() {
                             },
                         });
 
+                        isOrderPlacedRef.current = true;
+                        tracker.track('purchase_complete', {
+                            orderNumber: result.orderNumber,
+                            amount: orderTotal,
+                            paymentMethod: 'UPI / QR',
+                            isCod: false,
+                            itemCount: items.length
+                        });
+
                         clearCart();
                         router.push(`/checkout/success?orderNumber=${result.orderNumber}`);
                     } catch (saveErr) {
                         console.error('Order save failed after payment:', saveErr);
+                        tracker.track('payment_failure', {
+                            paymentMethod: 'UPI / QR',
+                            amount: orderTotal,
+                            errorReason: 'Order record save failed after payment authorization'
+                        });
                         showNotification(
                             `Payment successful (ID: ${razorpayResponse.razorpay_payment_id}) but order save failed. Please contact support.`,
                             'error',
@@ -546,6 +654,11 @@ export default function CheckoutPage() {
                 modal: {
                     ondismiss: () => {
                         setIsSubmitting(false);
+                        tracker.track('payment_cancel', {
+                            paymentMethod: 'UPI / QR',
+                            amount: orderTotal,
+                            reason: 'User closed payment popup'
+                        });
                         showNotification('Payment cancelled. You can try again.', 'info', {
                             title: 'Payment Cancelled',
                         });
@@ -558,7 +671,14 @@ export default function CheckoutPage() {
             const paymentObject = new RazorpayClass(options);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             paymentObject.on('payment.failed', (r: any) => {
-                showNotification('Payment failed. ' + r?.error?.description, 'error', {
+                const failReason = r?.error?.description || 'Payment failed';
+                tracker.track('payment_failure', {
+                    paymentMethod: 'UPI / QR',
+                    amount: orderTotal,
+                    errorReason: failReason,
+                    errorCode: r?.error?.code
+                });
+                showNotification('Payment failed. ' + failReason, 'error', {
                     title: 'Payment Failed',
                 });
                 setIsSubmitting(false);
@@ -567,6 +687,11 @@ export default function CheckoutPage() {
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : 'Failed to initiate payment.';
             console.error('Payment initiation error:', err);
+            tracker.track('payment_failure', {
+                paymentMethod: formData.paymentMethod,
+                amount: orderTotal,
+                errorReason: msg
+            });
             showNotification(msg, 'error', { title: 'Payment Error' });
             setIsSubmitting(false);
         }
@@ -583,7 +708,11 @@ export default function CheckoutPage() {
         return cat === 'custom mix' || item.name.startsWith('Custom Mix (');
     };
 
-    const getStep = (item: typeof cartItems[0]) => (isComboItem(item) ? 1 : 50);
+    const getStep = (item: typeof cartItems[0]) => {
+        if (isComboItem(item)) return 1;
+        if (isCustomMixItem(item)) return 50;
+        return item.baseWeight || 100;
+    };
 
     const renderPriceRow = (
         label: string,
@@ -873,9 +1002,11 @@ export default function CheckoutPage() {
                             {cartItems.map((item) => {
                                 const step = getStep(item);
                                 const combo = isComboItem(item);
-                                const unitDisplay = combo
+                                const unitDisplay = isComboItem(item)
                                     ? `${item.quantity} Unit${item.quantity > 1 ? 's' : ''}`
-                                    : `${item.quantity}g`;
+                                    : isCustomMixItem(item) 
+                                        ? `${item.quantity}g` 
+                                        : `${item.quantity / (item.baseWeight || 100)} (${item.quantity}g)`;
 
                                 // Proper pricing calculation
                                 const itemTotal = (item.price / (item.baseWeight || 100)) * item.quantity;

@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import ProductCard from '@/components/ui/Card/ProductCard';
 import { Product } from '@/types';
 import styles from '@/app/(public)/shop/shop.module.css';
 import { useProducts } from '@/hooks/useFirestore';
+import { tracker } from '@/lib/analytics/tracker';
 
 type SortOption = 'newest' | 'price-asc' | 'price-desc' | 'name-asc';
 
@@ -23,8 +24,10 @@ export default function ShopClient({ allProducts }: ShopClientProps) {
     const { products: liveProducts, loading } = useProducts();
     const [products, setProducts] = useState<Product[]>(allProducts);
     const [selectedCategory, setSelectedCategory] = useState('All');
+    const [searchQuery, setSearchQuery] = useState('');
     const [priceRange, setPriceRange] = useState(1000);
     const [sortBy, setSortBy] = useState<SortOption>('newest');
+    const searchDebounceRef = useRef<any>(null);
 
     useEffect(() => {
         if (!loading && liveProducts.length > 0) {
@@ -41,7 +44,11 @@ export default function ShopClient({ allProducts }: ShopClientProps) {
         let list = products.filter(p => {
             const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
             const matchesPrice = (p.price ?? 0) <= priceRange;
-            return matchesCategory && matchesPrice;
+            const matchesSearch = !searchQuery.trim() ||
+                p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                p.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                p.description?.toLowerCase().includes(searchQuery.toLowerCase());
+            return matchesCategory && matchesPrice && matchesSearch;
         });
 
         switch (sortBy) {
@@ -60,7 +67,26 @@ export default function ShopClient({ allProducts }: ShopClientProps) {
                 break;
         }
         return list;
-    }, [products, selectedCategory, priceRange, sortBy]);
+    }, [products, selectedCategory, priceRange, sortBy, searchQuery]);
+
+    // Debounced search query analytics
+    const handleSearchChange = (query: string) => {
+        setSearchQuery(query);
+        if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+        if (query.trim().length >= 2) {
+            searchDebounceRef.current = setTimeout(() => {
+                const count = products.filter(p =>
+                    p.name.toLowerCase().includes(query.toLowerCase()) ||
+                    p.category?.toLowerCase().includes(query.toLowerCase())
+                ).length;
+                tracker.track('search', {
+                    query: query.trim(),
+                    resultCount: count,
+                    isZeroResult: count === 0
+                });
+            }, 800);
+        }
+    };
 
     return (
         <div className={styles.shopContainer}>
@@ -72,7 +98,10 @@ export default function ShopClient({ allProducts }: ShopClientProps) {
                         <ul className={styles.categoryList}>
                             <li
                                 className={selectedCategory === 'All' ? styles.active : ''}
-                                onClick={() => setSelectedCategory('All')}
+                                onClick={() => {
+                                    setSelectedCategory('All');
+                                    tracker.track('category_click', { category: 'All' });
+                                }}
                             >
                                 All Snacks
                             </li>
@@ -80,7 +109,10 @@ export default function ShopClient({ allProducts }: ShopClientProps) {
                                 <li
                                     key={cat}
                                     className={selectedCategory === cat ? styles.active : ''}
-                                    onClick={() => setSelectedCategory(cat)}
+                                    onClick={() => {
+                                        setSelectedCategory(cat);
+                                        tracker.track('category_click', { category: cat });
+                                    }}
                                 >
                                     {cat}
                                 </li>
@@ -96,7 +128,11 @@ export default function ShopClient({ allProducts }: ShopClientProps) {
                                 min="0"
                                 max="1000"
                                 value={priceRange}
-                                onChange={(e) => setPriceRange(Number(e.target.value))}
+                                onChange={(e) => {
+                                    const val = Number(e.target.value);
+                                    setPriceRange(val);
+                                    tracker.track('filter_change', { filterType: 'price', value: val });
+                                }}
                             />
                             <div className={styles.rangeLabels}>
                                 <span>₹0</span>
@@ -104,8 +140,6 @@ export default function ShopClient({ allProducts }: ShopClientProps) {
                             </div>
                         </div>
                     </div>
-
-                    {/* Sort By removed from here as per user request to move it beside results */}
                 </aside>
 
                 {/* Product Grid */}
@@ -113,6 +147,21 @@ export default function ShopClient({ allProducts }: ShopClientProps) {
                     <div className={styles.gridHeader}>
                         <h1>Shop</h1>
                         <div className={styles.gridControls}>
+                            <input
+                                type="text"
+                                placeholder="Search snacks..."
+                                value={searchQuery}
+                                onChange={(e) => handleSearchChange(e.target.value)}
+                                style={{
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '50px',
+                                    border: '1px solid var(--gray-medium)',
+                                    fontSize: '0.85rem',
+                                    outline: 'none',
+                                    backgroundColor: 'white',
+                                    minWidth: '150px'
+                                }}
+                            />
                             <span className={styles.resultsCount}>
                                 {filteredProducts.length} {filteredProducts.length === 1 ? 'Result' : 'Results'}
                             </span>
@@ -120,7 +169,11 @@ export default function ShopClient({ allProducts }: ShopClientProps) {
                                 <select
                                     className={styles.headerSortSelect}
                                     value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value as SortOption)}
+                                    onChange={(e) => {
+                                        const opt = e.target.value as SortOption;
+                                        setSortBy(opt);
+                                        tracker.track('sort_change', { sortBy: opt });
+                                    }}
                                 >
                                     {(Object.keys(SORT_LABELS) as SortOption[]).map(key => (
                                         <option key={key} value={key}>{SORT_LABELS[key]}</option>

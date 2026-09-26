@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 import React from 'react';
 import { useCustomers } from '@/hooks/useFirestore';
+import { formatOrderDate } from '@/lib/analytics/engine';
 import styles from '../admin.module.css';
 
 export default function CustomersPage() {
@@ -41,7 +42,7 @@ export default function CustomersPage() {
                                     <td>{row.city || <em style={{ color: '#94a3b8' }}>-</em>}</td>
                                     <td>{row.orderCount}</td>
                                     <td>₹{row.totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    <td>{row.joinedDate?.toDate ? new Date(row.joinedDate.toDate()).toLocaleDateString() : 'New'}</td>
+                                    <td>{formatOrderDate(row.joinedDate || (row as any).createdAt)}</td>
                                 </tr>
                             ))
                         ) : (

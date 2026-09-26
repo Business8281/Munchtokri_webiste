@@ -1,14 +1,24 @@
 "use client";
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle, ShoppingBag, LayoutDashboard } from 'lucide-react';
+import { tracker } from '@/lib/analytics/tracker';
 import styles from './success.module.css';
 
 function SuccessContent() {
     const searchParams = useSearchParams();
     const orderNumber = searchParams.get('orderNumber');
+
+    useEffect(() => {
+        if (orderNumber) {
+            tracker.track('purchase_complete', {
+                orderNumber,
+                isConfirmedOnSuccessPage: true
+            });
+        }
+    }, [orderNumber]);
 
     return (
         <div className={styles.successContainer}>

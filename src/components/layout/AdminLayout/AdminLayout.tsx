@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { adminAuth, adminDb, adminStorage, adminLogOut } from '@/lib/firebase';
 import { FirebaseProvider } from '@/contexts/FirebaseContext';
+import { useAdmin } from '@/contexts/AdminContext';
 import {
     LayoutDashboard,
     ShoppingBag,
@@ -18,62 +17,30 @@ import {
     Home,
     LogOut as LogOutIcon,
     Menu,
-    X
+    X,
+    BarChart3
 } from 'lucide-react';
 import styles from './AdminLayout.module.css';
 
-const navItems = [
-    { label: 'Dashboard', icon: <LayoutDashboard size={20} />, href: '/admin' },
-    { label: 'Orders', icon: <ShoppingBag size={20} />, href: '/admin/orders' },
-    { label: 'Inventory', icon: <Package size={20} />, href: '/admin/inventory' },
-    { label: 'Combos', icon: <Tag size={20} />, href: '/admin/combos' },
-    { label: 'Customers', icon: <Users size={20} />, href: '/admin/customers' },
-    { label: 'Memberships', icon: <Users size={20} />, href: '/admin/memberships' },
-    { label: 'Coupons', icon: <Tag size={20} />, href: '/admin/coupons' },
-    { label: 'Store Settings', icon: <Settings size={20} />, href: '/admin/settings' },
+const allNavItems = [
+    { label: 'Dashboard', icon: <LayoutDashboard size={20} />, href: '/admin', roles: ['admin', 'manager', 'employee'] },
+    { label: 'Analytics & Reports', icon: <BarChart3 size={20} />, href: '/admin/analytics', roles: ['admin', 'manager', 'employee'] },
+    { label: 'Orders', icon: <ShoppingBag size={20} />, href: '/admin/orders', roles: ['admin', 'manager', 'employee'] },
+    { label: 'Inventory', icon: <Package size={20} />, href: '/admin/inventory', roles: ['admin', 'manager', 'employee'] },
+    { label: 'Combos', icon: <Tag size={20} />, href: '/admin/combos', roles: ['admin', 'manager', 'employee'] },
+    { label: 'Customers', icon: <Users size={20} />, href: '/admin/customers', roles: ['admin', 'manager', 'employee'] },
+    { label: 'Memberships', icon: <Users size={20} />, href: '/admin/memberships', roles: ['admin', 'manager', 'employee'] },
+    { label: 'Coupons', icon: <Tag size={20} />, href: '/admin/coupons', roles: ['admin', 'manager', 'employee'] },
+    { label: 'Store Settings', icon: <Settings size={20} />, href: '/admin/settings', roles: ['admin', 'manager', 'employee'] },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
-    const [authorized, setAuthorized] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const { user, loading, authorized } = useAdmin();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
-
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(adminAuth, async (user) => {
-            if (user && user.email) {
-                const normalizedEmail = user.email.toLowerCase().trim();
-
-                // Check by document ID (email as doc ID)
-                const adminDoc = await getDoc(doc(adminDb, 'admins', normalizedEmail));
-                let isAuthorized = adminDoc.exists();
-
-                // Fallback: check by email field
-                if (!isAuthorized) {
-                    const q = query(
-                        collection(adminDb, 'admins'),
-                        where('email', '==', normalizedEmail)
-                    );
-                    const querySnapshot = await getDocs(q);
-                    isAuthorized = !querySnapshot.empty;
-                }
-
-                if (isAuthorized) {
-                    setAuthorized(true);
-                } else {
-                    router.replace('/admin/login');
-                }
-            } else {
-                router.replace('/admin/login');
-            }
-            setLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, [router]);
 
     if (loading) {
         return (
@@ -83,7 +50,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         );
     }
 
-    if (!authorized) return null;
+    if (!authorized || !user) return null;
+
+    const navItems = allNavItems.filter(item => item.roles.includes(user.role));
+
+    // Protect routes based on role
+    const isRoot = pathname === '/admin';
+    const currentNavItem = allNavItems.find(item => pathname.startsWith(item.href) && item.href !== '/admin');
+    
+    if (!isRoot && currentNavItem && !currentNavItem.roles.includes(user.role)) {
+        router.replace('/admin');
+        return null;
+    }
 
     return (
         <FirebaseProvider 

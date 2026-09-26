@@ -7,6 +7,7 @@ import { X, Trash2, Plus, Minus, ShoppingBag, Pencil } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import Button from '../Button/Button';
+import { tracker } from '@/lib/analytics/tracker';
 import styles from './cart.module.css';
 
 export default function CartDrawer() {
@@ -42,6 +43,15 @@ export default function CartDrawer() {
             document.documentElement.style.overflow = '';
         };
     }, [isCartOpen, setIsCartOpen]);
+
+    useEffect(() => {
+        if (isCartOpen) {
+            tracker.track('cart_view', {
+                itemCount: cartItems.length,
+                cartTotal
+            });
+        }
+    }, [isCartOpen]);
 
     if (!isCartOpen) return null;
 
@@ -137,14 +147,14 @@ export default function CartDrawer() {
                                             {!isCustomMixItem(item) ? (
                                                 <div className={styles.qtyControls}>
                                                     <button
-                                                        onClick={() => updateQuantity(item.id, item.quantity - (item.category === 'Combos' ? 1 : 50))}
-                                                        disabled={item.quantity <= (item.category === 'Combos' ? 1 : 50)}
+                                                        onClick={() => updateQuantity(item.id, item.quantity - (item.category === 'Combos' ? 1 : (item.baseWeight || 100)))}
+                                                        disabled={item.quantity <= (item.category === 'Combos' ? 1 : (item.baseWeight || 100))}
                                                     ><Minus size={14} /></button>
                                                     <span style={{ minWidth: '40px', textAlign: 'center' }}>
-                                                        {item.category === 'Combos' ? `${item.quantity} Unit${item.quantity > 1 ? 's' : ''}` : `${item.quantity}g`}
+                                                        {item.category === 'Combos' ? `${item.quantity} Unit${item.quantity > 1 ? 's' : ''}` : `${item.quantity / (item.baseWeight || 100)} (${item.quantity}g)`}
                                                     </span>
                                                     <button
-                                                        onClick={() => updateQuantity(item.id, item.quantity + (item.category === 'Combos' ? 1 : 50))}
+                                                        onClick={() => updateQuantity(item.id, item.quantity + (item.category === 'Combos' ? 1 : (item.baseWeight || 100)))}
                                                         disabled={item.quantity >= (item.maxStock || (item.category === 'Combos' ? 50 : 20000))}
                                                     ><Plus size={14} /></button>
                                                 </div>
@@ -170,7 +180,18 @@ export default function CartDrawer() {
                         </div>
                         <p className={styles.taxesInfo}>Taxes & shipping calculated at checkout</p>
 
-                        <Link href="/checkout" onClick={() => setIsCartOpen(false)} style={{ textDecoration: 'none' }}>
+                        <Link
+                            href="/checkout"
+                            onClick={() => {
+                                setIsCartOpen(false);
+                                tracker.track('checkout_start', {
+                                    source: 'cart_drawer',
+                                    cartTotal,
+                                    itemCount: cartItems.length
+                                });
+                            }}
+                            style={{ textDecoration: 'none' }}
+                        >
                             <Button variant="primary" size="lg" className={styles.checkoutBtn}>
                                 Checkout Now
                             </Button>

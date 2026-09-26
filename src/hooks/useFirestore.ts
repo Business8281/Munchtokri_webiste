@@ -405,7 +405,19 @@ export const useOrders = (userId?: string | null, isAdmin: boolean = false) => {
         [db]
     );
 
-    return { orders, loading, error, updateOrderStatus, addOrder, updateOrderShipment };
+    const updateVelocityShipment = useCallback(
+        async (id: string, data: { orderId: string; shipmentId: string, awbCode: string }) => {
+            await updateDoc(doc(db, 'orders', id), {
+                velocityOrderId: data.orderId,
+                velocityShipmentId: data.shipmentId,
+                velocityAWB: data.awbCode,
+                status: 'Dispatched',
+            });
+        },
+        [db]
+    );
+
+    return { orders, loading, error, updateOrderStatus, addOrder, updateOrderShipment, updateVelocityShipment };
 };
 
 // ── useCustomers ───────────────────────────────────────────────────────────

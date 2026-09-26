@@ -97,6 +97,9 @@ export interface Order {
     };
     shiprocketOrderId?: string;
     shiprocketShipmentId?: string;
+    velocityOrderId?: string;
+    velocityShipmentId?: string;
+    velocityAWB?: string;
     trackingId?: string;
     courierName?: string;
     couponCode?: string;
@@ -169,3 +172,5 @@ export interface Coupon {
     status: 'active' | 'expired' | 'disabled';
     createdAt: Timestamp | null;
 }
+
+export * from './analytics';

@@ -6,6 +6,7 @@ import React, { useState, useRef } from 'react';
 import Image from 'next/image';
 import { useProducts } from '@/hooks/useFirestore';
 import { Product } from '@/types';
+import { useAdmin } from '@/contexts/AdminContext';
 import { useFirebase } from '@/contexts/FirebaseContext';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { compressImage } from '@/lib/image-utils';
@@ -27,6 +28,7 @@ import { useNotification } from '@/contexts/NotificationContext';
 import styles from './inventory.module.css';
 
 export default function InventoryPage() {
+    const { user } = useAdmin();
     const { products, loading, addProduct, updateProduct, deleteProduct } = useProducts();
     const { storage } = useFirebase();
     const { showConfirm } = useNotification();
@@ -362,12 +364,14 @@ export default function InventoryPage() {
                                                 {editingId === row.id ? <X size={16} /> : <Edit2 size={16} />}
                                                 {editingId === row.id ? 'Close' : 'Edit'}
                                             </button>
-                                            <button
-                                                className={styles.deleteActionBtn}
-                                                onClick={() => handleDeleteProduct(row.id, row.name)}
-                                            >
-                                                <Trash2 size={16} /> Remove
-                                            </button>
+                                            {user && user.role.toLowerCase() !== 'employee' && (
+                                                <button
+                                                    className={styles.deleteActionBtn}
+                                                    onClick={() => handleDeleteProduct(row.id, row.name)}
+                                                >
+                                                    <Trash2 size={16} /> Remove
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
 
@@ -607,7 +611,7 @@ export default function InventoryPage() {
                     </div>
 
                     <div className={styles.submitActions}>
-                        {editingId && (
+                        {editingId && user && user.role.toLowerCase() !== 'employee' && (
                             <button
                                 type="button"
                                 className={styles.deleteFormBtn}

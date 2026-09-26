@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import React, { useState, useRef, useEffect } from 'react';
 import { useProducts, useCombos } from '@/hooks/useFirestore';
 import { Product, Combo, ComboProduct } from '@/types';
+import { useAdmin } from '@/contexts/AdminContext';
 import { useFirebase } from '@/contexts/FirebaseContext';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { compressImage } from '@/lib/image-utils';
@@ -26,6 +27,7 @@ import { useNotification } from '@/contexts/NotificationContext';
 import styles from './combos.module.css';
 
 export default function CombosPage() {
+    const { user } = useAdmin();
     const { products, loading: productsLoading } = useProducts();
     const { combos, loading: combosLoading, addCombo, updateCombo, deleteCombo } = useCombos();
     const { storage } = useFirebase();
@@ -339,9 +341,11 @@ export default function CombosPage() {
                                             setNewCombo({...combo});
                                             setIsAdding(false);
                                         }}><Edit2 size={16} /></button>
-                                        <button className={styles.deleteActionBtn} onClick={() => {
-                                            showConfirm(`Delete combo "${combo.name}"?`, () => deleteCombo(combo.id));
-                                        }}><Trash2 size={16} /></button>
+                                        {user && user.role.toLowerCase() !== 'employee' && (
+                                            <button className={styles.deleteActionBtn} onClick={() => {
+                                                showConfirm(`Delete combo "${combo.name}"?`, () => deleteCombo(combo.id));
+                                            }}><Trash2 size={16} /></button>
+                                        )}
                                     </td>
                                 </tr>
                                 {editingId === combo.id && (

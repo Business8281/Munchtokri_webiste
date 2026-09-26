@@ -8,6 +8,7 @@ import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth, logOut } from '@/lib/firebase';
 import { useCart } from '@/contexts/CartContext';
 import CartDrawer from '../../ui/Cart/CartDrawer';
+import { tracker } from '@/lib/analytics/tracker';
 import styles from './Navbar.module.css';
 
 const Navbar = () => {
@@ -80,25 +81,25 @@ const Navbar = () => {
                 </div>
 
                 <div className={`${styles.navLinks} ${isMenuOpen ? styles.active : ''} ${isDashboard ? styles.dashboardHidden : ''}`}>
-                    <Link href="/shop" className={styles.navLink} onClick={handleNavLinkClick}>Shop</Link>
-                    <Link href="/combos" className={styles.navLink} onClick={handleNavLinkClick}>Combos</Link>
-                    <Link href="/build-mixture" className={styles.navLink} onClick={handleNavLinkClick}>Build your Mix</Link>
-                    <Link href="/membership" className={styles.navLink} onClick={handleNavLinkClick}>Membership</Link>
-                    <Link href="/about" className={styles.navLink} onClick={handleNavLinkClick}>About</Link>
-                    <Link href="/vendor" className={styles.navLink} onClick={handleNavLinkClick}>Vendor</Link>
-                    <Link href="/contact" className={styles.navLink} onClick={handleNavLinkClick}>Contact</Link>
+                    <Link href="/shop" className={styles.navLink} onClick={() => { tracker.track('nav_click', { link: 'Shop', href: '/shop' }); handleNavLinkClick(); }}>Shop</Link>
+                    <Link href="/combos" className={styles.navLink} onClick={() => { tracker.track('nav_click', { link: 'Combos', href: '/combos' }); handleNavLinkClick(); }}>Combos</Link>
+                    <Link href="/build-mixture" className={styles.navLink} onClick={() => { tracker.track('nav_click', { link: 'Build your Mix', href: '/build-mixture' }); handleNavLinkClick(); }}>Build your Mix</Link>
+                    <Link href="/membership" className={styles.navLink} onClick={() => { tracker.track('nav_click', { link: 'Membership', href: '/membership' }); handleNavLinkClick(); }}>Membership</Link>
+                    <Link href="/about" className={styles.navLink} onClick={() => { tracker.track('nav_click', { link: 'About', href: '/about' }); handleNavLinkClick(); }}>About</Link>
+                    <Link href="/vendor" className={styles.navLink} onClick={() => { tracker.track('nav_click', { link: 'Vendor', href: '/vendor' }); handleNavLinkClick(); }}>Vendor</Link>
+                    <Link href="/contact" className={styles.navLink} onClick={() => { tracker.track('nav_click', { link: 'Contact', href: '/contact' }); handleNavLinkClick(); }}>Contact</Link>
                 </div>
 
                 <div className={styles.actions}>
 
                     {user ? (
                         <div className={styles.userSection}>
-                            <Link href="/dashboard" className={styles.avatar} title="My Dashboard" onClick={handleNavLinkClick}>
+                            <Link href="/dashboard" className={styles.avatar} title="My Dashboard" onClick={() => { tracker.track('nav_click', { link: 'Dashboard', href: '/dashboard' }); handleNavLinkClick(); }}>
                                 <span>{user.displayName?.[0]?.toUpperCase() || user.email?.[0].toUpperCase()}</span>
                             </Link>
                         </div>
                     ) : (
-                        <Link href="/login" className={styles.actionIcon} title="Sign In" onClick={handleNavLinkClick}>
+                        <Link href="/login" className={styles.actionIcon} title="Sign In" onClick={() => { tracker.track('nav_click', { link: 'Sign In', href: '/login' }); handleNavLinkClick(); }}>
                             <User size={22} />
                         </Link>
                     )}
@@ -106,6 +107,7 @@ const Navbar = () => {
                     <button
                         className={styles.actionIcon}
                         onClick={() => {
+                            tracker.track('cart_open', { cartCount });
                             setIsCartOpen(true);
                             handleNavLinkClick();
                         }}

@@ -33,6 +33,7 @@ import {
     HelpCircle,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useAdmin } from '@/contexts/AdminContext';
 import styles from './Memberships.module.css';
 
 // ─────────────────────────────────────────────────
@@ -216,6 +217,7 @@ export default function MembershipsPage() {
 // Tab 1 – Subscribers
 // ─────────────────────────────────────────────────
 function SubscribersTab() {
+    const { user } = useAdmin();
     const [memberships, setMemberships] = useState<any[]>([]);
     const [customerMap, setCustomerMap] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(true);
@@ -522,7 +524,7 @@ function SubscribersTab() {
                                         </span>
                                     </td>
                                     <td>
-                                        {m.status === 'active' && (
+                                        {m.status === 'active' && user && user.role.toLowerCase() !== 'employee' && (
                                             <button
                                                 onClick={() => handleCancel(m.subscriptionId)}
                                                 className={styles.cancelBtn}
@@ -546,6 +548,7 @@ function SubscribersTab() {
 // Tab 2 – Plan Settings
 // ─────────────────────────────────────────────────
 function PlanSettingsTab() {
+    const { user } = useAdmin();
     const [siteConfig, setSiteConfig] = useState<SiteMembershipConfig>(DEFAULT_CONFIG);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -762,12 +765,14 @@ function PlanSettingsTab() {
                             </div>
                             <div className={styles.planMeta}>
                                 <span>{plan.benefits.length} Benefits</span>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); deletePlan(plan.id); }}
-                                    className={styles.deleteIconBtn}
-                                >
-                                    <Trash2 size={14} />
-                                </button>
+                                {user && user.role.toLowerCase() !== 'employee' && (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); deletePlan(plan.id); }}
+                                        className={styles.deleteIconBtn}
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))}
@@ -1055,12 +1060,14 @@ function PlanSettingsTab() {
                                                 onChange={e => updateTier(idx, 'percentage', Number(e.target.value))}
                                             />
                                             <span>% Off</span>
-                                            <button
-                                                onClick={() => removeTier(idx)}
-                                                className={styles.tierDeleteBtn}
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
+                                            {user && user.role.toLowerCase() !== 'employee' && (
+                                                <button
+                                                    onClick={() => removeTier(idx)}
+                                                    className={styles.tierDeleteBtn}
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -1097,9 +1104,11 @@ function PlanSettingsTab() {
                                                     <button onClick={() => { setEditingBenefitIdx(idx); setEditingBenefitText(b); }} className={styles.iconBtn} title="Edit">
                                                         <Edit3 size={14} />
                                                     </button>
-                                                    <button onClick={() => removeBenefit(editingPlanId, idx)} className={`${styles.iconBtn} ${styles.iconBtnRed}`} title="Remove">
-                                                        <Trash2 size={14} />
-                                                    </button>
+                                                    {user && user.role.toLowerCase() !== 'employee' && (
+                                                        <button onClick={() => removeBenefit(editingPlanId, idx)} className={`${styles.iconBtn} ${styles.iconBtnRed}`} title="Remove">
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </>
                                         )}
@@ -1177,6 +1186,7 @@ function StatCard({
 // Tab 3 – Page Edit
 // ─────────────────────────────────────────────────
 function PageEditTab() {
+    const { user } = useAdmin();
     const [content, setContent] = useState(DEFAULT_PAGE_CONTENT);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -1293,15 +1303,17 @@ function PageEditTab() {
                                     }}
                                 />
                             </div>
-                            <button
-                                className={styles.deleteBtn}
-                                onClick={() => {
-                                    const newList = content.benefits.filter((_, idx) => idx !== i);
-                                    setContent({ ...content, benefits: newList });
-                                }}
-                            >
-                                <Trash2 size={16} />
-                            </button>
+                            {user && user.role.toLowerCase() !== 'employee' && (
+                                <button
+                                    className={styles.deleteBtn}
+                                    onClick={() => {
+                                        const newList = content.benefits.filter((_, idx) => idx !== i);
+                                        setContent({ ...content, benefits: newList });
+                                    }}
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            )}
                         </div>
                     ))}
                     <button
@@ -1363,15 +1375,17 @@ function PageEditTab() {
                                     setContent({ ...content, comparison: newList });
                                 }}
                             />
-                            <button
-                                className={styles.deleteBtn}
-                                onClick={() => {
-                                    const newList = (content.comparison || DEFAULT_PAGE_CONTENT.comparison).filter((_, idx) => idx !== i);
-                                    setContent({ ...content, comparison: newList });
-                                }}
-                            >
-                                <Trash2 size={14} />
-                            </button>
+                            {user && user.role.toLowerCase() !== 'employee' && (
+                                <button
+                                    className={styles.deleteBtn}
+                                    onClick={() => {
+                                        const newList = (content.comparison || DEFAULT_PAGE_CONTENT.comparison).filter((_, idx) => idx !== i);
+                                        setContent({ ...content, comparison: newList });
+                                    }}
+                                >
+                                    <Trash2 size={14} />
+                                </button>
+                            )}
                         </div>
                     ))}
                     <button
@@ -1421,15 +1435,17 @@ function PageEditTab() {
                                     }}
                                 />
                             </div>
-                            <button
-                                className={styles.deleteBtn}
-                                onClick={() => {
-                                    const newList = content.faqs.filter((_, idx) => idx !== i);
-                                    setContent({ ...content, faqs: newList });
-                                }}
-                            >
-                                <Trash2 size={16} />
-                            </button>
+                            {user && user.role.toLowerCase() !== 'employee' && (
+                                <button
+                                    className={styles.deleteBtn}
+                                    onClick={() => {
+                                        const newList = content.faqs.filter((_, idx) => idx !== i);
+                                        setContent({ ...content, faqs: newList });
+                                    }}
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            )}
                         </div>
                     ))}
                     <button

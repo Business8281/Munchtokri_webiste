@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import { useCoupons } from '@/hooks/useFirestore';
 import { Coupon } from '@/types';
 import { Timestamp } from 'firebase/firestore';
+import { useAdmin } from '@/contexts/AdminContext';
 import styles from '../admin.module.css';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -15,6 +16,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function CouponsPage() {
+    const { user } = useAdmin();
     const { coupons, loading, addCoupon, updateCoupon, deleteCoupon } = useCoupons(true);
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -306,12 +308,14 @@ export default function CouponsPage() {
                                         >
                                             {c.status === 'active' ? 'Disable' : 'Enable'}
                                         </button>
-                                        <button
-                                            onClick={() => window.confirm(`Delete coupon ${c.code}?`) && deleteCoupon(c.id)}
-                                            style={{ background: 'none', border: '1px solid #fca5a5', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer', fontSize: '0.75rem', color: '#ef4444' }}
-                                        >
-                                            Delete
-                                        </button>
+                                        {user && user.role.toLowerCase() !== 'employee' && (
+                                            <button
+                                                onClick={() => window.confirm(`Delete coupon ${c.code}?`) && deleteCoupon(c.id)}
+                                                style={{ background: 'none', border: '1px solid #fca5a5', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer', fontSize: '0.75rem', color: '#ef4444' }}
+                                            >
+                                                Delete
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             ))}

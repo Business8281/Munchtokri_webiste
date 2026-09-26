@@ -10,6 +10,7 @@ import React, {
     ReactNode,
 } from 'react';
 import { PRODUCT_STEP_GRAMS, MAX_ORDER_WEIGHT_GRAMS, MAX_COMBO_UNITS } from '@/lib/constants';
+import { tracker } from '@/lib/analytics/tracker';
 
 export interface CartItem {
     id: string;
@@ -86,12 +87,33 @@ export function CartProvider({ children }: { children: ReactNode }) {
                 return [...prev, { ...item, quantity }];
             });
             setIsCartOpen(true);
+
+            tracker.track('add_to_cart', {
+                productId: item.id,
+                productName: item.name,
+                category: item.category || 'General',
+                price: item.price,
+                quantity: quantity,
+                baseWeight: item.baseWeight || 100
+            });
         },
         []
     );
 
     const removeFromCart = useCallback((id: string) => {
-        setCartItems(prev => prev.filter(item => item.id !== id));
+        setCartItems(prev => {
+            const item = prev.find(i => i.id === id);
+            if (item) {
+                tracker.track('remove_from_cart', {
+                    productId: item.id,
+                    productName: item.name,
+                    category: item.category,
+                    price: item.price,
+                    quantity: item.quantity
+                });
+            }
+            return prev.filter(i => i.id !== id);
+        });
     }, []);
 
     const updateQuantity = useCallback((id: string, quantity: number) => {
@@ -101,6 +123,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
                 const step = item.baseWeight || PRODUCT_STEP_GRAMS;
                 const limit = item.maxStock || (item.category === 'Combos' ? MAX_COMBO_UNITS : MAX_ORDER_WEIGHT_GRAMS);
                 const clamped = Math.max(step, Math.min(quantity, limit));
+                tracker.track('quantity_change', {
+                    productId: item.id,
+                    productName: item.name,
+                    oldQuantity: item.quantity,
+                    newQuantity: clamped
+                });
                 return { ...item, quantity: clamped };
             })
         );
