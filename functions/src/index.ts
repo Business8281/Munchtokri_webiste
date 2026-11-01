@@ -1512,6 +1512,9 @@ export const createPayOrder = onCall(
           userId: String(request.data.userId || request.auth?.uid || ""),
           source: "magic_checkout",
           one_click_checkout: "true",
+          cod: "true",
+          allow_cod: "true",
+          cod_fee: "0",
           ...(request.data.notes || {}),
         },
       };
@@ -1579,6 +1582,8 @@ async function saveMagicOrderToFirestore(params: {
   userId?: string;
   clientShippingDetails?: any;
   verifySignature?: boolean;
+  paymentMethod?: string;
+  isCod?: boolean;
 }): Promise<{ success: boolean; orderNumber: string; orderId: string; isExisting?: boolean }> {
   const {
     razorpayOrderId,
@@ -1587,7 +1592,9 @@ async function saveMagicOrderToFirestore(params: {
     clientItems,
     userId,
     clientShippingDetails,
-    verifySignature = false
+    verifySignature = false,
+    paymentMethod: clientPaymentMethod,
+    isCod: clientIsCod
   } = params;
 
   try {
@@ -1623,8 +1630,16 @@ async function saveMagicOrderToFirestore(params: {
     }
 
     const primaryPayment = payments.items && payments.items.length > 0 ? payments.items[0] : null;
-    const paymentMethod = primaryPayment?.method || (razorpayPaymentId?.includes("cod") ? "cod" : "online");
-    const isCod = paymentMethod.toLowerCase() === "cod" || paymentMethod.toLowerCase().includes("cash");
+    const isCod = Boolean(
+      clientIsCod ||
+      clientPaymentMethod?.toLowerCase() === "cod" ||
+      primaryPayment?.method?.toLowerCase() === "cod" ||
+      razorpayPaymentId?.toLowerCase().includes("cod") ||
+      (!razorpayPaymentId && (!payments.items || payments.items.length === 0)) ||
+      rzpOrder?.notes?.payment_method?.toLowerCase() === "cod" ||
+      rzpOrder?.notes?.cod === "true"
+    );
+    const paymentMethod = isCod ? "cod" : (primaryPayment?.method || clientPaymentMethod || "online");
 
     // 3. Verify signature for prepaid payments if requested
     if (verifySignature && !isCod && razorpayPaymentId && razorpaySignature) {
@@ -1876,9 +1891,10 @@ async function saveMagicOrderToFirestore(params: {
         },
         paymentDetails: {
           razorpayOrderId: razorpayOrderId || "",
-          razorpayPaymentId: razorpayPaymentId || primaryPayment?.id || "",
+          razorpayPaymentId: razorpayPaymentId || (isCod ? `cod_${razorpayOrderId}` : primaryPayment?.id || ""),
           razorpaySignature: razorpaySignature || "",
-          method: paymentMethod || "online",
+          method: paymentMethod || (isCod ? "cod" : "online"),
+          isCod: isCod,
           isMagicCheckout: true,
         },
       };
@@ -1949,7 +1965,9 @@ export const verifyAndSaveMagicOrder = onCall(
       clientItems,
       userId: userId || request.auth?.uid,
       clientShippingDetails,
-      verifySignature: true
+      paymentMethod: request.data.paymentMethod,
+      isCod: Boolean(request.data.isCod),
+      verifySignature: !request.data.isCod
     });
   });
 
@@ -2276,17 +2294,31 @@ export const razorpayWebhook = onRequest(
           expiryDate.setFullYear(expiryDate.getFullYear() + 1);
           await activateUserMembership(userId, expiryDate, sub.id);
         }
-      } else if (event.event === "order.paid" || event.event === "payment.captured") {
+      } else if (
+        event.event === "order.paid" ||
+        event.event === "payment.captured" ||
+        event.event === "order.placed" ||
+        event.event === "payment.pending"
+      ) {
         const rzpOrderId =
           event.payload?.order?.entity?.id ||
           event.payload?.payment?.entity?.order_id;
-        const rzpPaymentId = event.payload?.payment?.entity?.id;
+        const rzpPayment = event.payload?.payment?.entity;
+        const rzpPaymentId = rzpPayment?.id;
+        const isWebhookCod =
+          event.event === "order.placed" ||
+          event.event === "payment.pending" ||
+          rzpPayment?.method?.toLowerCase() === "cod" ||
+          rzpPayment?.method?.toLowerCase().includes("cash");
+
         if (rzpOrderId) {
-          console.log(`Razorpay Webhook: Processing ${event.event} for order ${rzpOrderId}`);
+          console.log(`Razorpay Webhook: Processing ${event.event} for order ${rzpOrderId} (isCod: ${isWebhookCod})`);
           await saveMagicOrderToFirestore({
             razorpayOrderId: rzpOrderId,
-            razorpayPaymentId: rzpPaymentId,
+            razorpayPaymentId: rzpPaymentId || (isWebhookCod ? `cod_${rzpOrderId}` : undefined),
             verifySignature: false,
+            paymentMethod: isWebhookCod ? "cod" : (rzpPayment?.method || "online"),
+            isCod: isWebhookCod,
           });
         }
       }

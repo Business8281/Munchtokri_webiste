@@ -115,7 +115,12 @@ export function useMagicCheckout() {
                 amount: calculatedTotal,
                 items: formattedItems,
                 userId: currentUserId,
-                notes: options?.notes || {},
+                notes: {
+                    cod: 'true',
+                    allow_cod: 'true',
+                    cod_fee: '0',
+                    ...(options?.notes || {}),
+                },
             })) as {
                 data: {
                     success: boolean;
@@ -155,6 +160,8 @@ export function useMagicCheckout() {
                 state: '',
                 pincode: '',
             };
+
+            let selectedPaymentMethod: 'online' | 'cod' = 'online';
 
             const lineItemsCart = formattedItems.map((item, idx) => {
                 const isCombo = item.category === 'Combos' || item.baseWeight === 1;
@@ -197,6 +204,13 @@ export function useMagicCheckout() {
                     line_items: lineItemsCart,
                     line_items_total: orderData.order.amount,
                 },
+                notes: {
+                    source: 'magic_checkout',
+                    cod: 'true',
+                    allow_cod: 'true',
+                    cod_fee: '0',
+                    ...(options?.notes || {}),
+                },
                 prefill: {
                     name: currentUser?.displayName || '',
                     email: currentUser?.email || '',
@@ -207,13 +221,34 @@ export function useMagicCheckout() {
                 },
                 handler: async (response: {
                     razorpay_order_id: string;
-                    razorpay_payment_id: string;
+                    razorpay_payment_id?: string;
                     razorpay_signature?: string;
+                    method?: string;
+                    status?: string;
+                    payment_method?: string;
                 }) => {
                     try {
-                        showNotification('Confirming your order...', 'info', {
-                            title: 'Completing Order',
-                        });
+                        const responseMethod = String(
+                            response.method ||
+                            response.payment_method ||
+                            (response.razorpay_payment_id?.includes('cod') ? 'cod' : '')
+                        ).toLowerCase();
+
+                        const isCodOrder =
+                            selectedPaymentMethod === 'cod' ||
+                            responseMethod === 'cod' ||
+                            responseMethod.includes('cash') ||
+                            !response.razorpay_payment_id;
+
+                        const effectivePaymentId =
+                            response.razorpay_payment_id || `cod_${response.razorpay_order_id}`;
+                        const effectiveMethod = isCodOrder ? 'cod' : 'online';
+
+                        showNotification(
+                            isCodOrder ? 'Placing your Cash on Delivery order...' : 'Confirming your order...',
+                            'info',
+                            { title: isCodOrder ? 'Placing COD Order' : 'Completing Order' }
+                        );
 
                         let savedOrderNumber = '';
                         let isOrderConfirmed = false;
@@ -223,8 +258,10 @@ export function useMagicCheckout() {
                             const verifyAndSaveMagicOrder = httpsCallable(functions, 'verifyAndSaveMagicOrder');
                             const saveRes = (await verifyAndSaveMagicOrder({
                                 razorpayOrderId: response.razorpay_order_id,
-                                razorpayPaymentId: response.razorpay_payment_id,
+                                razorpayPaymentId: effectivePaymentId,
                                 razorpaySignature: response.razorpay_signature || '',
+                                paymentMethod: effectiveMethod,
+                                isCod: isCodOrder,
                                 items: formattedItems,
                                 userId: currentUserId,
                                 shippingDetails: capturedMagicDetails,
@@ -298,14 +335,15 @@ export function useMagicCheckout() {
                                         pincode: resolvedPincode,
                                     },
                                     method: {
-                                        payment: 'Razorpay Magic Checkout',
+                                        payment: isCodOrder ? 'Cash on Delivery (COD)' : 'Razorpay Magic Checkout',
                                         delivery: 'Standard Delivery',
                                     },
                                     paymentDetails: {
                                         razorpayOrderId: response.razorpay_order_id,
-                                        razorpayPaymentId: response.razorpay_payment_id || '',
+                                        razorpayPaymentId: effectivePaymentId,
                                         razorpaySignature: response.razorpay_signature || '',
-                                        method: 'online',
+                                        method: effectiveMethod,
+                                        isCod: isCodOrder,
                                         isMagicCheckout: true,
                                     },
                                 };
@@ -383,6 +421,28 @@ export function useMagicCheckout() {
                 try {
                     if (!data) return;
                     console.log('Magic Checkout mx-analytics event:', data?.event, data);
+
+                    // 0. Detect Payment Method
+                    const methodCand = String(
+                        data.payment_method ||
+                        data.method ||
+                        data.type ||
+                        data.payment_type ||
+                        ''
+                    ).toLowerCase();
+
+                    if (
+                        methodCand === 'cod' ||
+                        methodCand.includes('cash') ||
+                        data.event === 'cod_selected' ||
+                        data.event === 'cod_eligible' ||
+                        (data.event === 'payment_method_selected' && methodCand.includes('cod'))
+                    ) {
+                        selectedPaymentMethod = 'cod';
+                        console.log('Customer selected Cash on Delivery (COD) in Magic Checkout');
+                    } else if (methodCand && methodCand !== 'cod' && methodCand !== 'cash') {
+                        selectedPaymentMethod = 'online';
+                    }
 
                     // 1. Extract customer full name
                     const fName = data.first_name || data.address?.first_name || '';
