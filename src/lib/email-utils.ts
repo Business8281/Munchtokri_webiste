@@ -78,14 +78,69 @@ export async function generateOrderPDF(order: any) {
     doc.setFont("helvetica", "bold");
     doc.text(`Order ID: ${order.orderNumber}`, 20, 125);
 
+    // Pre-load all product and combo images concurrently
+    const itemImages = await Promise.all(
+        order.items.map(async (item: any) => {
+            let url = item.imageURL;
+            const cat = item.category?.toLowerCase();
+            const isCombo = cat === 'combos' || cat === 'combo' || item.baseWeight === 1;
+
+            if (isCombo && (!url || url.includes('Logo') || url.startsWith('/'))) {
+                if (item.products && item.products.length > 0) {
+                    const firstWithImg = item.products.find((p: any) => p.imageURL || p.image);
+                    if (firstWithImg) {
+                        url = firstWithImg.imageURL || firstWithImg.image;
+                    }
+                }
+            }
+
+            if (!url || url.trim() === '') {
+                url = LOGO_URL;
+            } else if (url.startsWith('/')) {
+                url = `https://munch-tokri.web.app${url}`;
+            }
+
+            try {
+                const res = await fetch(url);
+                if (!res.ok) return null;
+                const arrayBuffer = await res.arrayBuffer();
+                const contentType = res.headers.get('content-type') || 'image/jpeg';
+                const format = contentType.includes('png') ? 'PNG' : 'JPEG';
+                const base64 = Buffer.from(arrayBuffer).toString('base64');
+                return {
+                    data: `data:${contentType};base64,${base64}`,
+                    format
+                };
+            } catch {
+                return null;
+            }
+        })
+    );
+
     // Table
-    const tableData = order.items.map((item: any) => [
-        '', // Placeholder for Image
-        item.name,
-        `Rs. ${(item.price / (item.baseWeight || 100)).toFixed(2)}`,
-        `${item.quantity}${item.baseWeight === 1 ? ' Unit' : 'g'}`,
-        `Rs. ${((item.price / (item.baseWeight || 100)) * item.quantity).toFixed(2)}`
-    ]);
+    const tableData = order.items.map((item: any) => {
+        let productName = item.name;
+        if (item.variant && !productName.includes(item.variant)) {
+            productName = `${productName} (${item.variant})`;
+        }
+        const isCombo = item.category === 'Combos' || item.baseWeight === 1 || (item.products && item.products.length > 0);
+        const comboGrams = item.grams || (item.products ? item.products.reduce((s: number, p: any) => s + (Number(p.grams) || 0), 0) : 0);
+        if (isCombo && item.products && item.products.length > 0) {
+            const packList = item.products.map((p: any) => `  • ${p.name} (${p.grams}g)`).join('\n');
+            const totalPackWeightStr = comboGrams > 0 ? ` [${comboGrams}g/pack]` : '';
+            productName = `${productName}\nPack of ${item.products.length}${totalPackWeightStr} includes:\n${packList}`;
+        }
+        const unitLabel = isCombo 
+            ? ` Pack${item.quantity > 1 ? 's' : ''}${comboGrams > 0 ? ` (${comboGrams * item.quantity}g)` : ''}` 
+            : (item.baseWeight === 1 ? ' Unit' : 'g');
+        return [
+            '', // Placeholder for Image rendered via didDrawCell
+            productName,
+            `Rs. ${(item.price / (item.baseWeight || 100)).toFixed(2)}`,
+            `${item.quantity}${unitLabel}`,
+            `Rs. ${((item.price / (item.baseWeight || 100)) * item.quantity).toFixed(2)}`
+        ];
+    });
 
     doc.autoTable({
         startY: 130,
@@ -93,15 +148,30 @@ export async function generateOrderPDF(order: any) {
         body: tableData,
         theme: 'striped',
         headStyles: { fillColor: [243, 243, 243], textColor: [0, 0, 0], fontStyle: 'bold' },
-        styles: { fontSize: 9, cellPadding: 4 },
+        styles: { fontSize: 9, cellPadding: 4, minCellHeight: 18, valign: 'middle' },
         columnStyles: {
-            0: { cellWidth: 20 },
-            1: { cellWidth: 80 },
-            2: { halign: 'center' },
-            3: { halign: 'center' },
-            4: { halign: 'right' }
+            0: { cellWidth: 22, halign: 'center', valign: 'middle' },
+            1: { cellWidth: 78, valign: 'middle' },
+            2: { halign: 'center', valign: 'middle' },
+            3: { halign: 'center', valign: 'middle' },
+            4: { halign: 'right', valign: 'middle' }
         },
-        alternateRowStyles: { fillColor: [252, 252, 252] }
+        alternateRowStyles: { fillColor: [252, 252, 252] },
+        didDrawCell: (data: any) => {
+            if (data.section === 'body' && data.column.index === 0) {
+                const imgObj = itemImages[data.row.index];
+                if (imgObj && imgObj.data) {
+                    try {
+                        const size = Math.min(data.cell.width - 4, data.cell.height - 4, 15);
+                        const x = data.cell.x + (data.cell.width - size) / 2;
+                        const y = data.cell.y + (data.cell.height - size) / 2;
+                        doc.addImage(imgObj.data, imgObj.format, x, y, size, size);
+                    } catch {
+                        // ignore if invalid image
+                    }
+                }
+            }
+        }
     });
 
     const finalY = (doc as any).lastAutoTable.finalY + 10;
@@ -165,15 +235,38 @@ export async function sendOrderConfirmationEmail(order: any, pdfBuffer: ArrayBuf
     const shippingCost = subtotal < 350 ? 50 : 0;
     const tax = subtotal * 0.05;
 
-    const productRows = order.items.map((item: any) => `
+    const productRows = order.items.map((item: any) => {
+        const isCombo = item.category === 'Combos' || item.baseWeight === 1 || (item.products && item.products.length > 0);
+        const comboGrams = item.grams || (item.products ? item.products.reduce((s: number, p: any) => s + (Number(p.grams) || 0), 0) : 0);
+        let itemsHtml = '';
+        if (isCombo && item.products && item.products.length > 0) {
+            const totalPackWeightStr = comboGrams > 0 ? ` • Total ${comboGrams}g` : '';
+            itemsHtml = `
+            <div style="margin-top:6px;padding:6px 10px;background:#f0fdfa;border-left:3px solid #0d9488;border-radius:4px;text-align:left;">
+                <div style="font-size:11px;font-weight:700;color:#0f766e;margin-bottom:3px;">Pack of ${item.products.length} includes${totalPackWeightStr}:</div>
+                <div style="font-size:11px;color:#334155;line-height:1.5;">
+                    ${item.products.map((p: any) => `<div style="margin-bottom:2px;">• <strong>${p.name}</strong> (${p.grams || 0}g)</div>`).join('')}
+                </div>
+            </div>`;
+        }
+        const unitLabel = isCombo 
+            ? ` Pack${item.quantity > 1 ? 's' : ''}${comboGrams > 0 ? ` (${comboGrams * item.quantity}g)` : ''}` 
+            : (item.baseWeight === 1 ? ' Unit' : 'g');
+        const itemTitle = item.variant && !item.name.includes(item.variant) ? `${item.name} (${item.variant})` : item.name;
+
+        return `
         <tr style="border-bottom: 1px solid #eee">
             <td style="padding: 10px"><img src="${item.imageURL || LOGO_URL}" width="50" style="border-radius: 4px"></td>
-            <td style="padding: 10px">${item.name}</td>
+            <td style="padding: 10px">
+                <div style="font-weight:600">${itemTitle}</div>
+                ${itemsHtml}
+            </td>
             <td align="center" style="padding: 10px">Rs. ${(item.price / (item.baseWeight || 100)).toFixed(2)}</td>
-            <td align="center" style="padding: 10px">${item.quantity}${item.baseWeight === 1 ? ' Unit' : 'g'}</td>
+            <td align="center" style="padding: 10px">${item.quantity}${unitLabel}</td>
             <td align="right" style="padding: 10px">Rs. ${((item.price / (item.baseWeight || 100)) * item.quantity).toFixed(2)}</td>
         </tr>
-    `).join('');
+        `;
+    }).join('');
 
     const displayAmount = (order.amount || '').replace('₹', 'Rs. ');
 

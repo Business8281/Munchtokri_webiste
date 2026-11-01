@@ -99,11 +99,26 @@
     background: rgba(255, 255, 255, 0.9);
     border: none;
     display: flex;
-    align-items: center;
-    justify-content: center;
     cursor: pointer;
     color: #fa5252;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.removeImageBtn:hover {
+    background: #fa5252;
+    color: white;
+}
+
+.primaryBadge {
+    position: absolute;
+    bottom: 0.5rem;
+    left: 0.5rem;
+    background: var(--primary);
+    color: white;
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 600;
 }
 
 .addMoreImages {

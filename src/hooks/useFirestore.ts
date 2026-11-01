@@ -332,7 +332,6 @@ export const useOrders = (userId?: string | null, isAdmin: boolean = false) => {
                         date: Timestamp.now(),
                     });
 
-                    // 4. Update sales count for each product
                     // 4. Update sales count for each product or combo
                     if (order.items) {
                         for (const item of order.items) {
@@ -342,20 +341,29 @@ export const useOrders = (userId?: string | null, isAdmin: boolean = false) => {
                             
                             if (isProduct || isCombo) {
                                 const collectionName = isCombo ? 'combos' : 'products';
-                                const docRef = doc(db, collectionName, item.productId);
-                                transaction.update(docRef, {
-                                    salesCount: increment(item.quantity || 1)
-                                });
+                                let targetDocId = item.productId || (item as any).id || '';
+                                if (targetDocId.includes('_v_')) {
+                                    targetDocId = targetDocId.split('_v_')[0];
+                                } else if (isCombo && targetDocId.includes('_')) {
+                                    targetDocId = targetDocId.split('_')[0];
+                                }
+
+                                if (targetDocId) {
+                                    const docRef = doc(db, collectionName, targetDocId);
+                                    transaction.set(docRef, {
+                                        salesCount: increment(item.quantity || 1)
+                                    }, { merge: true });
+                                }
                             } else if (item.category === 'Custom Mix' && item.products) {
                                 // For custom mixes, update sales count for each ingredient
                                 for (const subItem of item.products) {
                                     if (subItem.productId) {
-                                        const subRef = doc(db, 'products', subItem.productId);
-                                        // subItem.quantity or grams? 
-                                        // In build-mixture, each 'grams' is like a quantity.
-                                        transaction.update(subRef, {
+                                        let subId = subItem.productId;
+                                        if (subId.includes('_v_')) subId = subId.split('_v_')[0];
+                                        const subRef = doc(db, 'products', subId);
+                                        transaction.set(subRef, {
                                             salesCount: increment(subItem.grams || 1)
-                                        });
+                                        }, { merge: true });
                                     }
                                 }
                             }

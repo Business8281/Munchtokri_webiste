@@ -7,8 +7,13 @@ import styles from './FloatingCart.module.css';
 
 const FloatingCart = () => {
     const { cartCount, setIsCartOpen } = useCart();
+    const [mounted, setMounted] = React.useState(false);
 
-    if (cartCount === 0) return null;
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted || cartCount === 0) return null;
 
     return (
         <button 

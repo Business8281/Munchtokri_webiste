@@ -1,0 +1,45 @@
+.announcementBar {
+    background-color: var(--primary);
+    padding: 8px 0;
+    overflow: hidden;
+    position: relative;
+    z-index: 1100;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--gray-medium);
+}
+
+.marquee {
+    display: flex;
+    overflow: hidden;
+    user-select: none;
+    gap: 2rem;
+}
+
+.announcementBar:hover .marqueeContent {
+    animation-play-state: paused;
+}
+
+.marqueeContent {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-around;
+    min-width: 100%;
+    gap: 2rem;
+    animation: scroll 53s linear infinite;
+}
+
+@keyframes scroll {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(calc(-100% - 2rem));
+    }
+}
+
+.color0 { color: white; }
+.color1 { color: var(--accent); }
+.color2 { color: var(--secondary); }
+.color3 { color: var(--gray-light); }

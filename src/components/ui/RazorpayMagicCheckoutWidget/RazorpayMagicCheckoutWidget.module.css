@@ -1,0 +1,225 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+    margin: 1.25rem 0 0.75rem;
+}
+
+.protectionBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 1rem;
+    border: 2px solid #2563eb;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 1px 4px rgba(37, 99, 235, 0.08);
+    gap: 1rem;
+}
+
+.leftProtection {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}
+
+.verticalBar {
+    width: 3.5px;
+    height: 34px;
+    background: #2563eb;
+    border-radius: 4px;
+}
+
+.brandColumn {
+    display: flex;
+    flex-direction: column;
+}
+
+.razorpayBrand {
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-style: italic;
+    color: #0c2340;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.protectionTitle {
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    margin-top: 3px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    line-height: 1;
+}
+
+.buyerText {
+    color: #0c2340;
+}
+
+.protectionText {
+    color: #2563eb;
+    display: flex;
+    align-items: center;
+    gap: 1px;
+}
+
+.shieldWrapper {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 1px;
+}
+
+.featuresList {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    flex-shrink: 0;
+}
+
+.featureItem {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.featureIcon {
+    color: #2563eb;
+    flex-shrink: 0;
+}
+
+.refundIconWrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.rupeeSymbolInIcon {
+    position: absolute;
+    font-size: 10px;
+    font-weight: 800;
+    color: #2563eb;
+    line-height: 1;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.featureText {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+}
+
+.featureText strong {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.featureText span {
+    font-size: 0.72rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.buyNowButton {
+    width: 100%;
+    background-color: #000000;
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    padding: 0.95rem 1.5rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
+.buyNowButton:hover:not(:disabled) {
+    background-color: #1a1a1a;
+    transform: translateY(-1px);
+}
+
+.buyNowButton:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.buyNowButton:disabled {
+    background-color: #94a3b8;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.boltIcon {
+    transform: skewX(-6deg);
+    flex-shrink: 0;
+}
+
+.securedFooter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 0.2rem;
+}
+
+.securedText {
+    font-size: 0.82rem;
+    color: #475569;
+    font-weight: 500;
+}
+
+.razorpayLogo {
+    height: 16px;
+    width: auto;
+    object-fit: contain;
+}
+
+@media (max-width: 640px) {
+    .protectionBar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.75rem 0.85rem;
+    }
+
+    .featuresList {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.35rem;
+    }
+
+    .featureItem {
+        gap: 0.35rem;
+    }
+
+    .featureText strong {
+        font-size: 0.7rem;
+    }
+
+    .featureText span {
+        font-size: 0.65rem;
+    }
+
+    .buyNowButton {
+        font-size: 1.05rem;
+        padding: 0.85rem 1.25rem;
+    }
+}

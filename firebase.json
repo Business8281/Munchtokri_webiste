@@ -14,7 +14,9 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "**/*.DS_Store",
+      "**/*.map"
     ],
     "rewrites": [
       {
@@ -32,6 +34,18 @@
       {
         "source": "/api/razorpay-webhook",
         "function": "razorpayWebhook"
+      },
+      {
+        "source": "/api/magic-checkout/promotions",
+        "function": "magicCheckoutPromotions"
+      },
+      {
+        "source": "/api/magic-checkout/apply-promotion",
+        "function": "magicCheckoutApplyPromotion"
+      },
+      {
+        "source": "/api/magic-checkout/shipping-info",
+        "function": "magicCheckoutShippingInfo"
       },
       {
         "source": "**",
@@ -106,6 +120,5 @@
       "port": 4000
     },
     "singleProjectMode": true
-  },
-  "extensions": {}
+  }
 }

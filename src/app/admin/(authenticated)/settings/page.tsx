@@ -25,12 +25,18 @@ interface StoreSettings {
     freeShippingThreshold: number | string;
     enableShiprocket?: boolean;
     enableVelocity?: boolean;
+    enableAnnouncementBar?: boolean;
+    announcementSpeed?: number;
+    announcementText1?: string;
+    announcementText2?: string;
+    announcementText3?: string;
+    announcementText4?: string;
 }
 
 export default function SettingsPage() {
     const { user } = useAdmin();
     const [activeTab, setActiveTab] = useState<'general' | 'staff'>('general');
-    
+
     // General Settings State
     const [settings, setSettings] = useState<StoreSettings>({
         storeName: '',
@@ -49,6 +55,12 @@ export default function SettingsPage() {
         freeShippingThreshold: 350,
         enableShiprocket: true,
         enableVelocity: true,
+        enableAnnouncementBar: false,
+        announcementSpeed: 53,
+        announcementText1: 'Welcome to Munch Tokri! Use code NEW10 for 10% off your first order.',
+        announcementText2: 'Free shipping on orders above ₹350!',
+        announcementText3: 'Join our membership for exclusive discounts.',
+        announcementText4: 'Try our new Build Your Mix feature today!',
     });
     const [loadingSettings, setLoadingSettings] = useState(true);
     const [savingSettings, setSavingSettings] = useState(false);
@@ -66,7 +78,7 @@ export default function SettingsPage() {
             try {
                 const docRef = doc(adminDb, 'settings', 'store');
                 const docSnap = await getDoc(docRef);
-                
+
                 if (docSnap.exists()) {
                     setSettings(docSnap.data() as StoreSettings);
                 } else {
@@ -138,12 +150,12 @@ export default function SettingsPage() {
     const handleSettingsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
         let val: any = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
-        
+
         // Convert to number for numeric fields but allow empty string for better UX
         if (name === 'shippingRate' || name === 'freeShippingThreshold' || name === 'codPrice') {
             val = value === '' ? '' : Number(value);
         }
-        
+
         setSettings(prev => ({ ...prev, [name]: val }));
     };
 
@@ -155,17 +167,17 @@ export default function SettingsPage() {
             // Use a temporary secondary app to create the user without signing out the current admin
             const { initializeApp, getApps } = await import('firebase/app');
             const { getAuth, createUserWithEmailAndPassword, signOut } = await import('firebase/auth');
-            
+
             // Get config from the primary app
             const primaryApp = getApps()[0];
             const tempAppName = 'MT-Staff-Creator-' + Date.now();
             const staffApp = initializeApp(primaryApp.options, tempAppName);
             const staffAuth = getAuth(staffApp);
-            
+
             // Create user in Auth
             await createUserWithEmailAndPassword(staffAuth, newStaff.email, newStaff.password);
             await signOut(staffAuth);
-            
+
             // Save to Firestore using the authenticated adminDb instance
             const normalizedEmail = newStaff.email.toLowerCase().trim();
             await setDoc(doc(adminDb, 'admins', normalizedEmail), {
@@ -191,7 +203,7 @@ export default function SettingsPage() {
         setStaffMessage('');
         try {
             const normalizedEmail = email.toLowerCase().trim();
-            
+
             // Delete from Firestore to revoke access
             const { deleteDoc } = await import('firebase/firestore');
             await deleteDoc(doc(adminDb, 'admins', normalizedEmail));
@@ -223,11 +235,11 @@ export default function SettingsPage() {
             </div>
 
             <div style={{ display: 'flex', gap: '2rem', marginBottom: '2rem', borderBottom: '1px solid #eee' }}>
-                <button 
+                <button
                     onClick={() => setActiveTab('general')}
-                    style={{ 
-                        padding: '1rem 0', 
-                        background: 'none', 
+                    style={{
+                        padding: '1rem 0',
+                        background: 'none',
                         border: 'none',
                         borderBottom: activeTab === 'general' ? '2px solid var(--primary)' : '2px solid transparent',
                         color: activeTab === 'general' ? 'var(--primary)' : 'var(--text-secondary)',
@@ -239,11 +251,11 @@ export default function SettingsPage() {
                     Store Settings
                 </button>
                 {user?.role === 'admin' && (
-                    <button 
+                    <button
                         onClick={() => setActiveTab('staff')}
-                        style={{ 
-                            padding: '1rem 0', 
-                            background: 'none', 
+                        style={{
+                            padding: '1rem 0',
+                            background: 'none',
                             border: 'none',
                             borderBottom: activeTab === 'staff' ? '2px solid var(--primary)' : '2px solid transparent',
                             color: activeTab === 'staff' ? 'var(--primary)' : 'var(--text-secondary)',
@@ -262,9 +274,9 @@ export default function SettingsPage() {
                     <div className={styles.sectionHeader} style={{ justifyContent: 'flex-end', marginTop: '-1rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                             {settingsMessage && <span style={{ color: settingsMessage.includes('failed') ? 'red' : 'green', fontSize: '0.9rem', fontWeight: '500' }}>{settingsMessage}</span>}
-                            <button 
-                                className={styles.viewBtn} 
-                                onClick={handleSaveSettings} 
+                            <button
+                                className={styles.viewBtn}
+                                onClick={handleSaveSettings}
                                 disabled={savingSettings}
                                 style={{ background: 'var(--primary)', color: 'white', padding: '0.6rem 1.5rem', borderRadius: '8px' }}
                             >
@@ -278,10 +290,10 @@ export default function SettingsPage() {
                             <div className={styles.inputGrid} style={{ gridTemplateColumns: '1fr', marginBottom: '1.5rem' }}>
                                 <div className={styles.inputGroup}>
                                     <label>Store Name</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         name="storeName"
-                                        value={settings.storeName} 
+                                        value={settings.storeName}
                                         onChange={handleSettingsChange}
                                         placeholder="Store Name"
                                     />
@@ -323,9 +335,9 @@ export default function SettingsPage() {
                             <div className={styles.inputGrid} style={{ gridTemplateColumns: '1fr', marginBottom: '1.5rem' }}>
                                 <div className={styles.inputGroup}>
                                     <label>Store Address</label>
-                                    <textarea 
+                                    <textarea
                                         name="address"
-                                        value={settings.address} 
+                                        value={settings.address}
                                         onChange={handleSettingsChange}
                                         placeholder="Full Store Address"
                                         style={{ minHeight: '100px' }}
@@ -336,14 +348,86 @@ export default function SettingsPage() {
                             <div className={styles.inputGrid} style={{ gridTemplateColumns: '1fr' }}>
                                 <div className={styles.inputGroup}>
                                     <label>Business Hours</label>
-                                    <textarea 
+                                    <textarea
                                         name="businessHours"
-                                        value={settings.businessHours} 
+                                        value={settings.businessHours}
                                         onChange={handleSettingsChange}
                                         placeholder="e.g., Mon - Sat: 10:00 AM - 9:00 PM"
                                         style={{ minHeight: '60px' }}
                                     />
                                 </div>
+                            </div>
+
+                            <h4 style={{ fontSize: '1rem', marginBottom: '1rem', color: 'var(--text-secondary)' }}>Announcement Bar</h4>
+                            <div className={styles.inputGrid} style={{ gridTemplateColumns: '1fr', marginBottom: '1.5rem' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '0.95rem', fontWeight: '500' }}>
+                                    <input
+                                        type="checkbox"
+                                        name="enableAnnouncementBar"
+                                        checked={settings.enableAnnouncementBar || false}
+                                        onChange={handleSettingsChange}
+                                        style={{ width: '18px', height: '18px', accentColor: 'var(--secondary)' }}
+                                    /> Enable Announcement Bar
+                                </label>
+                                {settings.enableAnnouncementBar && (
+                                    <div className={styles.inputGrid} style={{ marginTop: '1rem' }}>
+                                        <div className={styles.inputGroup}>
+                                            <label>Announcement Text 1</label>
+                                            <input
+                                                type="text"
+                                                name="announcementText1"
+                                                value={settings.announcementText1 || ''}
+                                                onChange={handleSettingsChange}
+                                                placeholder="e.g., Use code DIWALI20 for 20% off!"
+                                            />
+                                        </div>
+                                        <div className={styles.inputGroup}>
+                                            <label>Announcement Text 2</label>
+                                            <input
+                                                type="text"
+                                                name="announcementText2"
+                                                value={settings.announcementText2 || ''}
+                                                onChange={handleSettingsChange}
+                                                placeholder="e.g., Free Shipping over ₹350"
+                                            />
+                                        </div>
+                                        <div className={styles.inputGroup}>
+                                            <label>Announcement Text 3</label>
+                                            <input
+                                                type="text"
+                                                name="announcementText3"
+                                                value={settings.announcementText3 || ''}
+                                                onChange={handleSettingsChange}
+                                                placeholder="e.g., Premium Memberships available"
+                                            />
+                                        </div>
+                                        <div className={styles.inputGroup}>
+                                            <label>Announcement Text 4</label>
+                                            <input
+                                                type="text"
+                                                name="announcementText4"
+                                                value={settings.announcementText4 || ''}
+                                                onChange={handleSettingsChange}
+                                                placeholder="e.g., Try our new Combos"
+                                            />
+                                        </div>
+                                        <div className={styles.inputGroup} style={{ gridColumn: 'span 2' }}>
+                                            <label>Scroll Duration (seconds per cycle — higher is slower and easier to read)</label>
+                                            <input
+                                                type="number"
+                                                name="announcementSpeed"
+                                                value={settings.announcementSpeed ?? 53}
+                                                onChange={handleSettingsChange}
+                                                min={15}
+                                                max={120}
+                                                placeholder="53"
+                                            />
+                                            <small style={{ color: 'var(--text-secondary)', marginTop: '4px', fontSize: '0.8rem' }}>
+                                                Currently set to <strong>{settings.announcementSpeed ?? 53} seconds</strong> (recommended: 40s – 60s for smooth, easy reading).
+                                            </small>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -352,78 +436,78 @@ export default function SettingsPage() {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                     <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '0.95rem', fontWeight: '500' }}>
-                                        <input 
-                                            type="checkbox" 
+                                        <input
+                                            type="checkbox"
                                             name="enableShiprocket"
-                                            checked={settings.enableShiprocket !== false} 
+                                            checked={settings.enableShiprocket !== false}
                                             onChange={handleSettingsChange}
                                             style={{ width: '18px', height: '18px', accentColor: 'var(--secondary)' }}
                                         /> Enable Shiprocket
                                     </label>
                                     <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '0.95rem', fontWeight: '500' }}>
-                                        <input 
-                                            type="checkbox" 
+                                        <input
+                                            type="checkbox"
                                             name="enableVelocity"
-                                            checked={settings.enableVelocity !== false} 
+                                            checked={settings.enableVelocity !== false}
                                             onChange={handleSettingsChange}
                                             style={{ width: '18px', height: '18px', accentColor: 'var(--secondary)' }}
                                         /> Enable Velocity Shipping
                                     </label>
                                     <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '0.95rem', fontWeight: '500' }}>
-                                        <input 
-                                            type="checkbox" 
+                                        <input
+                                            type="checkbox"
                                             name="enableFlatRateShipping"
-                                            checked={settings.enableFlatRateShipping} 
+                                            checked={settings.enableFlatRateShipping}
                                             onChange={handleSettingsChange}
                                             style={{ width: '18px', height: '18px', accentColor: 'var(--secondary)' }}
                                         /> Enable Flat Rate Shipping
                                     </label>
-                                    
+
                                     {settings.enableFlatRateShipping && (
                                         <div className={styles.inputGrid}>
                                             <div className={styles.inputGroup}>
                                                 <label>Flat Shipping Rate (₹)</label>
-                                                <input 
-                                                    type="number" 
-                                                    name="shippingRate" 
-                                                    value={settings.shippingRate === 0 ? '' : settings.shippingRate} 
-                                                    onChange={handleSettingsChange} 
-                                                    placeholder="50" 
+                                                <input
+                                                    type="number"
+                                                    name="shippingRate"
+                                                    value={settings.shippingRate === 0 ? '' : settings.shippingRate}
+                                                    onChange={handleSettingsChange}
+                                                    placeholder="50"
                                                 />
                                             </div>
                                             <div className={styles.inputGroup}>
                                                 <label>Free Shipping Threshold (₹)</label>
-                                                <input 
-                                                    type="number" 
-                                                    name="freeShippingThreshold" 
-                                                    value={settings.freeShippingThreshold === 0 ? '' : settings.freeShippingThreshold} 
-                                                    onChange={handleSettingsChange} 
-                                                    placeholder="350" 
+                                                <input
+                                                    type="number"
+                                                    name="freeShippingThreshold"
+                                                    value={settings.freeShippingThreshold === 0 ? '' : settings.freeShippingThreshold}
+                                                    onChange={handleSettingsChange}
+                                                    placeholder="350"
                                                 />
                                             </div>
                                         </div>
                                     )}
 
                                     <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '0.95rem', fontWeight: '500' }}>
-                                        <input 
-                                            type="checkbox" 
+                                        <input
+                                            type="checkbox"
                                             name="enableCOD"
-                                            checked={settings.enableCOD} 
+                                            checked={settings.enableCOD}
                                             onChange={handleSettingsChange}
                                             style={{ width: '18px', height: '18px', accentColor: 'var(--secondary)' }}
                                         /> Enable Cash on Delivery (COD)
                                     </label>
-                                    
+
                                     {settings.enableCOD && (
                                         <div className={styles.inputGrid}>
                                             <div className={styles.inputGroup}>
                                                 <label>COD Extra Charge (₹)</label>
-                                                <input 
-                                                    type="number" 
-                                                    name="codPrice" 
-                                                    value={settings.codPrice === 0 ? '' : settings.codPrice} 
-                                                    onChange={handleSettingsChange} 
-                                                    placeholder="50" 
+                                                <input
+                                                    type="number"
+                                                    name="codPrice"
+                                                    value={settings.codPrice === 0 ? '' : settings.codPrice}
+                                                    onChange={handleSettingsChange}
+                                                    placeholder="50"
                                                 />
                                             </div>
                                         </div>
@@ -443,40 +527,40 @@ export default function SettingsPage() {
                             <div className={styles.inputGrid}>
                                 <div className={styles.inputGroup}>
                                     <label>Full Name</label>
-                                    <input 
-                                        type="text" 
-                                        value={newStaff.name} 
-                                        onChange={(e) => setNewStaff({...newStaff, name: e.target.value})}
-                                        placeholder="John Doe" 
-                                        required 
+                                    <input
+                                        type="text"
+                                        value={newStaff.name}
+                                        onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
+                                        placeholder="John Doe"
+                                        required
                                     />
                                 </div>
                                 <div className={styles.inputGroup}>
                                     <label>Email Address</label>
-                                    <input 
-                                        type="email" 
-                                        value={newStaff.email} 
-                                        onChange={(e) => setNewStaff({...newStaff, email: e.target.value})}
-                                        placeholder="john@example.com" 
-                                        required 
+                                    <input
+                                        type="email"
+                                        value={newStaff.email}
+                                        onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
+                                        placeholder="john@example.com"
+                                        required
                                     />
                                 </div>
                                 <div className={styles.inputGroup}>
                                     <label>Password</label>
-                                    <input 
-                                        type="password" 
-                                        value={newStaff.password} 
-                                        onChange={(e) => setNewStaff({...newStaff, password: e.target.value})}
-                                        placeholder="Secure password" 
-                                        required 
+                                    <input
+                                        type="password"
+                                        value={newStaff.password}
+                                        onChange={(e) => setNewStaff({ ...newStaff, password: e.target.value })}
+                                        placeholder="Secure password"
+                                        required
                                         minLength={6}
                                     />
                                 </div>
                                 <div className={styles.inputGroup}>
                                     <label>Role</label>
-                                    <select 
+                                    <select
                                         value={newStaff.role}
-                                        onChange={(e) => setNewStaff({...newStaff, role: e.target.value})}
+                                        onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
                                         style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #ddd', fontSize: '0.95rem' }}
                                     >
                                         <option value="admin">Admin (Full Access)</option>
@@ -486,7 +570,7 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1.5rem' }}>
-                                <button 
+                                <button
                                     type="submit"
                                     disabled={addingStaff}
                                     style={{ background: 'var(--primary)', color: 'white', padding: '0.6rem 1.5rem', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '500' }}
@@ -522,9 +606,9 @@ export default function SettingsPage() {
                                             <td style={{ padding: '1rem 0.5rem', fontWeight: '500' }}>{staff.name || 'N/A'}</td>
                                             <td style={{ padding: '1rem 0.5rem' }}>{staff.email}</td>
                                             <td style={{ padding: '1rem 0.5rem' }}>
-                                                <span style={{ 
-                                                    padding: '0.2rem 0.6rem', 
-                                                    borderRadius: '4px', 
+                                                <span style={{
+                                                    padding: '0.2rem 0.6rem',
+                                                    borderRadius: '4px',
                                                     fontSize: '0.8rem',
                                                     background: staff.role === 'admin' ? '#ffebee' : staff.role === 'manager' ? '#e3f2fd' : '#e8f5e9',
                                                     color: staff.role === 'admin' ? '#c62828' : staff.role === 'manager' ? '#1565c0' : '#2e7d32',
@@ -536,7 +620,7 @@ export default function SettingsPage() {
                                             </td>
                                             <td style={{ padding: '1rem 0.5rem' }}>
                                                 {staff.email !== user?.email && (
-                                                    <button 
+                                                    <button
                                                         onClick={() => handleDeleteStaff(staff.email)}
                                                         style={{ color: '#d32f2f', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '500' }}
                                                     >

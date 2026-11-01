@@ -32,6 +32,17 @@ export interface ComboProduct {
     grams: number;
     price: number;
     imageURL?: string;
+    description?: string;
+    category?: string;
+}
+
+export interface ComboVariant {
+    id: string;
+    title: string;
+    grams?: number;
+    originalPrice: number;
+    price: number;
+    status: 'In Stock' | 'Low Stock' | 'Out of Stock';
 }
 
 export interface Combo {
@@ -43,7 +54,11 @@ export interface Combo {
     status: 'In Stock' | 'Low Stock' | 'Out of Stock';
     imageURLs: string[];
     imageURL: string;
+    images?: string[];
     products: ComboProduct[];
+    variants?: ComboVariant[];
+    packSize?: number;
+    packLabel?: string;
     createdAt: Timestamp | null;
 }
 
@@ -67,6 +82,8 @@ export interface OrderItem {
     baseWeight?: number;
     category?: string;
     products?: ComboProduct[];
+    variant?: string;
+    grams?: number;
 }
 
 export interface Order {

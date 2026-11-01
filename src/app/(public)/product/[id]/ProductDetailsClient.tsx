@@ -12,6 +12,8 @@ import StarRating from '@/components/ui/StarRating/StarRating';
 import ReviewForm from '@/components/ui/Review/ReviewForm';
 import ReviewList from '@/components/ui/Review/ReviewList';
 import { tracker } from '@/lib/analytics/tracker';
+import { ShoppingBag, Zap } from 'lucide-react';
+import RazorpayMagicCheckoutWidget from '@/components/ui/RazorpayMagicCheckoutWidget/RazorpayMagicCheckoutWidget';
 import styles from './product.module.css';
 
 interface Product {
@@ -39,7 +41,7 @@ export default function ProductDetailsClient({ productId }: { productId: string 
     const [quantity, setQuantity] = useState(0); // Will initialize based on product default
     const [error, setError] = useState<string | null>(null);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
-    const { addToCart } = useCart();
+    const { addToCart, setIsCartOpen } = useCart();
 
     const {
         reviews,
@@ -85,6 +87,13 @@ export default function ProductDetailsClient({ productId }: { productId: string 
                         stock: data.stock || '100g'
                     });
                 } else {
+                    // Check if it's a combo pack ID and redirect seamlessly
+                    const comboRef = doc(db, 'combos', productId);
+                    const comboSnap = await getDoc(comboRef);
+                    if (comboSnap.exists()) {
+                        router.replace(`/combos/${productId}`);
+                        return;
+                    }
                     setError('Product not found.');
                 }
             } catch (err: any) {
@@ -106,7 +115,7 @@ export default function ProductDetailsClient({ productId }: { productId: string 
         return <div className={styles.errorContainer}>{error || 'Product not found.'}</div>;
     }
 
-    const handleAddToCart = () => {
+    const handleAddToCart = (openDrawer = true) => {
         addToCart({
             id: product.id,
             name: product.name,
@@ -115,7 +124,14 @@ export default function ProductDetailsClient({ productId }: { productId: string 
             imageURL: product.imageURL || '/Logo Munch Tokri.png',
             maxStock: product.currentStock ? product.currentStock * 1000 : 5000, // Convert kg to g or default 5kg
             baseWeight: product.baseWeight
-        }, quantity);
+        }, quantity, openDrawer);
+    };
+
+    const handleBuyNow = () => {
+        if (product.inventoryStatus !== 'In Stock') return;
+        handleAddToCart(false);
+        setIsCartOpen(false);
+        router.push('/checkout?magic=1');
     };
 
     const allImages = product.imageURLs && product.imageURLs.length > 0
@@ -228,11 +244,20 @@ export default function ProductDetailsClient({ productId }: { productId: string 
                                 variant="primary"
                                 size="lg"
                                 className={styles.addToCartBtn}
-                                onClick={handleAddToCart}
+                                onClick={() => handleAddToCart(true)}
                                 disabled={product.inventoryStatus !== 'In Stock'}
                             >
-                                Add to Cart - ₹{((product.price / (product.baseWeight || 100)) * quantity).toFixed(2)}
+                                <ShoppingBag size={18} style={{ marginRight: '6px' }} />
+                                Add to Cart
                             </Button>
+
+                            {/* 1-Click Magic Checkout Widget (as shown in reference image) */}
+                            <RazorpayMagicCheckoutWidget
+                                onBuyNow={handleBuyNow}
+                                disabled={product.inventoryStatus !== 'In Stock'}
+                                buttonText="Buy Now"
+                                showProtectionBar={true}
+                            />
                         </div>
 
                         {/* Full Overview */}

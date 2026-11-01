@@ -218,7 +218,7 @@ export default function CheckoutPage() {
                 // Combos use quantity * baseWeight (e.g. 2 Units * 1kg)
                 // If baseWeight is 1, it means it's unit-based but weight is not set, 
                 // we should try to sum the products if they exist
-                let unitWeight = Number(item.baseWeight) || 0;
+                let unitWeight = Number((item as any).grams) || Number((item as any).variantGrams) || Number(item.baseWeight) || 0;
                 if (unitWeight <= 1 && item.products) {
                     unitWeight = item.products.reduce((s: number, p: any) => s + (p.grams || 0), 0);
                 }
@@ -360,8 +360,16 @@ export default function CheckoutPage() {
 
     const buildOrderItems = useCallback(() =>
         cartItems.map(item => {
+            let realProductId = item.productId || item.id;
+            if (realProductId.includes('_v_')) {
+                realProductId = realProductId.split('_v_')[0];
+            } else if (item.category === 'Combos' && realProductId.includes('_')) {
+                realProductId = realProductId.split('_')[0];
+            }
+
             const orderItem: Record<string, unknown> = {
-                productId: item.id,
+                productId: realProductId,
+                cartItemId: item.id,
                 name: item.name,
                 price: item.price,
                 quantity: item.quantity,
@@ -370,6 +378,9 @@ export default function CheckoutPage() {
             };
             if (item.category) orderItem.category = item.category;
             if (item.products) orderItem.products = item.products;
+            if (item.variant) orderItem.variant = item.variant;
+            const itemGrams = (item as any).grams || (item as any).variantGrams;
+            if (itemGrams) orderItem.grams = itemGrams;
             return orderItem;
         }),
         [cartItems]);
@@ -419,9 +430,11 @@ export default function CheckoutPage() {
         }
     };
 
-    const handlePlaceOrder = async () => {
+    const autoMagicTriggeredRef = React.useRef(false);
+
+    const handlePlaceOrder = async (isMagicDirect = false) => {
         if (isSubmitting) return; // Double-click guard
-        if (!userId) {
+        if (!isMagicDirect && !userId) {
             showNotification('Please log in to place an order.', 'info', { title: 'Login Required' });
             router.push('/login?redirect=/checkout');
             return;
@@ -433,7 +446,7 @@ export default function CheckoutPage() {
         }
 
         tracker.track('payment_initiate', {
-            paymentMethod: formData.paymentMethod,
+            paymentMethod: isMagicDirect ? 'Magic Checkout (1-Click)' : formData.paymentMethod,
             amount: orderTotal
         });
 
@@ -445,12 +458,12 @@ export default function CheckoutPage() {
             delivery: shippingCost > 0
                 ? `Standard Delivery (₹${shippingCost})`
                 : 'Standard Delivery (Free)',
-            payment: formData.paymentMethod,
+            payment: isMagicDirect ? 'Razorpay Magic Checkout' : formData.paymentMethod,
         };
 
         const isManualEntry = !customerData?.addresses || customerData.addresses.length === 0 || useManualAddress;
 
-        if (isManualEntry && saveAddressToBook) {
+        if (!isMagicDirect && isManualEntry && saveAddressToBook && userId) {
             try {
                 const newAddress = {
                     id: Date.now().toString(),
@@ -470,7 +483,7 @@ export default function CheckoutPage() {
             }
         }
 
-        if (formData.paymentMethod === 'Cash on Delivery (COD)') {
+        if (!isMagicDirect && formData.paymentMethod === 'Cash on Delivery (COD)') {
             try {
                 const result = await addOrder({
                     userId: userId || undefined,
@@ -512,9 +525,11 @@ export default function CheckoutPage() {
             return;
         }
 
-        // ── Online Payment (Razorpay) ────────────────────────────────────
+        // ── Online Payment (Razorpay Magic Checkout) ─────────────────────────
         try {
-            const loaded = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
+            const loaded =
+                (await loadScript('https://checkout.razorpay.com/v1/magic-checkout.js')) ||
+                (await loadScript('https://checkout.razorpay.com/v1/checkout.js'));
             if (!loaded) {
                 showNotification('Payment gateway failed to load. Check your internet.', 'error', {
                     title: 'Network Error',
@@ -558,6 +573,7 @@ export default function CheckoutPage() {
                 name: 'Munch Tokri',
                 description: 'Order Payment',
                 order_id: orderData.order.id,
+                one_click_checkout: true,
                 handler: async (razorpayResponse: {
                     razorpay_order_id: string;
                     razorpay_payment_id: string;
@@ -696,6 +712,19 @@ export default function CheckoutPage() {
             setIsSubmitting(false);
         }
     };
+
+    // Auto-launch Magic Checkout if arriving via ?magic=1
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('magic') === '1' && cartItems.length > 0 && orderTotal > 0 && !autoMagicTriggeredRef.current) {
+            autoMagicTriggeredRef.current = true;
+            const timer = setTimeout(() => {
+                handlePlaceOrder(true);
+            }, 350);
+            return () => clearTimeout(timer);
+        }
+    }, [cartItems.length, orderTotal]);
 
     // ── Helper: combo vs regular quantity step ───────────────────────────
     const isComboItem = (item: typeof cartItems[0]) => {
@@ -978,7 +1007,7 @@ export default function CheckoutPage() {
                             </div>
                             <div className={styles.actions} style={{ display: 'flex', gap: '1rem' }}>
                                 <button className={styles.submitBtn} style={{ backgroundColor: 'transparent', color: 'var(--primary)', border: '2px solid var(--primary)' }} onClick={() => setStep(3)} disabled={isSubmitting}>Back</button>
-                                <button className={styles.submitBtn} onClick={handlePlaceOrder} disabled={isSubmitting}>
+                                <button className={styles.submitBtn} onClick={() => handlePlaceOrder(false)} disabled={isSubmitting}>
                                     {isSubmitting ? (
                                         <><Loader2 className="animate-spin" size={18} /> Processing...</>
                                     ) : (
@@ -1002,8 +1031,9 @@ export default function CheckoutPage() {
                             {cartItems.map((item) => {
                                 const step = getStep(item);
                                 const combo = isComboItem(item);
+                                const comboGrams = (item as any).grams || (item as any).variantGrams || (item.products?.reduce((s: number, p: any) => s + (Number(p.grams) || 0), 0) || 0);
                                 const unitDisplay = isComboItem(item)
-                                    ? `${item.quantity} Unit${item.quantity > 1 ? 's' : ''}`
+                                    ? `${item.quantity} Pack${item.quantity > 1 ? 's' : ''}${comboGrams > 0 ? ` (${comboGrams * item.quantity}g)` : ''}`
                                     : isCustomMixItem(item) 
                                         ? `${item.quantity}g` 
                                         : `${item.quantity / (item.baseWeight || 100)} (${item.quantity}g)`;
@@ -1035,11 +1065,19 @@ export default function CheckoutPage() {
                                             </div>
 
                                             {item.products && item.products.length > 0 && (
-                                                <ul style={{ margin: '0 0 0.5rem 0.75rem', padding: 0, listStyle: 'none', fontSize: '0.75rem', color: '#000', lineHeight: 1.3 }}>
-                                                    {item.products.map((p: any, i: number) => (
-                                                        <li key={i}>• {p.name} ({p.grams || 0}g)</li>
-                                                    ))}
-                                                </ul>
+                                                <div style={{ margin: '0.35rem 0 0.5rem', padding: '0.4rem 0.6rem', background: '#f8fafc', borderLeft: '3px solid #0d9488', borderRadius: '4px' }}>
+                                                    <p style={{ margin: '0 0 0.25rem', fontSize: '0.72rem', fontWeight: 700, color: '#0f766e' }}>
+                                                        Pack of {item.products.length} includes:
+                                                    </p>
+                                                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.72rem', color: '#334155', lineHeight: 1.4 }}>
+                                                        {item.products.map((p: any, i: number) => (
+                                                            <li key={i} style={{ marginBottom: '0.15rem' }}>
+                                                                <span style={{ color: '#0d9488', fontWeight: 'bold' }}>• </span>
+                                                                <span style={{ fontWeight: 600 }}>{p.name}</span> <span style={{ color: '#64748b' }}>({p.grams || 0}g)</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
                                             )}
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                 {isCustomMixItem(item) ? (
@@ -1223,7 +1261,7 @@ export default function CheckoutPage() {
                     <p className={styles.mobileTotalLabel}>Ground Total</p>
                     <p className={styles.mobileTotalValue}>₹{orderTotal.toFixed(2)}</p>
                 </div>
-                <button className={styles.mobileNextBtn} onClick={step < 4 ? handleNextStep : handlePlaceOrder} disabled={isSubmitting}>
+                <button className={styles.mobileNextBtn} onClick={step < 4 ? handleNextStep : () => handlePlaceOrder(false)} disabled={isSubmitting}>
                     {isSubmitting ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <Loader2 className="animate-spin" size={18} />

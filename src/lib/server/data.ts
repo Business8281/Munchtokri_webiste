@@ -1,4 +1,4 @@
-import { collection, getDocs, orderBy, query, limit } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, limit, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Product, Combo } from "@/types";
 
@@ -108,5 +108,25 @@ export async function getCombos(): Promise<Combo[]> {
     } catch (error) {
         console.error("Error fetching combos on server:", error);
         return [];
+    }
+}
+
+export async function getCombo(id: string): Promise<Combo | null> {
+    try {
+        const docRef = doc(db, "combos", id);
+        const docSnap = await getDoc(docRef);
+        if (!docSnap.exists()) return null;
+        const data = docSnap.data();
+        return {
+            id: docSnap.id,
+            ...data,
+            createdAt: data.createdAt ? {
+                seconds: data.createdAt.seconds,
+                nanoseconds: data.createdAt.nanoseconds
+            } : null,
+        } as unknown as Combo;
+    } catch (error) {
+        console.error("Error fetching combo on server:", error);
+        return null;
     }
 }

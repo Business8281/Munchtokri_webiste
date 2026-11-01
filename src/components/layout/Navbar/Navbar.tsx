@@ -9,6 +9,7 @@ import { auth, logOut } from '@/lib/firebase';
 import { useCart } from '@/contexts/CartContext';
 import CartDrawer from '../../ui/Cart/CartDrawer';
 import { tracker } from '@/lib/analytics/tracker';
+import AnnouncementBar from '../AnnouncementBar/AnnouncementBar';
 import styles from './Navbar.module.css';
 
 const Navbar = () => {
@@ -18,10 +19,12 @@ const Navbar = () => {
     const pathname = usePathname();
     const isDashboard = pathname === '/dashboard';
     const [isDashboardMenuOpen, setIsDashboardMenuOpen] = React.useState(false);
+    const [mounted, setMounted] = React.useState(false);
 
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
     React.useEffect(() => {
+        setMounted(true);
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
         });
@@ -62,9 +65,11 @@ const Navbar = () => {
     const handleNavLinkClick = () => setIsMenuOpen(false);
 
     return (
-        <nav className={styles.navbar}>
-            <div className={`${styles.container} container`}>
-                <div className={styles.logo}>
+        <header className={styles.header}>
+            <AnnouncementBar />
+            <nav className={styles.navbar}>
+                <div className={`${styles.container} container`}>
+                    <div className={styles.logo}>
                     <Link href="/">
                         <div className={styles.logoWrapper}>
                             <Image
@@ -114,7 +119,7 @@ const Navbar = () => {
                         title="View Cart"
                     >
                         <ShoppingCart size={22} />
-                        {cartCount > 0 && (
+                        {mounted && cartCount > 0 && (
                             <span className={styles.badge}>{cartCount}</span>
                         )}
                     </button>
@@ -136,10 +141,10 @@ const Navbar = () => {
                         }
                     </button>
                 </div>
-            </div>
-
+                </div>
+            </nav>
             <CartDrawer />
-        </nav>
+        </header>
     );
 };
 

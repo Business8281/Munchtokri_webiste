@@ -4,9 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "rm -rf out && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "deploy": "NODE_OPTIONS='--max-old-space-size=4096' firebase deploy",
+    "deploy:hosting": "NODE_OPTIONS='--max-old-space-size=4096' firebase deploy --only hosting",
+    "deploy:functions": "NODE_OPTIONS='--max-old-space-size=4096' firebase deploy --only functions"
   },
   "dependencies": {
     "@types/canvas-confetti": "^1.9.0",

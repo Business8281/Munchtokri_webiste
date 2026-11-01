@@ -100,9 +100,8 @@ n.queue=[];t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];
 s.parentNode.insertBefore(t,s)}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '2102464673632965');
+fbq('init', '1739636207115257');
 fbq('track', 'PageView');
-fbq('track', 'AddToCart');
                     `
                 }} />
                 <noscript>
@@ -110,7 +109,7 @@ fbq('track', 'AddToCart');
                         height="1"
                         width="1"
                         style={{ display: "none" }}
-                        src="https://www.facebook.com/tr?id=2102464673632965&ev=PageView&noscript=1"
+                        src="https://www.facebook.com/tr?id=1739636207115257&ev=PageView&noscript=1"
                         alt=""
                     />
                 </noscript>

@@ -14,6 +14,7 @@ import { tracker } from '@/lib/analytics/tracker';
 
 export interface CartItem {
     id: string;
+    productId?: string;
     name: string;
     price: number;
     category: string;
@@ -23,11 +24,15 @@ export interface CartItem {
     /** Base weight in grams for regular items; use 1 for combo (unit-based) */
     baseWeight: number;
     products?: { name: string; grams: number; price?: number; imageURL?: string }[];
+    variant?: string;
+    originalPrice?: number;
+    grams?: number;
+    variantGrams?: number;
 }
 
 interface CartContextType {
     cartItems: CartItem[];
-    addToCart: (item: Omit<CartItem, 'quantity'>, quantity: number) => void;
+    addToCart: (item: Omit<CartItem, 'quantity'>, quantity: number, openDrawer?: boolean) => void;
     removeFromCart: (id: string) => void;
     updateQuantity: (id: string, quantity: number) => void;
     updateCartItem: (id: string, item: CartItem) => void;
@@ -72,7 +77,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }, [cartItems, isLoaded]);
 
     const addToCart = useCallback(
-        (item: Omit<CartItem, 'quantity'>, quantity: number) => {
+        (item: Omit<CartItem, 'quantity'>, quantity: number, openDrawer = true) => {
             setCartItems(prev => {
                 const existing = prev.find(i => i.id === item.id);
                 if (existing) {
@@ -86,7 +91,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
                 }
                 return [...prev, { ...item, quantity }];
             });
-            setIsCartOpen(true);
+            if (openDrawer) {
+                setIsCartOpen(true);
+            }
 
             tracker.track('add_to_cart', {
                 productId: item.id,

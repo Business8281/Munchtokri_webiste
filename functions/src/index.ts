@@ -119,6 +119,7 @@ interface OrderItem {
   imageURL?: string;
   category?: string;
   products?: { name: string, grams: number }[];
+  variant?: string;
 }
 
 interface OrderData {
@@ -421,6 +422,39 @@ async function sendAdminStatusAlert(
 }
 
 /**
+ * Fetches an image URL and converts it to Base64 format for jsPDF embedding.
+ */
+async function fetchBase64Image(
+  url?: string
+): Promise<{ data: string; format: string } | null> {
+  if (!url || typeof url !== "string") return null;
+  let fullUrl = url.trim();
+  if (!fullUrl) return null;
+  if (fullUrl.startsWith("/")) {
+    fullUrl = `https://munch-tokri.web.app${fullUrl}`;
+  }
+  try {
+    const res = await axios.get(fullUrl, {
+      responseType: "arraybuffer",
+      timeout: 6000,
+      headers: {
+        Accept: "image/*",
+      },
+    });
+    const contentType = (res.headers["content-type"] as string) || "image/jpeg";
+    const format = contentType.toLowerCase().includes("png") ? "PNG" : "JPEG";
+    const base64 = Buffer.from(res.data).toString("base64");
+    return {
+      data: `data:${contentType};base64,${base64}`,
+      format,
+    };
+  } catch (err) {
+    console.warn(`Could not load image for PDF invoice from: ${fullUrl}`);
+    return null;
+  }
+}
+
+/**
  * Generates a PDF receipt for the given order.
  * @param {OrderData} order The order data for which to generate the PDF.
  * @return {Promise<Buffer>} A promise that resolves to the PDF buffer.
@@ -500,22 +534,87 @@ async function generateOrderPDF(
   doc.setFont("helvetica", "bold");
   doc.text(`Order ID: ${order.orderNumber}`, 20, 125);
 
+  // Pre-load all product and combo images concurrently
+  const itemImages = await Promise.all(
+    order.items.map(async (item: OrderItem) => {
+      let url = item.imageURL;
+      const cat = item.category?.toLowerCase();
+      const isCombo = cat === "combos" || cat === "combo" || item.baseWeight === 1;
+
+      // For combos, if image is missing, empty, or placeholder logo, resolve true combo image
+      if (isCombo && (!url || url.includes("Logo") || url.startsWith("/"))) {
+        // 1. Check included combo sub-products
+        if (item.products && item.products.length > 0) {
+          const firstWithImg = item.products.find((p: any) => p.imageURL || p.image);
+          if (firstWithImg) {
+            url = (firstWithImg as any).imageURL || (firstWithImg as any).image;
+          }
+        }
+        // 2. Fetch from combos collection if productId is provided
+        if ((!url || url.includes("Logo") || url.startsWith("/")) && item.productId) {
+          try {
+            const cleanId = item.productId.includes("_v_") ?
+              item.productId.split("_v_")[0] :
+              (item.productId.includes("_") ? item.productId.split("_")[0] : item.productId);
+            const comboSnap = await admin.firestore().collection("combos").doc(cleanId).get();
+            if (comboSnap.exists) {
+              const comboData = comboSnap.data();
+              url = comboData?.imageURL ||
+                comboData?.imageURLs?.[0] ||
+                comboData?.images?.[0] ||
+                comboData?.products?.[0]?.imageURL ||
+                comboData?.products?.[0]?.image ||
+                url;
+            }
+          } catch (e) {
+            // fallback gracefully
+          }
+        }
+      }
+
+      // For regular products, fallback to products collection if missing
+      if (!isCombo && (!url || url.includes("Logo") || url.startsWith("/")) && item.productId) {
+        try {
+          const prodSnap = await admin.firestore().collection("products").doc(item.productId).get();
+          if (prodSnap.exists) {
+            const prodData = prodSnap.data();
+            url = prodData?.imageURL || prodData?.imageURLs?.[0] || prodData?.images?.[0] || url;
+          }
+        } catch (e) {
+          // fallback gracefully
+        }
+      }
+
+      if (!url || url.trim() === "") {
+        url = LOGO_URL;
+      }
+
+      return await fetchBase64Image(url);
+    })
+  );
+
   // Table
   const tableData = order.items.map((item: OrderItem) => {
     const cat = item.category?.toLowerCase();
-    const isCombo = cat === 'combos' || cat === 'combo' || item.baseWeight === 1;
-    const isCustomMix = cat === 'custom mix' || item.category === 'Custom Mix';
+    const isCombo = cat === "combos" || cat === "combo" || item.baseWeight === 1;
+    const isCustomMix = cat === "custom mix" || item.category === "Custom Mix";
 
     // Quantity display (Units for combos, grams for everything else)
+    const comboGrams = (item as any).grams || (item.products ? item.products.reduce((s: number, p: any) => s + (Number(p.grams) || 0), 0) : 0);
     const displayQty = isCombo && !isCustomMix ?
-      `${item.quantity} Unit${item.quantity > 1 ? "s" : ""}` :
+      `${item.quantity} Unit${item.quantity > 1 ? "s" : ""}${comboGrams > 0 ? ` (${comboGrams * item.quantity}g)` : ""}` :
       isCustomMix ? `${item.quantity}g` : `${item.quantity / (item.baseWeight || 100)} Units (${item.quantity}g)`;
 
     // Name display (Include sub-products for bundles)
     let displayName = item.name;
-    if ((isCombo || isCustomMix) && item.products) {
-      const baseName = isCustomMix ? "Custom Mix" : item.name;
-      displayName = baseName + "\n" + item.products.map(
+    if (item.variant && !displayName.includes(item.variant)) {
+      displayName = `${displayName} (${item.variant})`;
+    }
+    if ((isCombo || isCustomMix) && item.products && item.products.length > 0) {
+      const baseName = isCustomMix ? "Custom Mix" : displayName;
+      const weightHeader = (!isCustomMix && comboGrams > 0) ? ` [${comboGrams}g/pack]` : "";
+      const header = isCustomMix ? "Ingredients:" : `Pack of ${item.products.length}${weightHeader} includes:`;
+      displayName = `${baseName}\n${header}\n` + item.products.map(
         (p: { name: string, grams: number }) => `  • ${p.name} (${p.grams}g)`
       ).join("\n");
     }
@@ -525,7 +624,7 @@ async function generateOrderPDF(
     const unitPrice = `Rs. ${item.price.toFixed(2)} ${unitPriceLabel}`;
 
     return [
-      "", // Placeholder for Image
+      "", // Cell where image is rendered via didDrawCell
       displayName,
       unitPrice,
       displayQty,
@@ -544,15 +643,30 @@ async function generateOrderPDF(
       textColor: [0, 0, 0],
       fontStyle: "bold",
     },
-    styles: { fontSize: 9, cellPadding: 4 },
+    styles: { fontSize: 9, cellPadding: 4, minCellHeight: 18, valign: "middle" },
     columnStyles: {
-      0: { cellWidth: 20 },
-      1: { cellWidth: 80 },
-      2: { halign: "center" },
-      3: { halign: "center" },
-      4: { halign: "right" },
+      0: { cellWidth: 22, halign: "center", valign: "middle" },
+      1: { cellWidth: 78, valign: "middle" },
+      2: { halign: "center", valign: "middle" },
+      3: { halign: "center", valign: "middle" },
+      4: { halign: "right", valign: "middle" },
     },
     alternateRowStyles: { fillColor: [252, 252, 252] },
+    didDrawCell: (data: any) => {
+      if (data.section === "body" && data.column.index === 0) {
+        const imgObj = itemImages[data.row.index];
+        if (imgObj && imgObj.data) {
+          try {
+            const size = Math.min(data.cell.width - 4, data.cell.height - 4, 15);
+            const x = data.cell.x + (data.cell.width - size) / 2;
+            const y = data.cell.y + (data.cell.height - size) / 2;
+            doc.addImage(imgObj.data, imgObj.format, x, y, size, size);
+          } catch (err) {
+            // graceful ignore
+          }
+        }
+      }
+    },
   });
 
   const finalY = doc.lastAutoTable.finalY + 10;
@@ -707,27 +821,46 @@ async function sendOrderConfirmationEmail(
   const productRows = order.items.map((item: OrderItem) => {
     const amount = ((item.price / (item.baseWeight || 100)) *
       item.quantity).toFixed(2);
-    let imgSrc = item.imageURL || LOGO_URL;
-    if (imgSrc.startsWith("/")) {
-      imgSrc = `https://munch-tokri.web.app${imgSrc}`;
-    }
     const cat = item.category?.toLowerCase();
     const isCombo = cat === 'combos' || cat === 'combo' || item.baseWeight === 1;
     const isCustomMix = cat === 'custom mix' || item.category === 'Custom Mix';
 
+    let imgSrc = item.imageURL;
+    if (isCombo && (!imgSrc || imgSrc.includes('Logo') || imgSrc.startsWith('/'))) {
+      if (item.products && item.products.length > 0) {
+        const firstWithImg = item.products.find((p: any) => p.imageURL || p.image);
+        if (firstWithImg) {
+          imgSrc = (firstWithImg as any).imageURL || (firstWithImg as any).image;
+        }
+      }
+    }
+    if (!imgSrc || imgSrc.trim() === '') {
+      imgSrc = LOGO_URL;
+    }
+    if (imgSrc.startsWith('/')) {
+      imgSrc = `https://munch-tokri.web.app${imgSrc}`;
+    }
+
+    const comboGrams = (item as any).grams || (item.products ? item.products.reduce((s: number, p: any) => s + (Number(p.grams) || 0), 0) : 0);
     const displayQty = isCombo && !isCustomMix ?
-      `${item.quantity} Unit${item.quantity > 1 ? "s" : ""}` :
+      `${item.quantity} Unit${item.quantity > 1 ? "s" : ""}${comboGrams > 0 ? ` (${comboGrams * item.quantity}g)` : ""}` :
       isCustomMix ? `${item.quantity}g` : `${item.quantity / (item.baseWeight || 100)} Units (${item.quantity}g)`;
 
-    let displayName = item.name;
-    if ((isCombo || isCustomMix) && item.products) {
-      const baseName = isCustomMix ? "Custom Mix" : item.name;
-      displayName = `<strong>${baseName}</strong><br/>` +
-        "<small style=\"color: #64748b; margin-left: 10px; display: block;\">" +
-        item.products.map((p: { name: string, grams: number }) =>
-          `• ${p.name} (${p.grams}g)`
-        ).join("<br/>") +
-        "</small>";
+    const itemTitle = item.variant && !item.name.includes(item.variant) ? `${item.name} (${item.variant})` : item.name;
+    let displayName = `<strong>${itemTitle}</strong>`;
+    if ((isCombo || isCustomMix) && item.products && item.products.length > 0) {
+      const baseName = isCustomMix ? "Custom Mix" : itemTitle;
+      const weightHeader = (!isCustomMix && comboGrams > 0) ? ` • Total ${comboGrams}g` : "";
+      const header = isCustomMix ? "Ingredients:" : `Pack of ${item.products.length}${weightHeader} includes:`;
+      displayName = `
+        <div style="font-weight: 700; color: #1e293b; margin-bottom: 4px;">${baseName}</div>
+        <div style="margin-top: 4px; padding: 6px 10px; background: #f0fdfa; border-left: 3px solid #0d9488; border-radius: 4px; text-align: left;">
+          <div style="font-size: 11px; font-weight: 700; color: #0f766e; margin-bottom: 3px;">${header}</div>
+          <div style="font-size: 11px; color: #334155; line-height: 1.5;">
+            ${item.products.map((p: { name: string, grams: number }) => `<div style="margin-bottom: 2px;">• <strong>${p.name}</strong> (${p.grams}g)</div>`).join('')}
+          </div>
+        </div>
+      `;
     }
 
     const unitPriceLabel = isCombo && !isCustomMix ? "/ Unit" : `/ ${(item.baseWeight || 100)}g`;
@@ -925,10 +1058,26 @@ async function sendAdminNotificationEmail(
           ${order.items.map((item: any) => {
       const isCombo = item.category?.toLowerCase() === 'combos' || item.category?.toLowerCase() === 'combo' || item.baseWeight === 1;
       const isCustomMix = item.category?.toLowerCase() === 'custom mix' || item.category === 'Custom Mix';
-      const qtyStr = isCombo && !isCustomMix ? `${item.quantity} Unit(s)` : isCustomMix ? `${item.quantity}g` : `${item.quantity / (item.baseWeight || 100)} Units (${item.quantity}g)`;
+      const comboGrams = (item as any).grams || (item.products ? item.products.reduce((s: number, p: any) => s + (Number(p.grams) || 0), 0) : 0);
+      const qtyStr = isCombo && !isCustomMix ? `${item.quantity} Unit(s)${comboGrams > 0 ? ` (${comboGrams * item.quantity}g)` : ''}` : isCustomMix ? `${item.quantity}g` : `${item.quantity / (item.baseWeight || 100)} Units (${item.quantity}g)`;
+      let subItemsHtml = '';
+      if ((isCombo || isCustomMix) && item.products && item.products.length > 0) {
+        const weightHeader = (!isCustomMix && comboGrams > 0) ? ` • Total ${comboGrams}g` : "";
+        const header = isCustomMix ? 'Ingredients:' : `Pack of ${item.products.length}${weightHeader} includes:`;
+        subItemsHtml = `
+          <div style="margin-top: 4px; padding: 4px 8px; background: #f0fdfa; border-left: 2px solid #0d9488; font-size: 11px;">
+            <div style="font-weight: 700; color: #0f766e; margin-bottom: 2px;">${header}</div>
+            <div style="color: #334155; line-height: 1.4;">
+              ${item.products.map((p: any) => `<div>• <strong>${p.name}</strong> (${p.grams}g)</div>`).join('')}
+            </div>
+          </div>
+        `;
+      }
+      const itemTitle = item.variant && !item.name.includes(item.variant) ? `${item.name} (${item.variant})` : item.name;
       return `
             <li style="margin-bottom: 8px;">
-              <strong>${item.name}</strong> x ${qtyStr}
+              <strong>${itemTitle}</strong> x ${qtyStr}
+              ${subItemsHtml}
             </li>
           `;
     }).join('')}
@@ -1811,3 +1960,331 @@ export const syncMembershipToCustomer = onDocumentWritten(
     console.log(`Synced membership for ${data.userId}. isMember: ${hasActive}`);
   }
 );
+
+/**
+ * Razorpay Magic Checkout: Get Promotions
+ * Returns all active promotions/coupons formatted for Magic Checkout modal.
+ */
+export const magicCheckoutPromotions = onRequest(
+  { region: "asia-south1", invoker: "public" },
+  async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type");
+
+    if (req.method === "OPTIONS") {
+      res.status(204).send("");
+      return;
+    }
+
+    try {
+      const now = Date.now();
+      const couponsSnap = await admin.firestore().collection("coupons")
+        .where("status", "==", "active")
+        .get();
+
+      const promotions: Array<{
+        reference_id: string;
+        type: string;
+        code: string;
+        value: number;
+        value_type: string;
+        summary: string;
+        description: string;
+      }> = [];
+
+      couponsSnap.forEach((doc) => {
+        const data = doc.data();
+
+        // Check expiry
+        if (data.expiryDate) {
+          const expiryMillis = data.expiryDate.toMillis ?
+            data.expiryDate.toMillis() :
+            new Date(data.expiryDate).getTime();
+          if (now > expiryMillis) {
+            return;
+          }
+        }
+
+        // Check max uses limit
+        if (data.maxUses && (data.usedCount || 0) >= data.maxUses) {
+          return;
+        }
+
+        const isPercentage = data.discountType === "percentage";
+        const code = (data.code || doc.id).toUpperCase();
+        const discountVal = Number(data.discountValue) || 0;
+        const minOrder = Number(data.minOrderValue) || 0;
+        const maxDiscount = Number(data.maxDiscount) || 0;
+
+        promotions.push({
+          reference_id: doc.id,
+          type: "offer",
+          code: code,
+          value: isPercentage ? discountVal : discountVal * 100,
+          value_type: isPercentage ? "percentage" : "fixed_amount",
+          summary: isPercentage ? `${discountVal}% OFF` : `₹${discountVal} OFF`,
+          description: `Min cart value ₹${minOrder}${maxDiscount > 0 ? `, up to ₹${maxDiscount} off` : ""}`,
+        });
+      });
+
+      res.status(200).json({ promotions });
+    } catch (error: unknown) {
+      const e = error as Error;
+      console.error("Magic Checkout Promotions Error:", e);
+      res.status(500).json({ error: e.message || "Failed to fetch promotions" });
+    }
+  }
+);
+
+/**
+ * Razorpay Magic Checkout: Apply Promotion
+ * Validates and calculates discount for coupon selected/typed by customer.
+ */
+export const magicCheckoutApplyPromotion = onRequest(
+  { region: "asia-south1", invoker: "public" },
+  async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type");
+
+    if (req.method === "OPTIONS") {
+      res.status(204).send("");
+      return;
+    }
+
+    try {
+      const body = req.body || {};
+      const code = (body.code || req.query.code || "").toString().trim().toUpperCase();
+
+      if (!code) {
+        res.status(200).json({
+          failure_code: "INVALID_CODE",
+          failure_reason: "Coupon code is required.",
+        });
+        return;
+      }
+
+      // Look up coupon by document ID or by code field
+      let couponDoc = await admin.firestore().collection("coupons").doc(code).get();
+      if (!couponDoc.exists) {
+        const querySnap = await admin.firestore().collection("coupons")
+          .where("code", "==", code)
+          .limit(1)
+          .get();
+        if (!querySnap.empty) {
+          couponDoc = querySnap.docs[0];
+        }
+      }
+
+      if (!couponDoc.exists) {
+        res.status(200).json({
+          failure_code: "INVALID_CODE",
+          failure_reason: "The coupon code you entered is invalid.",
+        });
+        return;
+      }
+
+      const data = couponDoc.data();
+      if (!data) {
+        res.status(200).json({
+          failure_code: "INVALID_CODE",
+          failure_reason: "Coupon data could not be loaded.",
+        });
+        return;
+      }
+
+      // Status check
+      if (data.status !== "active") {
+        res.status(200).json({
+          failure_code: "INACTIVE_COUPON",
+          failure_reason: "This coupon is no longer active.",
+        });
+        return;
+      }
+
+      // Expiry check
+      if (data.expiryDate) {
+        const expiryMillis = data.expiryDate.toMillis ?
+          data.expiryDate.toMillis() :
+          new Date(data.expiryDate).getTime();
+        if (Date.now() > expiryMillis) {
+          res.status(200).json({
+            failure_code: "COUPON_EXPIRED",
+            failure_reason: "This coupon has expired.",
+          });
+          return;
+        }
+      }
+
+      // Max uses check
+      if (data.maxUses && (data.usedCount || 0) >= data.maxUses) {
+        res.status(200).json({
+          failure_code: "USAGE_LIMIT_EXCEEDED",
+          failure_reason: "This coupon usage limit has been reached.",
+        });
+        return;
+      }
+
+      // Minimum order check (if cart_total provided)
+      let cartAmountInRupees = 0;
+      if (body.cart && typeof body.cart.cart_total === "number") {
+        cartAmountInRupees = body.cart.cart_total > 1000 ?
+          body.cart.cart_total / 100 :
+          body.cart.cart_total;
+      }
+
+      const minOrder = Number(data.minOrderValue) || 0;
+      if (cartAmountInRupees > 0 && minOrder > 0 && cartAmountInRupees < minOrder) {
+        res.status(200).json({
+          failure_code: "MIN_ORDER_NOT_MET",
+          failure_reason: `Minimum cart value of ₹${minOrder} is required.`,
+        });
+        return;
+      }
+
+      const isPercentage = data.discountType === "percentage";
+      const discountVal = Number(data.discountValue) || 0;
+      const maxDiscount = Number(data.maxDiscount) || 0;
+
+      let calculatedValue = isPercentage ? discountVal : discountVal * 100;
+      let valueType = isPercentage ? "percentage" : "fixed_amount";
+
+      // If cart total was provided, calculate exact amount in paise
+      if (isPercentage && cartAmountInRupees > 0) {
+        let discountInRupees = (cartAmountInRupees * discountVal) / 100;
+        if (maxDiscount > 0) {
+          discountInRupees = Math.min(discountInRupees, maxDiscount);
+        }
+        calculatedValue = Math.round(discountInRupees * 100);
+        valueType = "fixed_amount";
+      }
+
+      res.status(200).json({
+        promotion: {
+          reference_id: couponDoc.id,
+          type: "offer",
+          code: code,
+          value: calculatedValue,
+          value_type: valueType,
+          description: isPercentage ?
+            `${discountVal}% discount applied!` :
+            `₹${discountVal} discount applied!`,
+        },
+      });
+    } catch (error: unknown) {
+      const e = error as Error;
+      console.error("Magic Checkout Apply Promotion Error:", e);
+      res.status(500).json({
+        failure_code: "SERVER_ERROR",
+        failure_reason: e.message || "Failed to process coupon.",
+      });
+    }
+  }
+);
+
+/**
+ * Razorpay Magic Checkout: Shipping Info API
+ * Evaluates delivery address, serviceability, shipping methods, and fees.
+ */
+export const magicCheckoutShippingInfo = onRequest(
+  { region: "asia-south1", invoker: "public" },
+  async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type");
+
+    if (req.method === "OPTIONS") {
+      res.status(204).send("");
+      return;
+    }
+
+    try {
+      const db = admin.firestore();
+      const body = req.body || {};
+      const address = body.address || {};
+      const lineItems = Array.isArray(body.line_items) ? body.line_items : [];
+
+      // Determine cart subtotal in Rupees
+      let cartTotalInPaise = 0;
+      for (const item of lineItems) {
+        const priceInPaise = Number(item.offer_price || item.price || 0);
+        const qty = Number(item.quantity || 1);
+        cartTotalInPaise += priceInPaise * qty;
+      }
+      const subtotalInRupees = cartTotalInPaise > 0 ? (cartTotalInPaise / 100) : 0;
+
+      // Fetch dynamic store settings if configured
+      let freeShippingThreshold = 350;
+      let shippingRate = 50;
+      try {
+        const storeSettingsDoc = await db.collection("settings").doc("store").get();
+        if (storeSettingsDoc.exists) {
+          const settings = storeSettingsDoc.data();
+          if (settings?.freeShippingThreshold !== undefined) {
+            freeShippingThreshold = Number(settings.freeShippingThreshold);
+          }
+          if (settings?.shippingRate !== undefined) {
+            shippingRate = Number(settings.shippingRate);
+          }
+        }
+      } catch (e) {
+        console.warn("Could not fetch store settings, using defaults (350/50):", e);
+      }
+
+      // Check country and pincode serviceability
+      const country = (address.country || "IN").toUpperCase();
+      const isDomestic = country === "IN" || country === "INDIA";
+
+      if (!isDomestic) {
+        res.status(200).json({
+          serviceable: false,
+          cod_serviceable: false,
+          shipping_methods: [],
+        });
+        return;
+      }
+
+      const isFreeShipping = subtotalInRupees >= freeShippingThreshold;
+      const shippingFeeInRupees = isFreeShipping ? 0 : shippingRate;
+      const shippingFeeInPaise = shippingFeeInRupees * 100;
+
+      res.status(200).json({
+        serviceable: true,
+        cod_serviceable: true,
+        shipping_methods: [
+          {
+            id: "standard_shipping",
+            name: "Standard Delivery",
+            description: isFreeShipping ?
+              "Free Delivery (3-5 business days)" :
+              `Flat Delivery (3-5 business days) - Free on orders above ₹${freeShippingThreshold}`,
+            serviceable: true,
+            shipping_fee: shippingFeeInPaise,
+            cod_fee: 0,
+          },
+        ],
+      });
+    } catch (error: unknown) {
+      const e = error as Error;
+      console.error("Magic Checkout Shipping Info Error:", e);
+      // Return safe fallback so checkout does not fail
+      res.status(200).json({
+        serviceable: true,
+        cod_serviceable: true,
+        shipping_methods: [
+          {
+            id: "standard_shipping",
+            name: "Standard Delivery",
+            description: "Delivery within 3-5 business days",
+            serviceable: true,
+            shipping_fee: 5000,
+            cod_fee: 0,
+          },
+        ],
+      });
+    }
+  }
+);
+
+

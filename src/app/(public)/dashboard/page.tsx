@@ -508,22 +508,46 @@ function DashboardContent() {
                                                 {order.items && order.items.length > 0 ? (
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                                         {order.items.map((item, idx) => {
-                                                            const renderItemName = (name: string) => {
+                                                            const renderItemName = (name: string, products?: any[]) => {
                                                                 if (name.startsWith('Custom Mix (')) {
                                                                     const match = name.match(/Custom Mix \((.*)\)/);
                                                                     if (match && match[1]) {
                                                                         const ingredients = match[1].split(', ');
                                                                         return (
                                                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                                                                <p style={{ margin: 0, fontWeight: 600, fontSize: '0.85rem' }}>Custom Mix</p>
-                                                                                <ul style={{ listStyle: 'none', padding: 0, margin: 0, color: '#64748b', fontSize: '0.75rem' }}>
-                                                                                    {ingredients.map((ing, i) => (
-                                                                                        <li key={i}>• {ing}</li>
-                                                                                    ))}
-                                                                                </ul>
+                                                                                <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem', color: '#1e293b' }}>Custom Mix</p>
+                                                                                <div style={{ paddingLeft: '0.5rem', borderLeft: '2px solid #0d9488' }}>
+                                                                                    <p style={{ margin: '0 0 0.2rem', fontSize: '0.75rem', fontWeight: 600, color: '#0f766e' }}>Ingredients:</p>
+                                                                                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, color: '#475569', fontSize: '0.8rem', lineHeight: 1.4 }}>
+                                                                                        {ingredients.map((ing, i) => (
+                                                                                            <li key={i}><span style={{ color: '#0d9488', fontWeight: 'bold' }}>• </span>{ing}</li>
+                                                                                        ))}
+                                                                                    </ul>
+                                                                                </div>
                                                                             </div>
                                                                         );
                                                                     }
+                                                                }
+                                                                if (products && products.length > 0) {
+                                                                    return (
+                                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                                                            <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem', color: '#1e293b' }}>{name}</p>
+                                                                            <div style={{ marginTop: '0.2rem', paddingLeft: '0.5rem', borderLeft: '2px solid #0d9488' }}>
+                                                                                <p style={{ margin: '0 0 0.25rem', fontSize: '0.75rem', fontWeight: 700, color: '#0f766e' }}>
+                                                                                    🎁 Pack of {products.length} includes:
+                                                                                </p>
+                                                                                <ul style={{ listStyle: 'none', padding: 0, margin: 0, color: '#334155', fontSize: '0.8rem', lineHeight: 1.5 }}>
+                                                                                    {products.map((p: any, i: number) => (
+                                                                                        <li key={i} style={{ marginBottom: '0.15rem' }}>
+                                                                                            <span style={{ color: '#0d9488', fontWeight: 'bold' }}>• </span>
+                                                                                            <span style={{ fontWeight: 600 }}>{p.name}</span>{' '}
+                                                                                            <span style={{ color: '#64748b' }}>({p.grams}g)</span>
+                                                                                        </li>
+                                                                                    ))}
+                                                                                </ul>
+                                                                            </div>
+                                                                        </div>
+                                                                    );
                                                                 }
                                                                 return <p style={{ margin: 0, fontWeight: 600, fontSize: '0.85rem' }}>{name}</p>;
                                                             };
@@ -538,13 +562,15 @@ function DashboardContent() {
                                                                         </div>
                                                                     )}
                                                                     <div style={{ flex: 1 }}>
-                                                                        {renderItemName(item.name)}
+                                                                        {renderItemName(item.name, (item as any).products)}
                                                                         <p style={{ margin: '0.25rem 0 0', color: '#64748b', fontSize: '0.75rem', fontWeight: 500 }}>
                                                                             {(() => {
                                                                                 const cat = (item as any).category?.toLowerCase();
                                                                                 const isCombo = cat === 'combos' || cat === 'combo' || item.baseWeight === 1;
                                                                                 const isCustomMix = cat === 'custom mix' || item.name.startsWith('Custom Mix (');
-                                                                                return isCombo && !isCustomMix ? `${item.quantity} Unit(s)` : isCustomMix ? `${item.quantity}g` : `${item.quantity / (item.baseWeight || 100)} (${item.quantity}g)`;
+                                                                                const comboGrams = (item as any).grams || ((item as any).products ? (item as any).products.reduce((s: number, p: any) => s + (Number(p.grams) || 0), 0) : 0);
+                                                                                const comboQtyStr = comboGrams > 0 ? `${item.quantity} Pack(s) (${comboGrams * item.quantity}g)` : `${item.quantity} Pack(s)`;
+                                                                                return isCombo && !isCustomMix ? comboQtyStr : isCustomMix ? `${item.quantity}g` : `${item.quantity / (item.baseWeight || 100)} (${item.quantity}g)`;
                                                                             })()} • ₹{((item.price * item.quantity) / (item.baseWeight || 100)).toFixed(2)}
                                                                         </p>
                                                                     </div>

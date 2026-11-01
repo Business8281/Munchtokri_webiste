@@ -7,6 +7,7 @@ import { X, Trash2, Plus, Minus, ShoppingBag, Pencil } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import Button from '../Button/Button';
+import RazorpayMagicCheckoutWidget from '../RazorpayMagicCheckoutWidget/RazorpayMagicCheckoutWidget';
 import { tracker } from '@/lib/analytics/tracker';
 import styles from './cart.module.css';
 
@@ -143,6 +144,22 @@ export default function CartDrawer() {
                                         </div>
                                         <p className={styles.category}>{item.category}</p>
 
+                                        {item.products && item.products.length > 0 && (
+                                            <div style={{ margin: '0.4rem 0 0.5rem', padding: '0.4rem 0.6rem', background: '#f8fafc', borderLeft: '3px solid #0d9488', borderRadius: '4px' }}>
+                                                <p style={{ margin: '0 0 0.25rem', fontSize: '0.72rem', fontWeight: 700, color: '#0f766e' }}>
+                                                    Pack of {item.products.length} includes:
+                                                </p>
+                                                <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.72rem', color: '#334155', lineHeight: 1.4 }}>
+                                                    {item.products.map((p: any, i: number) => (
+                                                        <li key={i} style={{ marginBottom: '0.15rem' }}>
+                                                            <span style={{ color: '#0d9488', fontWeight: 'bold' }}>• </span>
+                                                            <span style={{ fontWeight: 600 }}>{p.name}</span> <span style={{ color: '#64748b' }}>({p.grams || 0}g)</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+
                                         <div className={styles.itemActions}>
                                             {!isCustomMixItem(item) ? (
                                                 <div className={styles.qtyControls}>
@@ -151,7 +168,12 @@ export default function CartDrawer() {
                                                         disabled={item.quantity <= (item.category === 'Combos' ? 1 : (item.baseWeight || 100))}
                                                     ><Minus size={14} /></button>
                                                     <span style={{ minWidth: '40px', textAlign: 'center' }}>
-                                                        {item.category === 'Combos' ? `${item.quantity} Unit${item.quantity > 1 ? 's' : ''}` : `${item.quantity / (item.baseWeight || 100)} (${item.quantity}g)`}
+                                                        {item.category === 'Combos' 
+                                                            ? (() => {
+                                                                const itemGrams = (item as any).grams || (item as any).variantGrams || (item.products?.reduce((s: number, p: any) => s + (p.grams || 0), 0) || 0);
+                                                                return `${item.quantity} Pack${item.quantity > 1 ? 's' : ''}${itemGrams > 0 ? ` (${itemGrams * item.quantity}g)` : ''}`;
+                                                            })()
+                                                            : `${item.quantity / (item.baseWeight || 100)} (${item.quantity}g)`}
                                                     </span>
                                                     <button
                                                         onClick={() => updateQuantity(item.id, item.quantity + (item.category === 'Combos' ? 1 : (item.baseWeight || 100)))}
@@ -180,22 +202,19 @@ export default function CartDrawer() {
                         </div>
                         <p className={styles.taxesInfo}>Taxes & shipping calculated at checkout</p>
 
-                        <Link
-                            href="/checkout"
-                            onClick={() => {
+                        <RazorpayMagicCheckoutWidget
+                            onBuyNow={() => {
                                 setIsCartOpen(false);
                                 tracker.track('checkout_start', {
                                     source: 'cart_drawer',
                                     cartTotal,
                                     itemCount: cartItems.length
                                 });
+                                router.push('/checkout?magic=1');
                             }}
-                            style={{ textDecoration: 'none' }}
-                        >
-                            <Button variant="primary" size="lg" className={styles.checkoutBtn}>
-                                Checkout Now
-                            </Button>
-                        </Link>
+                            buttonText="Buy Now"
+                            showProtectionBar={false}
+                        />
                     </div>
                 )}
             </div>

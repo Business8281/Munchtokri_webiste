@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button/Button';
 import { useProducts } from '@/hooks/useFirestore';
 import { useCart } from '@/contexts/CartContext';
 import { MIN_CUSTOM_MIX_GRAMS } from '@/lib/constants';
+import { ShoppingBag, Zap } from 'lucide-react';
 import styles from './build-mixture.module.css';
 
 function roundToTwo(n: number): number {
@@ -24,7 +25,7 @@ export default function BuildMixturePage() {
 function BuildMixtureClient() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { addToCart, cartItems, updateCartItem } = useCart();
+    const { addToCart, setIsCartOpen, cartItems, updateCartItem } = useCart();
     const { products: ingredients, loading: productsLoading } = useProducts();
     
     const [selections, setSelections] = useState<Record<string, number>>({});
@@ -82,7 +83,7 @@ function BuildMixtureClient() {
     }, 0);
     const total = totalPaise / 100; // exact to 2dp
 
-    const handleAddToCart = () => {
+    const handleAddToCart = (goToCheckout = false) => {
         if (totalGrams < MIN_CUSTOM_MIX_GRAMS) return;
 
         const ingredientSummary = Object.entries(selections)
@@ -132,11 +133,19 @@ function BuildMixtureClient() {
                     maxStock: 10000,
                     products: mixProducts,
                 },
-                totalGrams
+                totalGrams,
+                !goToCheckout
             );
         }
 
-        router.push('/checkout'); // Redirect back to checkout after edit/add
+        if (goToCheckout) {
+            setIsCartOpen(false);
+            router.push('/checkout');
+        }
+    };
+
+    const handleBuyNow = () => {
+        handleAddToCart(true);
     };
 
     const loading = productsLoading || initializing;
@@ -259,16 +268,26 @@ function BuildMixtureClient() {
                             <span className={styles.totalAmount}>₹{total.toFixed(2)}</span>
                         </div>
                         
-                        <div className={styles.addToCartBtn}>
+                        <div className={styles.btnRow}>
                             <Button
-                                onClick={handleAddToCart}
+                                onClick={() => handleAddToCart(false)}
                                 disabled={totalGrams < MIN_CUSTOM_MIX_GRAMS}
                                 variant="primary"
                             >
+                                <ShoppingBag size={18} style={{ marginRight: '6px' }} />
                                 {totalGrams < MIN_CUSTOM_MIX_GRAMS
                                     ? `Add ${MIN_CUSTOM_MIX_GRAMS - totalGrams}g more`
                                     : editId ? 'Update Mix in Cart' : 'Add Mix to Cart'}
                             </Button>
+                            <button
+                                type="button"
+                                className={styles.buyNowBtn}
+                                onClick={handleBuyNow}
+                                disabled={totalGrams < MIN_CUSTOM_MIX_GRAMS}
+                            >
+                                <Zap size={18} />
+                                {editId ? 'Save & Checkout' : 'Buy Now'}
+                            </button>
                         </div>
                     </aside>
                 </div>
