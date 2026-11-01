@@ -156,7 +156,35 @@ export function useMagicCheckout() {
                 pincode: '',
             };
 
-            const rzpOptions = {
+            const lineItemsCart = formattedItems.map((item, idx) => {
+                const isCombo = item.category === 'Combos' || item.baseWeight === 1;
+                const qty = Number(item.quantity) || 1;
+                const price = Number(item.price) || 0;
+                const baseWeight = Number(item.baseWeight) || 100;
+                let itemTotalPaise = 0;
+                let displayQty = 1;
+                if (isCombo) {
+                    displayQty = Math.max(1, Math.round(qty));
+                    itemTotalPaise = Math.round(price * 100) * displayQty;
+                } else {
+                    const totalRupees = (price / baseWeight) * qty;
+                    itemTotalPaise = Math.round(totalRupees * 100);
+                    displayQty = 1;
+                }
+                const unitPricePaise = displayQty > 0 ? Math.round(itemTotalPaise / displayQty) : itemTotalPaise;
+                return {
+                    sku: String(item.productId || `item_${idx + 1}`),
+                    name: item.name,
+                    description: item.variant || `${item.quantity} units`,
+                    price: unitPricePaise,
+                    offer_price: unitPricePaise,
+                    quantity: displayQty,
+                    type: 'physical',
+                    image_url: item.imageURL || 'https://munchtokri.com/logo.png',
+                };
+            });
+
+            const rzpOptions: any = {
                 key: razorpayKey,
                 amount: orderData.order.amount,
                 currency: orderData.order.currency,
@@ -164,6 +192,11 @@ export function useMagicCheckout() {
                 description: 'Authentic Karnataka Snacks & Sweets',
                 order_id: orderData.order.id,
                 one_click_checkout: true,
+                show_address: true,
+                cart: {
+                    line_items: lineItemsCart,
+                    line_items_total: orderData.order.amount,
+                },
                 prefill: {
                     name: currentUser?.displayName || '',
                     email: currentUser?.email || '',

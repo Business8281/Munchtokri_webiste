@@ -71,7 +71,7 @@ const velocityWarehouseId = defineString("VELOCITY_WAREHOUSE_ID", {
 
 // Razorpay parameters
 const razorpayKeyId = defineString("RAZORPAY_KEY_ID");
-const razorpayKeySecret = defineString("RAZORPAY_KEY_SECRET");
+const razorpayKeySecret = defineSecret("RAZORPAY_KEY_SECRET");
 
 // Webhook security secret (set this in Firebase functions config)
 const shiprocketWebhookSecret = defineString("SHIPROCKET_WEBHOOK_SECRET", {
@@ -1418,7 +1418,7 @@ export const createVelocityOrder = onCall(
  * Creates a Razorpay order.
  */
 export const createPayOrder = onCall(
-  { region: "asia-south1", invoker: "public" },
+  { region: "asia-south1", invoker: "public", secrets: [razorpayKeySecret] },
   async (request) => {
     // Log auth status for debugging but don't block - invoker is public
     console.log("createPayOrder auth status:",
@@ -1457,6 +1457,7 @@ export const createPayOrder = onCall(
         key_secret: keySecret,
       });
 
+      const passedAmountInPaise = Math.round(Number(amount) * 100);
       const itemsList = Array.isArray(request.data.items) ? request.data.items : [];
       const lineItems = itemsList.map((item: any, idx: number) => {
         const isCombo = item.category === "Combos" || item.baseWeight === 1;
@@ -1481,24 +1482,26 @@ export const createPayOrder = onCall(
           itemDesc = item.variant ? `${item.variant} (${qty}g)` : `${qty}g pack`;
         }
 
-        const unitPriceInPaise = displayQty > 0 ? Math.round(itemTotalPaise / displayQty) : itemTotalPaise;
+        let calculatedPrice = displayQty > 0 ? Math.round(itemTotalPaise / displayQty) : itemTotalPaise;
+        if (calculatedPrice <= 0 && passedAmountInPaise > 0) {
+          calculatedPrice = passedAmountInPaise;
+        }
+        const unitPriceInPaise = Math.max(100, calculatedPrice);
         const itemName = String(item.name || `Snack Item ${idx + 1}`).trim();
 
         return {
           sku: String(item.productId || item.id || `item_${idx + 1}`),
           name: itemName,
           description: itemDesc,
-          amount: unitPriceInPaise,
+          price: unitPriceInPaise,
           offer_price: unitPriceInPaise,
           quantity: displayQty,
           type: "physical",
-          currency: "INR",
           image_url: item.imageURL || "https://munchtokri.com/logo.png",
         };
       });
 
-      const lineItemsTotal = lineItems.reduce((acc: number, it: any) => acc + (it.amount * it.quantity), 0);
-      const passedAmountInPaise = Math.round(Number(amount) * 100);
+      const lineItemsTotal = lineItems.reduce((acc: number, it: any) => acc + (it.price * it.quantity), 0);
       const finalAmountInPaise = lineItemsTotal > 0 ? lineItemsTotal : (passedAmountInPaise > 0 ? passedAmountInPaise : 100);
 
       const options: any = {
@@ -1543,7 +1546,7 @@ export const createPayOrder = onCall(
  * Verification of Razorpay Payment Signature (Optional helper for security)
  */
 export const verifyPayment = onCall(
-  { region: "asia-south1", invoker: "public" },
+  { region: "asia-south1", invoker: "public", secrets: [razorpayKeySecret] },
   async (request) => {
     const {
       razorpay_order_id: razorpayOrderId,
@@ -1924,7 +1927,7 @@ async function saveMagicOrderToFirestore(params: {
  * Supports both prepaid and Cash on Delivery (COD) placed inside Magic Checkout.
  */
 export const verifyAndSaveMagicOrder = onCall(
-  { region: "asia-south1", invoker: "public" },
+  { region: "asia-south1", invoker: "public", secrets: [razorpayKeySecret] },
   async (request) => {
     const {
       razorpayOrderId,
@@ -2129,6 +2132,7 @@ export const membershipStatus = onRequest(async (req, res) => {
  * Creates a Razorpay subscription for a user.
  */
 export const createSubscription = onRequest(
+  { secrets: [razorpayKeySecret] },
   async (req, res) => {
     try {
       const { userId, planId } = req.body;
@@ -2167,6 +2171,7 @@ export const createSubscription = onRequest(
  * Cancels a Razorpay subscription for a user.
  */
 export const cancelSubscription = onRequest(
+  { secrets: [razorpayKeySecret] },
   async (req, res) => {
     try {
       const { subscriptionId } = req.body;
@@ -2845,9 +2850,22 @@ export const magicCheckoutShippingInfo = onRequest(
       const shippingFeeInRupees = isFreeShipping ? 0 : shippingRate;
       const shippingFeeInPaise = shippingFeeInRupees * 100;
 
-      res.status(200).json({
+      let incomingAddresses: any[] = [{ id: "0" }];
+      if (Array.isArray(body.addresses) && body.addresses.length > 0) {
+        incomingAddresses = body.addresses;
+      } else if (body.address) {
+        incomingAddresses = [body.address];
+      } else if (rawAddress && Object.keys(rawAddress).length > 0) {
+        incomingAddresses = [rawAddress];
+      }
+
+      const mappedAddresses = incomingAddresses.map((addr: any, idx: number) => ({
+        id: String(addr.id || addr.address_id || idx),
         serviceable: true,
         cod_serviceable: true,
+        shipping_fee: shippingFeeInPaise,
+        cod_fee: 0,
+        estimated_delivery_days: 3,
         shipping_methods: [
           {
             id: "standard_shipping",
@@ -2860,14 +2878,53 @@ export const magicCheckoutShippingInfo = onRequest(
             cod_fee: 0,
           },
         ],
+      }));
+
+      const shippingMethods = [
+        {
+          id: "standard_shipping",
+          name: "Standard Delivery",
+          description: isFreeShipping ?
+            "Free Delivery (3-5 business days)" :
+            `Flat Delivery (3-5 business days) - Free on orders above ₹${freeShippingThreshold}`,
+          serviceable: true,
+          shipping_fee: shippingFeeInPaise,
+          cod_fee: 0,
+        },
+      ];
+
+      res.status(200).json({
+        success: true,
+        serviceable: true,
+        cod_serviceable: true,
+        data: {
+          addresses: mappedAddresses,
+        },
+        addresses: mappedAddresses,
+        shipping_methods: shippingMethods,
       });
     } catch (error: unknown) {
       const e = error as Error;
       console.error("Magic Checkout Shipping Info Error:", e);
       // Return safe fallback so checkout does not fail
+      const fallbackAddresses = [
+        {
+          id: "0",
+          serviceable: true,
+          cod_serviceable: true,
+          shipping_fee: 5000,
+          cod_fee: 0,
+          estimated_delivery_days: 3,
+        },
+      ];
       res.status(200).json({
+        success: true,
         serviceable: true,
         cod_serviceable: true,
+        data: {
+          addresses: fallbackAddresses,
+        },
+        addresses: fallbackAddresses,
         shipping_methods: [
           {
             id: "standard_shipping",
