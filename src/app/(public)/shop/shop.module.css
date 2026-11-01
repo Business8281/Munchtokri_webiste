@@ -112,6 +112,8 @@
 /* Main Content */
 .mainContent {
     flex: 1;
+    min-width: 0;
+    width: 100%;
 }
 
 .gridHeader {
@@ -119,6 +121,8 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
+    gap: 1rem;
+    width: 100%;
 }
 
 .gridHeader h1 {
@@ -135,10 +139,32 @@
     color: var(--text-secondary);
 }
 
-.gridControls select {
+.searchWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.searchInput {
     padding: 0.5rem 1rem;
-    border-radius: 8px;
+    border-radius: 50px;
     border: 1px solid var(--gray-medium);
+    font-size: 0.85rem;
+    outline: none;
+    background-color: white;
+    width: 190px;
+    transition: all 0.2s ease;
+}
+
+.searchInput:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(0, 128, 128, 0.1);
+}
+
+.filterSubRow {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
 }
 
 .resultsCount {
@@ -147,6 +173,7 @@
     background: var(--gray-light);
     padding: 0.25rem 0.75rem;
     border-radius: 50px;
+    white-space: nowrap;
 }
 
 .sortWrapper {
@@ -165,7 +192,7 @@
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
-    min-width: 180px;
+    min-width: 170px;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23008080' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
@@ -183,21 +210,18 @@
 
 .productGrid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 2rem;
     margin-bottom: 3rem;
-}
-
-@media (max-width: 992px) {
-    .productGrid {
-        grid-template-columns: repeat(2, 1fr);
-    }
+    width: 100%;
 }
 
 @media (max-width: 992px) {
     .content {
         flex-direction: column;
         gap: 1rem;
+        width: 100%;
+        max-width: 100%;
     }
 
     .sidebar {
@@ -206,19 +230,84 @@
 
     .gridHeader {
         flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
+        align-items: stretch;
+        gap: 0.85rem;
+        margin-bottom: 1.5rem;
     }
 
     .gridHeader h1 {
-        font-size: 1.8rem;
+        font-size: 1.85rem;
+    }
+
+    .gridControls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+        width: 100%;
+    }
+
+    .searchWrapper {
+        width: 100%;
+    }
+
+    .searchInput {
+        width: 100% !important;
+        min-width: 0 !important;
+        font-size: 0.9rem;
+        padding: 0.65rem 1rem;
+    }
+
+    .filterSubRow {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        width: 100%;
+    }
+
+    .resultsCount {
+        font-size: 0.82rem;
+        padding: 0.35rem 0.85rem;
+        flex-shrink: 0;
+    }
+
+    .sortWrapper {
+        flex: 1;
+        max-width: 200px;
+        min-width: 0;
+    }
+
+    .headerSortSelect {
+        width: 100%;
+        min-width: 0;
+        font-size: 0.82rem;
+        padding: 0.45rem 1.75rem 0.45rem 0.75rem;
+    }
+
+    .productGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1.25rem;
     }
 }
 
 @media (max-width: 480px) {
+    .shopContainer {
+        padding-top: 1rem;
+        padding-bottom: 2.5rem;
+    }
+
+    .gridHeader {
+        margin-bottom: 1rem;
+    }
+
+    .gridHeader h1 {
+        font-size: 1.65rem;
+    }
+
     .productGrid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.65rem;
         margin-bottom: 1.5rem;
+        width: 100%;
     }
 }

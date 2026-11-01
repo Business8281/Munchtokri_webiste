@@ -1,10 +1,10 @@
 .floatingCart {
     position: fixed;
-    bottom: 40px;
-    right: 20px;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    right: calc(16px + env(safe-area-inset-right, 0px));
     z-index: 999;
-    width: 60px;
-    height: 60px;
+    width: 54px;
+    height: 54px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
     box-shadow: 0 10px 25px -5px rgba(0, 128, 128, 0.4);

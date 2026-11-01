@@ -97,11 +97,12 @@
         overflow-x: auto;
         scroll-snap-type: x mandatory;
         padding: 0.5rem 0.5rem 2rem;
-        margin: 0 -1.5rem;
-        padding-left: 1.5rem;
+        margin: 0;
         gap: 1rem;
         -ms-overflow-style: none;
         scrollbar-width: none;
+        width: 100%;
+        box-sizing: border-box;
     }
     
     .infoGrid::-webkit-scrollbar {

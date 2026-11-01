@@ -16,7 +16,13 @@ export default function PublicClientLayout({
     return (
         <>
             {!isLoginPage && <Navbar />}
-            <div style={{ paddingTop: isLoginPage ? 0 : (pathname === '/' ? '0' : '80px') }}>
+            <div style={{
+                paddingTop: isLoginPage ? 0 : (pathname === '/' ? '0' : '80px'),
+                width: '100%',
+                maxWidth: '100vw',
+                overflowX: 'hidden',
+                boxSizing: 'border-box'
+            }}>
                 {children}
             </div>
             {!isLoginPage && !isDashboardPage && <Footer />}

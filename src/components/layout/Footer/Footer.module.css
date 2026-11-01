@@ -3,6 +3,10 @@
     color: white;
     padding: 6rem 0 3rem;
     margin-top: 4rem;
+    width: 100%;
+    max-width: 100vw;
+    box-sizing: border-box;
+    overflow-x: hidden;
 }
 
 .container {
@@ -152,7 +156,8 @@
 
 @media (max-width: 640px) {
     .footer {
-        padding: 4rem 1rem 2rem;
+        padding: 3rem 1rem calc(2rem + env(safe-area-inset-bottom, 0px));
+        box-sizing: border-box;
     }
 
     .container {

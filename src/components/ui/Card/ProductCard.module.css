@@ -9,6 +9,9 @@
     flex-direction: column;
     border: 1px solid #f1f3f5;
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
     height: 100%;
 }
 
@@ -279,6 +282,13 @@
     box-shadow: 0 4px 12px rgba(0, 90, 54, 0.3);
 }
 
+.cardActions {
+    padding: 0 1.25rem 1.25rem;
+    margin-top: auto;
+    width: 100%;
+    box-sizing: border-box;
+}
+
 @media (max-width: 768px) {
     .btnRow {
         grid-template-columns: 1fr;
@@ -294,37 +304,67 @@
 }
 
 @media (max-width: 480px) {
+    .cardActions {
+        padding: 0 0.55rem 0.75rem;
+    }
 
     .info {
-        padding: 1rem;
+        padding: 0.75rem 0.55rem;
+        box-sizing: border-box;
     }
 
     .name {
-        font-size: 1rem;
-        height: 2.6em;
+        font-size: 0.95rem;
+        height: 2.5em;
+        margin-bottom: 0.35rem;
     }
 
     .description {
-        display: -webkit-box; /* Show description on mobile as per image */
-        font-size: 0.75rem;
-        margin-bottom: 0.75rem;
+        display: -webkit-box;
+        font-size: 0.72rem;
+        margin-bottom: 0.5rem;
         height: 2.2em;
+        line-height: 1.35;
+    }
+
+    .priceLine {
+        gap: 0.25rem;
     }
 
     .price {
-        font-size: 1.15rem;
+        font-size: 1.05rem;
     }
 
     .weight {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
     }
 
     .ratingBadge {
-        padding: 2px 8px;
+        padding: 2px 6px;
+    }
+
+    .ratingValue {
+        font-size: 0.75rem;
+    }
+
+    .ratingCount {
+        font-size: 0.7rem;
+    }
+
+    .cartBtn,
+    .buyNowBtn {
+        height: 34px;
+        font-size: 0.76rem;
+        padding: 6px 4px;
+        letter-spacing: -0.2px;
+    }
+
+    .btnRow {
+        gap: 0.35rem;
     }
 
     .addBtn {
-        padding: 10px !important;
-        font-size: 0.85rem !important;
+        padding: 8px !important;
+        font-size: 0.8rem !important;
     }
 }

@@ -213,7 +213,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 </div>
             </Link>
 
-            <div style={{ padding: '0 1.25rem 1.25rem', marginTop: 'auto', width: '100%' }}>
+            <div className={styles.cardActions}>
                 {hasMultipleVariants && (
                     <div 
                         style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.75rem' }} 

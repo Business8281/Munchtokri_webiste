@@ -147,38 +147,34 @@ export default function ShopClient({ allProducts }: ShopClientProps) {
                     <div className={styles.gridHeader}>
                         <h1>Shop</h1>
                         <div className={styles.gridControls}>
-                            <input
-                                type="text"
-                                placeholder="Search snacks..."
-                                value={searchQuery}
-                                onChange={(e) => handleSearchChange(e.target.value)}
-                                style={{
-                                    padding: '0.5rem 1rem',
-                                    borderRadius: '50px',
-                                    border: '1px solid var(--gray-medium)',
-                                    fontSize: '0.85rem',
-                                    outline: 'none',
-                                    backgroundColor: 'white',
-                                    minWidth: '150px'
-                                }}
-                            />
-                            <span className={styles.resultsCount}>
-                                {filteredProducts.length} {filteredProducts.length === 1 ? 'Result' : 'Results'}
-                            </span>
-                            <div className={styles.sortWrapper}>
-                                <select
-                                    className={styles.headerSortSelect}
-                                    value={sortBy}
-                                    onChange={(e) => {
-                                        const opt = e.target.value as SortOption;
-                                        setSortBy(opt);
-                                        tracker.track('sort_change', { sortBy: opt });
-                                    }}
-                                >
-                                    {(Object.keys(SORT_LABELS) as SortOption[]).map(key => (
-                                        <option key={key} value={key}>{SORT_LABELS[key]}</option>
-                                    ))}
-                                </select>
+                            <div className={styles.searchWrapper}>
+                                <input
+                                    type="text"
+                                    placeholder="Search snacks..."
+                                    value={searchQuery}
+                                    onChange={(e) => handleSearchChange(e.target.value)}
+                                    className={styles.searchInput}
+                                />
+                            </div>
+                            <div className={styles.filterSubRow}>
+                                <span className={styles.resultsCount}>
+                                    {filteredProducts.length} {filteredProducts.length === 1 ? 'Result' : 'Results'}
+                                </span>
+                                <div className={styles.sortWrapper}>
+                                    <select
+                                        className={styles.headerSortSelect}
+                                        value={sortBy}
+                                        onChange={(e) => {
+                                            const opt = e.target.value as SortOption;
+                                            setSortBy(opt);
+                                            tracker.track('sort_change', { sortBy: opt });
+                                        }}
+                                    >
+                                        {(Object.keys(SORT_LABELS) as SortOption[]).map(key => (
+                                            <option key={key} value={key}>{SORT_LABELS[key]}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
