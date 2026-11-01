@@ -120,6 +120,233 @@ function detectTrafficSource(): TrafficSourceInfo {
     return sourceInfo;
 }
 
+// Bridge function to forward events to Google Tag Manager (dataLayer) and Meta Pixel (fbq)
+function dispatchExternalPixels(eventName: AnalyticsEventName, properties: Record<string, any>) {
+    if (typeof window === 'undefined') return;
+
+    try {
+        // Ensure dataLayer is available for GTM & GA4
+        (window as any).dataLayer = (window as any).dataLayer || [];
+        const dataLayer = (window as any).dataLayer;
+        const fbq = (window as any).fbq;
+
+        const path = window.location.pathname;
+        const title = document.title;
+
+        switch (eventName) {
+            case 'page_view': {
+                dataLayer.push({
+                    event: 'page_view',
+                    page_path: path,
+                    page_title: title,
+                    page_location: window.location.href,
+                });
+
+                if (typeof fbq === 'function') {
+                    fbq('track', 'PageView');
+                }
+                break;
+            }
+
+            case 'product_view': {
+                const price = Number(properties.price) || 0;
+                const productId = String(properties.productId || '');
+                const productName = String(properties.productName || 'Snack Item');
+                const category = String(properties.category || 'Snacks');
+
+                dataLayer.push({
+                    event: 'view_item',
+                    ecommerce: {
+                        currency: 'INR',
+                        value: price,
+                        items: [{
+                            item_id: productId,
+                            item_name: productName,
+                            price: price,
+                            item_category: category,
+                            quantity: 1
+                        }]
+                    },
+                    eventModel: {
+                        currency: 'INR',
+                        value: price,
+                        items: [{
+                            item_id: productId,
+                            item_name: productName,
+                            price: price,
+                            item_category: category,
+                            quantity: 1
+                        }]
+                    }
+                });
+
+                if (typeof fbq === 'function') {
+                    fbq('track', 'ViewContent', {
+                        content_name: productName,
+                        content_category: category,
+                        content_ids: [productId],
+                        content_type: 'product',
+                        value: price,
+                        currency: 'INR'
+                    });
+                }
+                break;
+            }
+
+            case 'add_to_cart': {
+                const price = Number(properties.price) || 0;
+                const quantity = Number(properties.quantity) || 1;
+                const itemTotal = Number(properties.itemTotal) || (price * quantity);
+                const productId = String(properties.productId || '');
+                const productName = String(properties.productName || 'Snack Item');
+                const category = String(properties.category || 'Snacks');
+
+                dataLayer.push({
+                    event: 'add_to_cart',
+                    ecommerce: {
+                        currency: 'INR',
+                        value: itemTotal,
+                        items: [{
+                            item_id: productId,
+                            item_name: productName,
+                            price: price,
+                            item_category: category,
+                            quantity: quantity
+                        }]
+                    },
+                    eventModel: {
+                        currency: 'INR',
+                        value: itemTotal,
+                        items: [{
+                            item_id: productId,
+                            item_name: productName,
+                            price: price,
+                            item_category: category,
+                            quantity: quantity
+                        }]
+                    }
+                });
+
+                if (typeof fbq === 'function') {
+                    fbq('track', 'AddToCart', {
+                        content_name: productName,
+                        content_category: category,
+                        content_ids: [productId],
+                        content_type: 'product',
+                        value: itemTotal,
+                        currency: 'INR'
+                    });
+                }
+                break;
+            }
+
+            case 'checkout_start': {
+                const amount = Number(properties.cartTotal) || Number(properties.amount) || 0;
+
+                dataLayer.push({
+                    event: 'begin_checkout',
+                    ecommerce: {
+                        currency: 'INR',
+                        value: amount,
+                        items: properties.items || []
+                    },
+                    eventModel: {
+                        currency: 'INR',
+                        value: amount,
+                        items: properties.items || []
+                    }
+                });
+
+                if (typeof fbq === 'function') {
+                    fbq('track', 'InitiateCheckout', {
+                        value: amount,
+                        currency: 'INR',
+                        num_items: Number(properties.itemCount) || 1
+                    });
+                }
+                break;
+            }
+
+            case 'payment_initiate': {
+                const amount = Number(properties.amount) || 0;
+
+                dataLayer.push({
+                    event: 'add_payment_info',
+                    ecommerce: {
+                        currency: 'INR',
+                        value: amount,
+                        payment_type: properties.paymentMethod || 'Online'
+                    },
+                    eventModel: {
+                        currency: 'INR',
+                        value: amount
+                    }
+                });
+
+                if (typeof fbq === 'function') {
+                    fbq('track', 'AddPaymentInfo', {
+                        value: amount,
+                        currency: 'INR'
+                    });
+                }
+                break;
+            }
+
+            case 'purchase_complete': {
+                const amount = Number(properties.amount) || 0;
+                const orderNumber = String(properties.orderNumber || properties.orderId || '');
+
+                dataLayer.push({
+                    event: 'purchase',
+                    ecommerce: {
+                        transaction_id: orderNumber,
+                        value: amount,
+                        currency: 'INR',
+                        items: properties.items || []
+                    },
+                    eventModel: {
+                        transaction_id: orderNumber,
+                        value: amount,
+                        currency: 'INR',
+                        items: properties.items || []
+                    }
+                });
+
+                if (typeof fbq === 'function') {
+                    fbq('track', 'Purchase', {
+                        value: amount,
+                        currency: 'INR',
+                        content_type: 'product',
+                        order_id: orderNumber
+                    });
+                }
+                break;
+            }
+
+            case 'search': {
+                const query = String(properties.query || '');
+
+                dataLayer.push({
+                    event: 'search',
+                    search_term: query
+                });
+
+                if (typeof fbq === 'function') {
+                    fbq('track', 'Search', {
+                        search_string: query
+                    });
+                }
+                break;
+            }
+
+            default:
+                break;
+        }
+    } catch (e) {
+        // Silently swallow external tracking errors
+    }
+}
+
 class AnalyticsTracker {
     private visitorId: string = '';
     private sessionId: string = '';
@@ -280,6 +507,9 @@ class AnalyticsTracker {
             };
 
             this.eventQueue.push(event);
+
+            // Forward to Google Tag Manager (dataLayer) and Meta Pixel (fbq)
+            dispatchExternalPixels(eventName, properties);
 
             // Immediate flush for key conversion milestones
             const criticalEvents: AnalyticsEventName[] = [

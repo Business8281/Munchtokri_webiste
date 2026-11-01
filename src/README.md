@@ -24,7 +24,7 @@ src/
 │   ├── admin/            <-- Protected Merchant Admin Dashboard
 │   │   ├── (authenticated)/ <-- Orders, Inventory, Combos, Coupons, Customers, Settings
 │   │   └── login/        <-- Admin authentication page
-│   ├── layout.tsx        <-- Global Layout with Meta Pixel (1739636207115257) & Fonts
+│   ├── layout.tsx        <-- Global Layout with GTM (GTM-PVDJMVB8) & Meta Pixel (2102464673632965) & Fonts
 │   ├── globals.css       <-- CSS Variables, design tokens, and base styling
 │   ├── sitemap.ts        <-- Dynamic search engine sitemap generator
 │   └── robots.ts         <-- Search engine crawler rules

@@ -3,16 +3,7 @@ import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { formatOrderDate } from '@/lib/analytics/engine';
 
-// SMTP Configuration (GoDaddy)
-const transporter = nodemailer.createTransport({
-    host: 'smtpout.secureserver.net',
-    port: 465,
-    secure: true,
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-    },
-});
+// Note: Email delivery is handled exclusively by Firebase Cloud Functions in the backend.
 
 const LOGO_URL = 'https://munch-tokri.web.app/logo.png';
 
@@ -350,20 +341,9 @@ export async function sendOrderConfirmationEmail(order: any, pdfBuffer: ArrayBuf
         </div>
     `;
 
-    const mailOptions = {
-        from: `"Munch Tokri" <${process.env.EMAIL_USER}>`,
-        to: order.customerEmail,
-        subject: `Order Confirmation - ${order.orderNumber}`,
-        html: htmlContent,
-        attachments: [
-            {
-                filename: `Receipt-${order.orderNumber}.pdf`,
-                content: Buffer.from(pdfBuffer),
-            },
-        ],
-    };
-
-    return transporter.sendMail(mailOptions);
+    // In production, emails are dispatched by Firebase Cloud Functions.
+    console.info(`[Email Utils] Order confirmation prepared for: ${order.customerEmail}`);
+    return { success: true, message: "Handled by Cloud Functions" };
 }
 
 export async function sendStatusUpdateEmail(order: any) {
@@ -455,30 +435,7 @@ export async function sendStatusUpdateEmail(order: any) {
             message = `<p>Your order status has been updated to ${status}.</p>`;
     }
 
-    const mailOptions = {
-        from: `"Munch Tokri" <${process.env.EMAIL_USER}>`,
-        to: order.customerEmail,
-        subject: subject,
-        html: `
-            <div style="font-family: Arial, Helvetica, sans-serif; background: #f4f4f4; padding: 30px;">
-                <div style="max-width: 700px; margin: auto; background: white; padding: 30px; border-radius: 8px;">
-                    <div style="text-align: center;">
-                        <img src="${logoUrl}" width="200">
-                    </div>
-                    <h2 style="color: ${color}; text-align: center;">${title}</h2>
-                    <div style="color: #333; line-height: 1.6;">
-                        <p>Hello <strong>${order.customerName}</strong>,</p>
-                        ${message}
-                        ${extraContent}
-                    </div>
-                    <p style="font-size: 13px; color: #777; margin-top: 30px; text-align: center;">
-                        Authentic Karnataka Munchies Since 1961<br>
-                        Hurigalu Angadi
-                    </p>
-                </div>
-            </div>
-        `,
-    };
-
-    return transporter.sendMail(mailOptions);
+    // In production, status update emails are dispatched by Firebase Cloud Functions.
+    console.info(`[Email Utils] Order update prepared for: ${order.customerEmail}`);
+    return { success: true, message: "Handled by Cloud Functions" };
 }

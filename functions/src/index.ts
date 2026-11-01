@@ -1657,7 +1657,7 @@ export const createSubscription = onRequest(
   { secrets: [razorpayKeySecret] },
   async (req, res) => {
     try {
-      const { userId } = req.body;
+      const { userId, planId } = req.body;
 
       if (!userId) {
         res.status(400).send({ error: "User ID is required" });
@@ -1670,7 +1670,7 @@ export const createSubscription = onRequest(
       });
 
       const subscription = await razorpay.subscriptions.create({
-        plan_id: "plan_SXKsy3aNPYhIEh",
+        plan_id: planId || "plan_SXKsy3aNPYhIEh",
         customer_notify: 1,
         total_count: 1, // 1 year membership
         notes: {
