@@ -2,10 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import Button from '@/components/ui/Button/Button';
 import styles from './ProductCard.module.css';
-import { useCart } from '@/contexts/CartContext';
+import { useCart, CartItem } from '@/contexts/CartContext';
+import { useMagicCheckout } from '@/hooks/useMagicCheckout';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ShoppingBag, Zap } from 'lucide-react';
+import { ShoppingBag, Zap, Loader2 } from 'lucide-react';
 import StarRating from '@/components/ui/StarRating/StarRating';
 import { tracker } from '@/lib/analytics/tracker';
 import { sortComboVariantsLowToHigh } from '@/lib/constants';
@@ -45,6 +46,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     href, badgeText, products, maxStock, variants
 }) => {
     const { addToCart, setIsCartOpen } = useCart();
+    const { openMagicCheckout, isLoading: isMagicLoading } = useMagicCheckout();
     const router = useRouter();
     const sortedVariants = useMemo(() => sortComboVariantsLowToHigh(variants), [variants]);
     const [selectedVariantIdx, setSelectedVariantIdx] = useState<number>(0);
@@ -101,10 +103,39 @@ const ProductCard: React.FC<ProductCardProps> = ({
     const handleBuyNow = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        if (cardStatus === 'Out of Stock') return;
-        handleAddToCart(e, false);
+        if (cardStatus === 'Out of Stock' || isMagicLoading) return;
+
+        const isCombo = category === 'Combos';
+        const finalBaseWeight = isCombo ? 1 : (baseWeight || (stock ? Number(String(stock).replace(/[^0-9]/g, '')) || 100 : 100));
+        const finalId = activeVariant ? `${id}_${activeVariant.id || activeVariant.title.replace(/\s+/g, '_')}` : id;
+        const finalName = variantLabelWithGrams && !name.includes(variantLabelWithGrams) ? `${name} (${variantLabelWithGrams})` : name;
+        const targetQty = isCombo ? 1 : finalBaseWeight;
+        const targetTotal = cardPrice;
+
+        const buyItem: CartItem = {
+            id: finalId,
+            productId: id,
+            name: finalName,
+            price: cardPrice,
+            originalPrice: cardOriginalPrice,
+            category: category || (isCombo ? 'Combos' : 'General'),
+            imageURL: displayImage || '/Logo Munch Tokri.png',
+            maxStock: maxStock || (isCombo ? 50 : 5000), 
+            baseWeight: finalBaseWeight,
+            products: products,
+            variant: variantLabelWithGrams,
+            grams: activeVariantGrams,
+            variantGrams: activeVariantGrams,
+            quantity: targetQty,
+        };
+
+        addToCart(buyItem, targetQty, false);
         setIsCartOpen(false);
-        router.push('/checkout');
+
+        openMagicCheckout({
+            items: [buyItem],
+            total: targetTotal,
+        });
     };
 
     return (
@@ -239,9 +270,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
                             className={styles.buyNowBtn}
                             onClick={handleBuyNow}
                             title="Buy Now"
+                            disabled={isMagicLoading}
                         >
-                            <Zap size={14} />
-                            <span>Buy Now</span>
+                            {isMagicLoading ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Zap size={14} />}
+                            <span>{isMagicLoading ? 'Opening...' : 'Buy Now'}</span>
                         </button>
                     </div>
                 )}

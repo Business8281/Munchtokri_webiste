@@ -25,6 +25,7 @@ import {
     Zap
 } from 'lucide-react';
 import RazorpayMagicCheckoutWidget from '@/components/ui/RazorpayMagicCheckoutWidget/RazorpayMagicCheckoutWidget';
+import { useMagicCheckout } from '@/hooks/useMagicCheckout';
 import styles from './comboDetails.module.css';
 
 interface ComboDetailsClientProps {
@@ -34,6 +35,7 @@ interface ComboDetailsClientProps {
 export default function ComboDetailsClient({ initialCombo }: ComboDetailsClientProps) {
     const router = useRouter();
     const { addToCart, setIsCartOpen } = useCart();
+    const { openMagicCheckout, isLoading: isMagicCheckoutLoading } = useMagicCheckout();
     const [combo, setCombo] = useState<Combo>(initialCombo);
     const [selectedImage, setSelectedImage] = useState<string>(
         initialCombo.imageURL || initialCombo.products?.[0]?.imageURL || '/Logo Munch Tokri.png'
@@ -152,9 +154,36 @@ export default function ComboDetailsClient({ initialCombo }: ComboDetailsClientP
 
     const handleBuyNow = () => {
         if (currentStatus === 'Out of Stock') return;
-        handleAddToCart(false);
         setIsCartOpen(false);
-        router.push('/checkout?magic=1');
+        const cartItemId = selectedVariant 
+            ? `${combo.id}_${selectedVariant.id || selectedVariant.title.replace(/\s+/g, '_')}`
+            : combo.id;
+        const itemName = `${combo.name} (${variantLabel})`;
+        const comboImg = combo.imageURL || 
+            (combo.imageURLs && combo.imageURLs.length > 0 ? combo.imageURLs[0] : '') || 
+            (products && products.length > 0 ? (products[0]?.imageURL || (products[0] as any)?.image) : '') || 
+            '/Logo Munch Tokri.png';
+
+        const item = {
+            id: cartItemId,
+            productId: combo.id,
+            name: itemName,
+            price: currentPrice,
+            originalPrice: currentOriginalPrice,
+            baseWeight: 1,
+            category: 'Combos',
+            imageURL: comboImg,
+            maxStock: 50,
+            products: combo.products,
+            variant: variantLabel,
+            grams: currentGrams,
+            variantGrams: currentGrams,
+            quantity: quantity,
+        };
+        openMagicCheckout({
+            items: [item],
+            total: currentPrice * quantity,
+        });
     };
 
     return (
@@ -514,6 +543,7 @@ export default function ComboDetailsClient({ initialCombo }: ComboDetailsClientP
                             <RazorpayMagicCheckoutWidget
                                 onBuyNow={handleBuyNow}
                                 disabled={currentStatus === 'Out of Stock'}
+                                loading={isMagicCheckoutLoading}
                                 buttonText="Buy Now"
                                 showProtectionBar={true}
                             />

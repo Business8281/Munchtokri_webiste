@@ -14,6 +14,7 @@ import ReviewList from '@/components/ui/Review/ReviewList';
 import { tracker } from '@/lib/analytics/tracker';
 import { ShoppingBag, Zap } from 'lucide-react';
 import RazorpayMagicCheckoutWidget from '@/components/ui/RazorpayMagicCheckoutWidget/RazorpayMagicCheckoutWidget';
+import { useMagicCheckout } from '@/hooks/useMagicCheckout';
 import styles from './product.module.css';
 
 interface Product {
@@ -42,6 +43,7 @@ export default function ProductDetailsClient({ productId }: { productId: string 
     const [error, setError] = useState<string | null>(null);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const { addToCart, setIsCartOpen } = useCart();
+    const { openMagicCheckout, isLoading: isMagicCheckoutLoading } = useMagicCheckout();
 
     const {
         reviews,
@@ -128,10 +130,24 @@ export default function ProductDetailsClient({ productId }: { productId: string 
     };
 
     const handleBuyNow = () => {
-        if (product.inventoryStatus !== 'In Stock') return;
-        handleAddToCart(false);
+        if (!product || product.inventoryStatus !== 'In Stock') return;
         setIsCartOpen(false);
-        router.push('/checkout?magic=1');
+        const item = {
+            id: product.id,
+            productId: product.id,
+            name: product.name,
+            price: product.price,
+            category: product.category,
+            quantity: quantity,
+            imageURL: product.imageURL || '/Logo Munch Tokri.png',
+            maxStock: product.currentStock ? product.currentStock * 1000 : 5000,
+            baseWeight: product.baseWeight || 100,
+        };
+        const itemTotal = Math.round(((product.price / (product.baseWeight || 100)) * quantity) * 100) / 100;
+        openMagicCheckout({
+            items: [item],
+            total: itemTotal,
+        });
     };
 
     const allImages = product.imageURLs && product.imageURLs.length > 0
@@ -255,6 +271,7 @@ export default function ProductDetailsClient({ productId }: { productId: string 
                             <RazorpayMagicCheckoutWidget
                                 onBuyNow={handleBuyNow}
                                 disabled={product.inventoryStatus !== 'In Stock'}
+                                loading={isMagicCheckoutLoading}
                                 buttonText="Buy Now"
                                 showProtectionBar={true}
                             />

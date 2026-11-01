@@ -6,8 +6,9 @@ import Image from 'next/image';
 import Button from '@/components/ui/Button/Button';
 import { useProducts } from '@/hooks/useFirestore';
 import { useCart } from '@/contexts/CartContext';
+import { useMagicCheckout } from '@/hooks/useMagicCheckout';
 import { MIN_CUSTOM_MIX_GRAMS } from '@/lib/constants';
-import { ShoppingBag, Zap } from 'lucide-react';
+import { ShoppingBag, Zap, Loader2 } from 'lucide-react';
 import styles from './build-mixture.module.css';
 
 function roundToTwo(n: number): number {
@@ -26,6 +27,7 @@ function BuildMixtureClient() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { addToCart, setIsCartOpen, cartItems, updateCartItem } = useCart();
+    const { openMagicCheckout, isLoading: isMagicLoading } = useMagicCheckout();
     const { products: ingredients, loading: productsLoading } = useProducts();
     
     const [selections, setSelections] = useState<Record<string, number>>({});
@@ -121,26 +123,45 @@ function BuildMixtureClient() {
                 products: mixProducts,
                 quantity: totalGrams
             });
-        } else {
-            addToCart(
-                {
-                    id: `custom-mix-${Date.now()}`,
-                    name: mixName,
-                    price: total,
-                    baseWeight: totalGrams,
-                    category: 'Custom Mix',
-                    imageURL: 'https://munch-tokri.web.app/logo.png',
-                    maxStock: 10000,
-                    products: mixProducts,
-                },
-                totalGrams,
-                !goToCheckout
-            );
+            const newMixItem = {
+                id: `custom-mix-${Date.now()}`,
+                name: mixName,
+                price: total,
+                baseWeight: totalGrams,
+                category: 'Custom Mix',
+                imageURL: 'https://munch-tokri.web.app/logo.png',
+                maxStock: 10000,
+                products: mixProducts,
+                quantity: totalGrams,
+            };
+            addToCart(newMixItem, totalGrams, !goToCheckout);
+
+            if (goToCheckout) {
+                setIsCartOpen(false);
+                openMagicCheckout({
+                    items: [newMixItem],
+                    total: total,
+                });
+            }
         }
 
-        if (goToCheckout) {
+        if (editId && goToCheckout) {
             setIsCartOpen(false);
-            router.push('/checkout');
+            const editedMixItem = {
+                id: editId,
+                name: mixName,
+                price: total,
+                baseWeight: totalGrams,
+                category: 'Custom Mix',
+                imageURL: 'https://munch-tokri.web.app/logo.png',
+                maxStock: 10000,
+                products: mixProducts,
+                quantity: totalGrams,
+            };
+            openMagicCheckout({
+                items: [editedMixItem],
+                total: total,
+            });
         }
     };
 
@@ -283,10 +304,10 @@ function BuildMixtureClient() {
                                 type="button"
                                 className={styles.buyNowBtn}
                                 onClick={handleBuyNow}
-                                disabled={totalGrams < MIN_CUSTOM_MIX_GRAMS}
+                                disabled={totalGrams < MIN_CUSTOM_MIX_GRAMS || isMagicLoading}
                             >
-                                <Zap size={18} />
-                                {editId ? 'Save & Checkout' : 'Buy Now'}
+                                {isMagicLoading ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <Zap size={18} />}
+                                {isMagicLoading ? 'Opening...' : (editId ? 'Save & Checkout' : 'Buy Now')}
                             </button>
                         </div>
                     </aside>

@@ -21,31 +21,52 @@
     "rewrites": [
       {
         "source": "/api/membership-status",
-        "function": "membershipStatus"
+        "function": {
+          "functionId": "membershipStatus",
+          "region": "asia-south1"
+        }
       },
       {
         "source": "/api/create-subscription",
-        "function": "createSubscription"
+        "function": {
+          "functionId": "createSubscription",
+          "region": "asia-south1"
+        }
       },
       {
         "source": "/api/cancel-subscription",
-        "function": "cancelSubscription"
+        "function": {
+          "functionId": "cancelSubscription",
+          "region": "asia-south1"
+        }
       },
       {
         "source": "/api/razorpay-webhook",
-        "function": "razorpayWebhook"
+        "function": {
+          "functionId": "razorpayWebhook",
+          "region": "asia-south1"
+        }
       },
       {
         "source": "/api/magic-checkout/promotions",
-        "function": "magicCheckoutPromotions"
+        "function": {
+          "functionId": "magicCheckoutPromotions",
+          "region": "asia-south1"
+        }
       },
       {
         "source": "/api/magic-checkout/apply-promotion",
-        "function": "magicCheckoutApplyPromotion"
+        "function": {
+          "functionId": "magicCheckoutApplyPromotion",
+          "region": "asia-south1"
+        }
       },
       {
         "source": "/api/magic-checkout/shipping-info",
-        "function": "magicCheckoutShippingInfo"
+        "function": {
+          "functionId": "magicCheckoutShippingInfo",
+          "region": "asia-south1"
+        }
       },
       {
         "source": "**",

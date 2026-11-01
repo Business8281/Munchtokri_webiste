@@ -8,12 +8,14 @@ import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import Button from '../Button/Button';
 import RazorpayMagicCheckoutWidget from '../RazorpayMagicCheckoutWidget/RazorpayMagicCheckoutWidget';
+import { useMagicCheckout } from '@/hooks/useMagicCheckout';
 import { tracker } from '@/lib/analytics/tracker';
 import styles from './cart.module.css';
 
 export default function CartDrawer() {
     const router = useRouter();
     const { isCartOpen, setIsCartOpen, cartItems, updateQuantity, removeFromCart, cartTotal, cartCount } = useCart();
+    const { openMagicCheckout, isLoading: isMagicCheckoutLoading } = useMagicCheckout();
     const drawerRef = useRef<HTMLDivElement>(null);
 
     const isCustomMixItem = (item: typeof cartItems[0]) => {
@@ -205,14 +207,10 @@ export default function CartDrawer() {
                         <RazorpayMagicCheckoutWidget
                             onBuyNow={() => {
                                 setIsCartOpen(false);
-                                tracker.track('checkout_start', {
-                                    source: 'cart_drawer',
-                                    cartTotal,
-                                    itemCount: cartItems.length
-                                });
-                                router.push('/checkout?magic=1');
+                                openMagicCheckout();
                             }}
-                            buttonText="Buy Now"
+                            buttonText="Checkout"
+                            loading={isMagicCheckoutLoading}
                             showProtectionBar={false}
                         />
                     </div>

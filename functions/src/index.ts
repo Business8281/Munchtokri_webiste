@@ -25,6 +25,11 @@ import Razorpay from "razorpay";
 import * as crypto from "crypto";
 
 admin.initializeApp();
+try {
+  admin.firestore().settings({ ignoreUndefinedProperties: true });
+} catch (e) {
+  // settings already applied
+}
 
 // Start writing functions
 // Force redeploy timestamp: 2026-03-11T18:15:00
@@ -66,7 +71,7 @@ const velocityWarehouseId = defineString("VELOCITY_WAREHOUSE_ID", {
 
 // Razorpay parameters
 const razorpayKeyId = defineString("RAZORPAY_KEY_ID");
-const razorpayKeySecret = defineSecret("RAZORPAY_KEY_SECRET");
+const razorpayKeySecret = defineString("RAZORPAY_KEY_SECRET");
 
 // Webhook security secret (set this in Firebase functions config)
 const shiprocketWebhookSecret = defineString("SHIPROCKET_WEBHOOK_SECRET", {
@@ -152,6 +157,14 @@ interface OrderData {
   codPrice?: number;
   trackingId?: string;
   courierName?: string;
+  paymentDetails?: {
+    razorpayOrderId?: string;
+    razorpayPaymentId?: string;
+    razorpaySignature?: string;
+    method?: string;
+    isMagicCheckout?: boolean;
+    [key: string]: any;
+  };
 }
 
 /**
@@ -171,22 +184,41 @@ export const onOrderCreated = onDocumentCreated(
     }
 
     const order = snapshot.data() as OrderData;
-    if (!order.customerEmail) {
-      console.log("No customer email found for order:", event.params.orderId);
+    if (!order) {
+      console.log("No order data found:", event.params.orderId);
       return;
     }
 
     try {
       console.log(`Generating PDF for order: ${order.orderNumber}`);
-      const pdfBuffer = await generateOrderPDF(order);
+      let pdfBuffer: Buffer | null = null;
+      try {
+        pdfBuffer = await generateOrderPDF(order);
+      } catch (pdfErr) {
+        console.error("PDF generation failed, proceeding with fallback notification:", pdfErr);
+      }
 
-      console.log(`Sending email to: ${order.customerEmail}`);
-      await sendOrderConfirmationEmail(order, pdfBuffer);
+      if (pdfBuffer) {
+        // Send customer email if valid email present and not fallback placeholder
+        if (order.customerEmail && !order.customerEmail.includes("customer@munchtokri.com") && order.customerEmail.includes("@")) {
+          try {
+            console.log(`Sending confirmation email to: ${order.customerEmail}`);
+            await sendOrderConfirmationEmail(order, pdfBuffer);
+          } catch (custEmailErr) {
+            console.error("Failed to send customer confirmation email:", custEmailErr);
+          }
+        }
 
-      console.log(`Sending admin notification to: ${emailUser.value()}`);
-      await sendAdminNotificationEmail(order, pdfBuffer);
+        // Always send admin notification email
+        try {
+          console.log(`Sending admin notification to: ${emailUser.value()}`);
+          await sendAdminNotificationEmail(order, pdfBuffer);
+        } catch (adminEmailErr) {
+          console.error("Failed to send admin notification email:", adminEmailErr);
+        }
+      }
 
-      console.log("Order confirmation emails sent successfully");
+      console.log("Order confirmation notifications processed");
     } catch (error) {
       console.error("Error processing order confirmation:", error);
     }
@@ -1291,7 +1323,10 @@ export const createVelocityOrder = onCall(
 
     try {
       const orderAmount = parseFloat(order.amount.replace("₹", "").replace(",", ""));
-      const isCod = order.method?.payment === "COD";
+      const isCod =
+        order.method?.payment === "COD" ||
+        order.method?.payment === "Cash on Delivery (COD)" ||
+        String(order.paymentDetails?.method || "").toLowerCase().includes("cod");
 
       const velocityOrder = {
         order_id: order.orderNumber || orderId,
@@ -1383,7 +1418,7 @@ export const createVelocityOrder = onCall(
  * Creates a Razorpay order.
  */
 export const createPayOrder = onCall(
-  { region: "asia-south1", invoker: "public", secrets: [razorpayKeySecret] },
+  { region: "asia-south1", invoker: "public" },
   async (request) => {
     // Log auth status for debugging but don't block - invoker is public
     console.log("createPayOrder auth status:",
@@ -1422,16 +1457,70 @@ export const createPayOrder = onCall(
         key_secret: keySecret,
       });
 
-      const options = {
-        amount: Math.round(Number(amount) * 100), // convert to paise
+      const itemsList = Array.isArray(request.data.items) ? request.data.items : [];
+      const lineItems = itemsList.map((item: any, idx: number) => {
+        const isCombo = item.category === "Combos" || item.baseWeight === 1;
+        const baseWeight = Number(item.baseWeight) || 100;
+        const qty = Number(item.quantity) || 1;
+        const price = Number(item.price) || 0;
+
+        let itemTotalPaise = 0;
+        let displayQty = 1;
+        let itemDesc = "Authentic Karnataka snack";
+
+        if (isCombo) {
+          displayQty = Math.max(1, Math.round(qty));
+          const unitPricePaise = Math.round(price * 100);
+          itemTotalPaise = unitPricePaise * displayQty;
+          itemDesc = `${displayQty} unit(s)`;
+        } else {
+          // Regular snack where quantity is in grams
+          const totalRupees = (price / baseWeight) * qty;
+          itemTotalPaise = Math.round(totalRupees * 100);
+          displayQty = 1;
+          itemDesc = item.variant ? `${item.variant} (${qty}g)` : `${qty}g pack`;
+        }
+
+        const unitPriceInPaise = displayQty > 0 ? Math.round(itemTotalPaise / displayQty) : itemTotalPaise;
+        const itemName = String(item.name || `Snack Item ${idx + 1}`).trim();
+
+        return {
+          sku: String(item.productId || item.id || `item_${idx + 1}`),
+          name: itemName,
+          description: itemDesc,
+          amount: unitPriceInPaise,
+          offer_price: unitPriceInPaise,
+          quantity: displayQty,
+          type: "physical",
+          currency: "INR",
+          image_url: item.imageURL || "https://munchtokri.com/logo.png",
+        };
+      });
+
+      const lineItemsTotal = lineItems.reduce((acc: number, it: any) => acc + (it.amount * it.quantity), 0);
+      const passedAmountInPaise = Math.round(Number(amount) * 100);
+      const finalAmountInPaise = lineItemsTotal > 0 ? lineItemsTotal : (passedAmountInPaise > 0 ? passedAmountInPaise : 100);
+
+      const options: any = {
+        amount: finalAmountInPaise,
         currency: "INR",
-        receipt: `receipt_${Date.now()}`,
+        receipt: `rcpt_${Date.now().toString().slice(-8)}`,
+        notes: {
+          userId: String(request.data.userId || request.auth?.uid || ""),
+          source: "magic_checkout",
+          one_click_checkout: "true",
+          ...(request.data.notes || {}),
+        },
       };
 
-      console.log("Creating Razorpay order with options:",
-        JSON.stringify(options));
+      if (lineItems.length > 0) {
+        options.line_items_total = lineItemsTotal;
+        options.line_items = lineItems;
+      }
+
+      console.log("Creating Razorpay Magic order with options:", JSON.stringify(options));
       const order = await razorpay.orders.create(options);
-      console.log("Razorpay order created successfully:", order.id);
+      console.log("Razorpay Magic order created successfully:", order.id);
       return { success: true, order };
     } catch (err: unknown) {
       const error = err as {
@@ -1454,7 +1543,7 @@ export const createPayOrder = onCall(
  * Verification of Razorpay Payment Signature (Optional helper for security)
  */
 export const verifyPayment = onCall(
-  { region: "asia-south1", invoker: "public", secrets: [razorpayKeySecret] },
+  { region: "asia-south1", invoker: "public" },
   async (request) => {
     const {
       razorpay_order_id: razorpayOrderId,
@@ -1473,6 +1562,392 @@ export const verifyPayment = onCall(
     } else {
       throw new HttpsError("invalid-argument", "Invalid signature");
     }
+  });
+
+/**
+ * Core order persistence handler for Razorpay Magic Checkout orders.
+ * Shared between client callable verifyAndSaveMagicOrder and server webhook.
+ */
+async function saveMagicOrderToFirestore(params: {
+  razorpayOrderId: string;
+  razorpayPaymentId?: string;
+  razorpaySignature?: string;
+  clientItems?: any[];
+  userId?: string;
+  clientShippingDetails?: any;
+  verifySignature?: boolean;
+}): Promise<{ success: boolean; orderNumber: string; orderId: string; isExisting?: boolean }> {
+  const {
+    razorpayOrderId,
+    razorpayPaymentId,
+    razorpaySignature,
+    clientItems,
+    userId,
+    clientShippingDetails,
+    verifySignature = false
+  } = params;
+
+  try {
+    const keyId = razorpayKeyId.value() || process.env.RAZORPAY_KEY_ID || "";
+    const keySecret = razorpayKeySecret.value() || process.env.RAZORPAY_KEY_SECRET || "";
+
+    if (!keyId || !keySecret) {
+      console.error("Razorpay API credentials missing in Cloud Functions environment");
+      throw new HttpsError("failed-precondition", "Payment gateway credentials missing");
+    }
+
+    const razorpay = new Razorpay({
+      key_id: keyId,
+      key_secret: keySecret,
+    });
+
+    // 1. Fetch Razorpay Order from server
+    let rzpOrder: any = null;
+    try {
+      rzpOrder = await razorpay.orders.fetch(razorpayOrderId);
+      console.log(`Fetched Razorpay Order ${rzpOrder.id}, status: ${rzpOrder.status}`);
+    } catch (e: any) {
+      console.warn("Failed to fetch Razorpay order details from API:", e.message);
+      rzpOrder = { id: razorpayOrderId, amount: 0, status: "created" };
+    }
+
+    // 2. Fetch payments for this order
+    let payments: any = { items: [] };
+    try {
+      payments = await razorpay.orders.fetchPayments(razorpayOrderId);
+    } catch (e: any) {
+      console.warn("Could not fetch payments for order:", e.message);
+    }
+
+    const primaryPayment = payments.items && payments.items.length > 0 ? payments.items[0] : null;
+    const paymentMethod = primaryPayment?.method || (razorpayPaymentId?.includes("cod") ? "cod" : "online");
+    const isCod = paymentMethod.toLowerCase() === "cod" || paymentMethod.toLowerCase().includes("cash");
+
+    // 3. Verify signature for prepaid payments if requested
+    if (verifySignature && !isCod && razorpayPaymentId && razorpaySignature) {
+      try {
+        const body = `${razorpayOrderId}|${razorpayPaymentId}`;
+        const expectedSignature = crypto
+          .createHmac("sha256", keySecret)
+          .update(body)
+          .digest("hex");
+
+        if (expectedSignature !== razorpaySignature) {
+          console.warn(`Payment signature mismatch! Received: ${razorpaySignature}, expected: ${expectedSignature}`);
+          // If Razorpay server itself confirms order is paid or payment is captured, accept it
+          const isPaidOnServer = rzpOrder.status === "paid" || primaryPayment?.status === "captured";
+          if (!isPaidOnServer) {
+            throw new HttpsError("permission-denied", "Invalid payment signature");
+          }
+        }
+      } catch (sigErr: any) {
+        if (sigErr instanceof HttpsError) throw sigErr;
+        console.warn("Signature check fallback warning:", sigErr.message);
+      }
+    }
+
+    // 4. Retrieve cached Magic Checkout session from Firestore if available
+    const db = admin.firestore();
+    let sessionData: any = null;
+    try {
+      const sessionDoc = await db.collection("magic_checkout_sessions").doc(razorpayOrderId).get();
+      if (sessionDoc.exists) {
+        sessionData = sessionDoc.data();
+        console.log("Retrieved cached Magic Checkout session:", sessionData);
+      }
+    } catch (sessionErr: any) {
+      console.warn("Could not retrieve magic checkout session:", sessionErr.message);
+    }
+
+    // 5. Extract customer details & shipping address from all available sources
+    const rzpCustomer = rzpOrder.customer_details || {};
+    const rzpShipping = rzpOrder.shipping_address || rzpCustomer.shipping_address || {};
+
+    const rawCustName =
+      (clientShippingDetails?.fullName && clientShippingDetails.fullName !== "Customer" ? clientShippingDetails.fullName : "") ||
+      (sessionData?.customerName && sessionData.customerName !== "Customer" ? sessionData.customerName : "") ||
+      (rzpCustomer.name && rzpCustomer.name !== "Customer" ? rzpCustomer.name : "") ||
+      (rzpShipping.name && rzpShipping.name !== "Customer" ? rzpShipping.name : "") ||
+      (primaryPayment?.notes?.name && primaryPayment.notes.name !== "Customer" ? primaryPayment.notes.name : "") ||
+      (primaryPayment?.card?.name && primaryPayment.card.name !== "Customer" ? primaryPayment.card.name : "") ||
+      "";
+    const customerName = rawCustName.trim() || "Customer";
+
+    const rawMobile =
+      (clientShippingDetails?.mobile && clientShippingDetails.mobile !== "N/A" ? clientShippingDetails.mobile : "") ||
+      (sessionData?.mobile && sessionData.mobile !== "N/A" ? sessionData.mobile : "") ||
+      primaryPayment?.contact ||
+      rzpCustomer.contact ||
+      rzpShipping.contact ||
+      "";
+    const mobile = rawMobile.trim() || "N/A";
+
+    const rawEmail =
+      (clientShippingDetails?.email && clientShippingDetails.email !== "customer@munchtokri.com" ? clientShippingDetails.email : "") ||
+      (sessionData?.email && sessionData.email !== "customer@munchtokri.com" ? sessionData.email : "") ||
+      primaryPayment?.email ||
+      rzpCustomer.email ||
+      rzpShipping.email ||
+      "";
+    const customerEmail = rawEmail.trim() || "customer@munchtokri.com";
+
+    const rzpShippingLines = [rzpShipping.line1, rzpShipping.line2, rzpShipping.landmark].filter(Boolean).join(", ");
+    const rawAddress =
+      (clientShippingDetails?.address && clientShippingDetails.address !== "Standard Delivery Address" && clientShippingDetails.address !== "Razorpay Magic Checkout Delivery" ? clientShippingDetails.address : "") ||
+      (sessionData?.addressLine && sessionData.addressLine !== "Standard Delivery Address" && sessionData.addressLine !== "Razorpay Magic Checkout Delivery" ? sessionData.addressLine : "") ||
+      rzpShippingLines ||
+      rzpShipping.address ||
+      "";
+    const addressLine = rawAddress.trim() || "Standard Delivery Address";
+
+    const rawCity =
+      clientShippingDetails?.city ||
+      sessionData?.city ||
+      rzpShipping.city ||
+      rzpCustomer.city ||
+      "";
+    const city = rawCity.trim() || "Bengaluru";
+
+    const rawState =
+      clientShippingDetails?.state ||
+      sessionData?.state ||
+      rzpShipping.state ||
+      rzpCustomer.state ||
+      "";
+    const state = rawState.trim() || "Karnataka";
+
+    const rawPincode =
+      clientShippingDetails?.pincode ||
+      sessionData?.pincode ||
+      rzpShipping.zipcode ||
+      rzpShipping.pincode ||
+      rzpShipping.postal_code ||
+      rzpCustomer.pincode ||
+      "";
+    const pincode = rawPincode.trim() || "560001";
+
+    console.log("Resolved Magic Checkout customer information:", {
+      razorpayOrderId,
+      customerName,
+      mobile,
+      customerEmail,
+      addressLine,
+      city,
+      state,
+      pincode
+    });
+
+    // 6. Idempotency Check: check if order is already saved
+    const existingOrders = await db.collection("orders")
+      .where("paymentDetails.razorpayOrderId", "==", razorpayOrderId)
+      .limit(1)
+      .get();
+
+    if (!existingOrders.empty) {
+      const existingDoc = existingOrders.docs[0];
+      const existingData = existingDoc.data();
+      console.log("Order already exists for this Razorpay Order ID:", existingData.orderNumber);
+
+      // Backfill placeholder details if we now have real details
+      const updateData: any = {};
+      if (customerName !== "Customer" && existingData.customerName === "Customer") {
+        updateData.customerName = customerName;
+      }
+      if (customerEmail !== "customer@munchtokri.com" && existingData.customerEmail === "customer@munchtokri.com") {
+        updateData.customerEmail = customerEmail;
+      }
+      if (mobile !== "N/A" && (!existingData.shippingDetails?.mobile || existingData.shippingDetails?.mobile === "N/A")) {
+        updateData["shippingDetails.mobile"] = mobile;
+      }
+      if (addressLine !== "Standard Delivery Address" &&
+          (!existingData.shippingDetails?.address ||
+           existingData.shippingDetails?.address === "Standard Delivery Address" ||
+           existingData.shippingDetails?.address === "Razorpay Magic Checkout Delivery")) {
+        updateData["shippingDetails.address"] = addressLine;
+      }
+      if (city && city !== "Bengaluru" && existingData.shippingDetails?.city === "Bengaluru") {
+        updateData["shippingDetails.city"] = city;
+      }
+      if (state && state !== "Karnataka" && existingData.shippingDetails?.state === "Karnataka") {
+        updateData["shippingDetails.state"] = state;
+      }
+      if (pincode && pincode !== "560001" && existingData.shippingDetails?.pincode === "560001") {
+        updateData["shippingDetails.pincode"] = pincode;
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await existingDoc.ref.update(updateData);
+        console.log("Updated placeholder details on existing order:", existingData.orderNumber, updateData);
+      }
+
+      return {
+        success: true,
+        orderId: existingDoc.id,
+        orderNumber: existingData.orderNumber,
+        isExisting: true
+      };
+    }
+
+    // Resolve items
+    let finalItems: any[] = [];
+    if (Array.isArray(clientItems) && clientItems.length > 0) {
+      finalItems = clientItems.map((it: any) => ({
+        name: String(it.name || "Snack Item"),
+        price: Number(it.price) || 0,
+        quantity: Number(it.quantity) || 1,
+        baseWeight: Number(it.baseWeight) || (it.category === "Combos" ? 1 : 100),
+        category: String(it.category || "Snacks"),
+        productId: String(it.productId || it.id || ""),
+        imageURL: String(it.imageURL || "/Logo Munch Tokri.png"),
+        variant: it.variant ? String(it.variant) : null,
+        grams: it.grams ? Number(it.grams) : null,
+      }));
+    } else if (Array.isArray(rzpOrder.line_items) && rzpOrder.line_items.length > 0) {
+      finalItems = rzpOrder.line_items.map((li: any) => ({
+        name: String(li.name || "Snack Item"),
+        price: li.amount ? Number(li.amount) / 100 : 0,
+        quantity: Number(li.quantity) || 1,
+        baseWeight: 1,
+        category: "Snacks",
+        productId: String(li.sku || "snack_order"),
+        imageURL: String(li.image_url || "/Logo Munch Tokri.png"),
+        variant: null,
+        grams: null,
+      }));
+    } else {
+      const fallbackAmount = Number(rzpOrder.amount) > 0 ? Number(rzpOrder.amount) / 100 : 0;
+      finalItems = [{
+        name: "Munch Tokri Order",
+        price: fallbackAmount,
+        quantity: 1,
+        baseWeight: 1,
+        category: "Snacks",
+        productId: "snack_order",
+        imageURL: "/Logo Munch Tokri.png",
+        variant: null,
+        grams: null,
+      }];
+    }
+
+    // 6. Generate order number atomically via metadata/counters
+    const counterRef = db.collection("metadata").doc("counters");
+    let newOrderNumber = "";
+    let newOrderId = "";
+
+    await db.runTransaction(async (transaction) => {
+      const counterDoc = await transaction.get(counterRef);
+      const currentCount = counterDoc.exists ?
+        (counterDoc.data()?.orderCount as number) || 10000 :
+        10000;
+      const nextCount = currentCount + 1;
+      newOrderNumber = `MT-${nextCount}`;
+
+      transaction.set(counterRef, { orderCount: nextCount }, { merge: true });
+
+      const newOrderRef = db.collection("orders").doc();
+      newOrderId = newOrderRef.id;
+
+      const orderTotalRupees = Number(rzpOrder.amount) > 0 ?
+        Number(rzpOrder.amount) / 100 :
+        finalItems.reduce((sum: number, it: any) => sum + (it.price / (it.baseWeight || 100)) * it.quantity, 0);
+      const orderTotalStr = `₹${orderTotalRupees.toFixed(2)}`;
+
+      const orderData: any = {
+        orderNumber: newOrderNumber,
+        customerName: customerName || "Customer",
+        customerEmail: customerEmail || "customer@munchtokri.com",
+        status: "Processing",
+        amount: orderTotalStr,
+        date: admin.firestore.FieldValue.serverTimestamp(),
+        items: finalItems,
+        shippingDetails: {
+          mobile: mobile || "N/A",
+          address: addressLine,
+          city: city,
+          state: state,
+          pincode: pincode,
+        },
+        method: {
+          payment: isCod ? "Cash on Delivery (COD)" : "Razorpay Magic Checkout",
+          delivery: "Standard Delivery",
+        },
+        paymentDetails: {
+          razorpayOrderId: razorpayOrderId || "",
+          razorpayPaymentId: razorpayPaymentId || primaryPayment?.id || "",
+          razorpaySignature: razorpaySignature || "",
+          method: paymentMethod || "online",
+          isMagicCheckout: true,
+        },
+      };
+
+      const resolvedUserId = userId || rzpOrder.notes?.userId;
+      if (resolvedUserId) {
+        orderData.userId = resolvedUserId;
+      }
+
+      transaction.set(newOrderRef, orderData);
+
+      // Update sales count on items
+      for (const item of finalItems) {
+        const isCombo = item.category === "Combos";
+        const isProduct = !isCombo && item.category !== "Custom Mix";
+        if (isProduct || isCombo) {
+          const colName = isCombo ? "combos" : "products";
+          let targetId = item.productId || item.id || "";
+          if (targetId.includes("_v_")) targetId = targetId.split("_v_")[0];
+          else if (isCombo && targetId.includes("_")) targetId = targetId.split("_")[0];
+          if (targetId && targetId !== "snack_order") {
+            const itemRef = db.collection(colName).doc(targetId);
+            transaction.set(itemRef, {
+              salesCount: admin.firestore.FieldValue.increment(item.quantity || 1)
+            }, { merge: true });
+          }
+        }
+      }
+    });
+
+    console.log(`Successfully created Magic Checkout Order: ${newOrderNumber} (${newOrderId})`);
+    return {
+      success: true,
+      orderNumber: newOrderNumber,
+      orderId: newOrderId,
+    };
+  } catch (err: any) {
+    console.error("Critical error in saveMagicOrderToFirestore:", err);
+    if (err instanceof HttpsError) throw err;
+    throw new HttpsError("internal", err.message || "Failed to process and save order");
+  }
+}
+
+/**
+ * Verifies Razorpay Magic Checkout payment and saves the order to Firestore.
+ * Supports both prepaid and Cash on Delivery (COD) placed inside Magic Checkout.
+ */
+export const verifyAndSaveMagicOrder = onCall(
+  { region: "asia-south1", invoker: "public" },
+  async (request) => {
+    const {
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature,
+      items: clientItems,
+      userId,
+      shippingDetails: clientShippingDetails
+    } = request.data;
+
+    if (!razorpayOrderId) {
+      throw new HttpsError("invalid-argument", "razorpayOrderId is required");
+    }
+
+    return await saveMagicOrderToFirestore({
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature,
+      clientItems,
+      userId: userId || request.auth?.uid,
+      clientShippingDetails,
+      verifySignature: true
+    });
   });
 
 /**
@@ -1654,7 +2129,6 @@ export const membershipStatus = onRequest(async (req, res) => {
  * Creates a Razorpay subscription for a user.
  */
 export const createSubscription = onRequest(
-  { secrets: [razorpayKeySecret] },
   async (req, res) => {
     try {
       const { userId, planId } = req.body;
@@ -1693,7 +2167,6 @@ export const createSubscription = onRequest(
  * Cancels a Razorpay subscription for a user.
  */
 export const cancelSubscription = onRequest(
-  { secrets: [razorpayKeySecret] },
   async (req, res) => {
     try {
       const { subscriptionId } = req.body;
@@ -1797,6 +2270,19 @@ export const razorpayWebhook = onRequest(
           const expiryDate = new Date();
           expiryDate.setFullYear(expiryDate.getFullYear() + 1);
           await activateUserMembership(userId, expiryDate, sub.id);
+        }
+      } else if (event.event === "order.paid" || event.event === "payment.captured") {
+        const rzpOrderId =
+          event.payload?.order?.entity?.id ||
+          event.payload?.payment?.entity?.order_id;
+        const rzpPaymentId = event.payload?.payment?.entity?.id;
+        if (rzpOrderId) {
+          console.log(`Razorpay Webhook: Processing ${event.event} for order ${rzpOrderId}`);
+          await saveMagicOrderToFirestore({
+            razorpayOrderId: rzpOrderId,
+            razorpayPaymentId: rzpPaymentId,
+            verifySignature: false,
+          });
         }
       }
 
@@ -2202,7 +2688,118 @@ export const magicCheckoutShippingInfo = onRequest(
     try {
       const db = admin.firestore();
       const body = req.body || {};
-      const address = body.address || {};
+      const orderId = body.order_id || body.orderId || "";
+      const rawAddress =
+        body.delivery_address ||
+        body.shipping_address ||
+        (Array.isArray(body.addresses) && body.addresses.length > 0 ? body.addresses[0] : null) ||
+        body.address ||
+        {};
+      const rawCustomer = body.customer || {};
+
+      const fName = rawAddress.first_name || rawCustomer.first_name || "";
+      const lName = rawAddress.last_name || rawCustomer.last_name || "";
+      const combinedName = [fName, lName].filter(Boolean).join(" ");
+      const customerName =
+        rawAddress.name ||
+        combinedName ||
+        rawCustomer.name ||
+        "";
+
+      const mobile =
+        rawAddress.contact ||
+        rawAddress.phone ||
+        rawCustomer.contact ||
+        rawCustomer.phone ||
+        "";
+
+      const email =
+        rawCustomer.email ||
+        rawAddress.email ||
+        "";
+
+      const addressLine =
+        [rawAddress.line1, rawAddress.line2, rawAddress.landmark].filter(Boolean).join(", ") ||
+        rawAddress.address ||
+        "";
+
+      const city = rawAddress.city || "";
+      const state = rawAddress.state || rawAddress.state_code || "";
+      const pincode = rawAddress.zipcode || rawAddress.pincode || rawAddress.postal_code || "";
+      const country = (rawAddress.country || "IN").toUpperCase();
+
+      console.log("Magic Checkout Shipping Info received for order:", {
+        orderId,
+        customerName,
+        mobile,
+        email,
+        addressLine,
+        city,
+        state,
+        pincode,
+        country
+      });
+
+      // Persist session if orderId is available
+      if (orderId) {
+        try {
+          await db.collection("magic_checkout_sessions").doc(orderId).set({
+            orderId,
+            customerName: customerName || null,
+            mobile: mobile || null,
+            email: email || null,
+            addressLine: addressLine || null,
+            city: city || null,
+            state: state || null,
+            pincode: pincode || null,
+            country: country || "IN",
+            rawAddress,
+            rawCustomer,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          }, { merge: true });
+
+          // Also check if order was already saved previously with placeholders, and update it
+          const existingOrderSnap = await db.collection("orders")
+            .where("paymentDetails.razorpayOrderId", "==", orderId)
+            .limit(1)
+            .get();
+
+          if (!existingOrderSnap.empty) {
+            const existingDoc = existingOrderSnap.docs[0];
+            const existing = existingDoc.data();
+            const updatePayload: any = {};
+            if (customerName && existing.customerName === "Customer") {
+              updatePayload.customerName = customerName;
+            }
+            if (email && existing.customerEmail === "customer@munchtokri.com") {
+              updatePayload.customerEmail = email;
+            }
+            if (mobile && (!existing.shippingDetails?.mobile || existing.shippingDetails?.mobile === "N/A")) {
+              updatePayload["shippingDetails.mobile"] = mobile;
+            }
+            if (addressLine && (!existing.shippingDetails?.address || existing.shippingDetails?.address === "Standard Delivery Address" || existing.shippingDetails?.address === "Razorpay Magic Checkout Delivery")) {
+              updatePayload["shippingDetails.address"] = addressLine;
+            }
+            if (city && existing.shippingDetails?.city === "Bengaluru" && city !== "Bengaluru") {
+              updatePayload["shippingDetails.city"] = city;
+            }
+            if (state && existing.shippingDetails?.state === "Karnataka" && state !== "Karnataka") {
+              updatePayload["shippingDetails.state"] = state;
+            }
+            if (pincode && existing.shippingDetails?.pincode === "560001" && pincode !== "560001") {
+              updatePayload["shippingDetails.pincode"] = pincode;
+            }
+
+            if (Object.keys(updatePayload).length > 0) {
+              await existingDoc.ref.update(updatePayload);
+              console.log("Updated existing order with Magic Checkout shipping info:", existing.orderNumber);
+            }
+          }
+        } catch (sessionSaveErr) {
+          console.warn("Could not cache magic checkout session or update order:", sessionSaveErr);
+        }
+      }
+
       const lineItems = Array.isArray(body.line_items) ? body.line_items : [];
 
       // Determine cart subtotal in Rupees
@@ -2233,7 +2830,6 @@ export const magicCheckoutShippingInfo = onRequest(
       }
 
       // Check country and pincode serviceability
-      const country = (address.country || "IN").toUpperCase();
       const isDomestic = country === "IN" || country === "INDIA";
 
       if (!isDomestic) {
