@@ -36,8 +36,13 @@ export async function POST(req: NextRequest) {
 
     const mappedAddresses = incomingAddresses.map((addr: any, idx: number) => ({
       id: String(addr.id || addr.address_id || idx),
+      zipcode: addr.zipcode || addr.pincode || addr.postal_code || '560001',
+      state_code: addr.state_code || addr.state || 'KA',
+      country: (addr.country || 'IN').toUpperCase(),
       serviceable: true,
+      cod: true,
       cod_serviceable: true,
+      cod_available: true,
       shipping_fee: shippingFeeInPaise,
       cod_fee: 0,
       estimated_delivery_days: 3,
@@ -50,6 +55,9 @@ export async function POST(req: NextRequest) {
             : `Flat Delivery (3-5 business days) - Free on orders above ₹${freeShippingThreshold}`,
           serviceable: true,
           shipping_fee: shippingFeeInPaise,
+          cod: true,
+          cod_serviceable: true,
+          cod_available: true,
           cod_fee: 0,
         },
       ],
@@ -64,6 +72,9 @@ export async function POST(req: NextRequest) {
           : `Flat Delivery (3-5 business days) - Free on orders above ₹${freeShippingThreshold}`,
         serviceable: true,
         shipping_fee: shippingFeeInPaise,
+        cod: true,
+        cod_serviceable: true,
+        cod_available: true,
         cod_fee: 0,
       },
     ];
@@ -72,12 +83,16 @@ export async function POST(req: NextRequest) {
       {
         success: true,
         serviceable: true,
+        cod: true,
         cod_serviceable: true,
-        data: {
-          addresses: mappedAddresses,
-        },
+        cod_available: true,
+        cod_fee: 0,
         addresses: mappedAddresses,
         shipping_methods: shippingMethods,
+        data: {
+          addresses: mappedAddresses,
+          shipping_methods: shippingMethods,
+        },
       },
       {
         headers: {
@@ -88,33 +103,19 @@ export async function POST(req: NextRequest) {
       }
     );
   } catch (err) {
-    return NextResponse.json(
+    const fallbackAddresses = [
       {
-        success: true,
+        id: '0',
+        zipcode: '560001',
+        state_code: 'KA',
+        country: 'IN',
         serviceable: true,
+        cod: true,
         cod_serviceable: true,
-        data: {
-          addresses: [
-            {
-              id: '0',
-              serviceable: true,
-              cod_serviceable: true,
-              shipping_fee: 5000,
-              cod_fee: 0,
-              estimated_delivery_days: 3,
-            },
-          ],
-        },
-        addresses: [
-          {
-            id: '0',
-            serviceable: true,
-            cod_serviceable: true,
-            shipping_fee: 5000,
-            cod_fee: 0,
-            estimated_delivery_days: 3,
-          },
-        ],
+        cod_available: true,
+        shipping_fee: 5000,
+        cod_fee: 0,
+        estimated_delivery_days: 3,
         shipping_methods: [
           {
             id: 'standard_shipping',
@@ -122,9 +123,39 @@ export async function POST(req: NextRequest) {
             description: 'Delivery within 3-5 business days',
             serviceable: true,
             shipping_fee: 5000,
+            cod: true,
+            cod_serviceable: true,
+            cod_available: true,
             cod_fee: 0,
           },
         ],
+      },
+    ];
+    return NextResponse.json(
+      {
+        success: true,
+        serviceable: true,
+        cod: true,
+        cod_serviceable: true,
+        cod_available: true,
+        cod_fee: 0,
+        addresses: fallbackAddresses,
+        shipping_methods: [
+          {
+            id: 'standard_shipping',
+            name: 'Standard Delivery',
+            description: 'Delivery within 3-5 business days',
+            serviceable: true,
+            shipping_fee: 5000,
+            cod: true,
+            cod_serviceable: true,
+            cod_available: true,
+            cod_fee: 0,
+          },
+        ],
+        data: {
+          addresses: fallbackAddresses,
+        },
       },
       {
         headers: {
