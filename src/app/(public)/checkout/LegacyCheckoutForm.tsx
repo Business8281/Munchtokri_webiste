@@ -1148,9 +1148,10 @@ export default function LegacyCheckoutForm() {
                                 </div>
                             )}
 
-                            <div className={styles.actions}>
-                                <button className={styles.submitBtn} onClick={handleNextStep}>
-                                    <span>{isCod ? 'Continue to Review (Pay 20% Advance)' : 'Continue to Review & Payment'}</span><span>→</span>
+                            <div style={{ marginTop: '1.5rem' }}>
+                                <button type="button" className={styles.submitBtn} onClick={handleNextStep}>
+                                    <span>{isCod ? 'Continue to Review (Pay 20% Advance)' : 'Continue to Review & Payment'}</span>
+                                    <span>→</span>
                                 </button>
                             </div>
                         </section>
@@ -1311,16 +1312,17 @@ export default function LegacyCheckoutForm() {
                             )}
 
                             {/* Action Buttons */}
-                            <div className={styles.actions} style={{ display: 'flex', gap: '1rem' }}>
+                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', width: '100%', alignItems: 'stretch' }}>
                                 <button
-                                    className={styles.submitBtn}
-                                    style={{ backgroundColor: 'transparent', color: 'var(--primary)', border: '2px solid var(--primary)', flex: '0 0 auto', width: 'auto', padding: '0.75rem 1.5rem' }}
+                                    type="button"
+                                    className={styles.backBtn}
                                     onClick={() => setStep(1)}
                                     disabled={isSubmitting}
                                 >
                                     ← Back
                                 </button>
                                 <button
+                                    type="button"
                                     className={styles.submitBtn}
                                     onClick={() => handlePlaceOrder(false)}
                                     disabled={isSubmitting}
@@ -1329,9 +1331,9 @@ export default function LegacyCheckoutForm() {
                                     {isSubmitting ? (
                                         <><Loader2 className="animate-spin" size={18} /> Processing...</>
                                     ) : isCod ? (
-                                        <><ShieldCheck size={18} /> Pay ₹{advanceAmount.toFixed(2)} (20% Advance) & Confirm COD</>
+                                        <><ShieldCheck size={20} /> Pay ₹{advanceAmount.toFixed(2)} (20% Advance) & Confirm COD</>
                                     ) : (
-                                        <><ShieldCheck size={18} /> Pay ₹{orderTotal.toFixed(2)} & Place Order</>
+                                        <><ShieldCheck size={20} /> Pay ₹{orderTotal.toFixed(2)} & Place Order</>
                                     )}
                                 </button>
                             </div>
