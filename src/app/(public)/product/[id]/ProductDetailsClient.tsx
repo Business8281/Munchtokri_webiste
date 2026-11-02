@@ -61,6 +61,11 @@ export default function ProductDetailsClient({ productId }: { productId: string 
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
                     const data = docSnap.data();
+                    if (data.isActive === false || data.status === 'Inactive') {
+                        setError('This product is currently unavailable.');
+                        setLoading(false);
+                        return;
+                    }
                     setProduct({
                         id: docSnap.id,
                         name: data.name || '',

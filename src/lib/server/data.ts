@@ -11,7 +11,7 @@ export async function getProducts(): Promise<Product[]> {
         const reviewsSnapshot = await getDocs(collection(db, "reviews"));
         const allReviews = reviewsSnapshot.docs.map(d => d.data());
 
-        return snapshot.docs.map(docSnap => {
+        const allItems = snapshot.docs.map(docSnap => {
             const data = docSnap.data();
             
             // Robust review matching
@@ -32,6 +32,7 @@ export async function getProducts(): Promise<Product[]> {
             return {
                 id: docSnap.id,
                 ...data,
+                isActive: data.isActive !== false && data.status !== 'Inactive',
                 avgRating: numReviews > 0 ? avgRating : (data.avgRating || 0),
                 numReviews: numReviews,
                 createdAt: data.createdAt ? {
@@ -40,6 +41,8 @@ export async function getProducts(): Promise<Product[]> {
                 } : null,
             } as unknown as Product;
         });
+
+        return allItems.filter(p => p.isActive !== false && p.status !== 'Inactive');
     } catch (error) {
         console.error("Error fetching products on server:", error);
         return [];
@@ -48,14 +51,14 @@ export async function getProducts(): Promise<Product[]> {
 
 export async function getFeaturedProducts(count: number): Promise<Product[]> {
     try {
-        const q = query(collection(db, "products"), orderBy("name"), limit(count));
+        const q = query(collection(db, "products"), orderBy("name"));
         const snapshot = await getDocs(q);
 
         // Fetch all reviews for aggregation
         const reviewsSnapshot = await getDocs(collection(db, "reviews"));
         const allReviews = reviewsSnapshot.docs.map(d => d.data());
 
-        return snapshot.docs.map(docSnap => {
+        const items = snapshot.docs.map(docSnap => {
             const data = docSnap.data();
             
             // Robust review matching
@@ -76,6 +79,7 @@ export async function getFeaturedProducts(count: number): Promise<Product[]> {
             return {
                 id: docSnap.id,
                 ...data,
+                isActive: data.isActive !== false && data.status !== 'Inactive',
                 avgRating: numReviews > 0 ? avgRating : (data.avgRating || 0),
                 numReviews: numReviews,
                 createdAt: data.createdAt ? {
@@ -83,7 +87,9 @@ export async function getFeaturedProducts(count: number): Promise<Product[]> {
                     nanoseconds: data.createdAt.nanoseconds
                 } : null,
             } as unknown as Product;
-        });
+        }).filter(p => p.isActive !== false && p.status !== 'Inactive');
+
+        return items.slice(0, count);
     } catch (error) {
         console.error("Error fetching featured products on server:", error);
         return [];

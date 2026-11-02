@@ -304,6 +304,44 @@
     color: #fa5252;
 }
 
+.activeBadge,
+.inactiveBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.activeBadge {
+    background: #e6fcf5;
+    color: #099268;
+    border-color: #b2f2bb;
+}
+
+.activeBadge:hover {
+    background: #c3fae8;
+    border-color: #63e6be;
+}
+
+.inactiveBadge {
+    background: #f1f3f5;
+    color: #868e96;
+    border-color: #dee2e6;
+}
+
+.inactiveBadge:hover {
+    background: #e9ecef;
+    border-color: #ced4da;
+    color: #495057;
+}
+
 .actionsCell {
     display: flex;
     gap: 0.75rem;

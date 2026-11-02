@@ -51,7 +51,7 @@ function dateToMillis(date: Timestamp | null | undefined | string | number): num
 
 // ── useProducts ────────────────────────────────────────────────────────────
 
-export const useProducts = () => {
+export const useProducts = (onlyActive: boolean = false) => {
     const { db } = useFirebase();
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
@@ -99,7 +99,10 @@ export const useProducts = () => {
                     isBestSeller: topSellingIds.includes(product.id)
                 };
             });
-            setProducts(aggregated);
+            const finalProducts = onlyActive
+                ? aggregated.filter(p => p.isActive !== false && p.status !== 'Inactive')
+                : aggregated;
+            setProducts(finalProducts);
             setLoading(false);
         };
 
@@ -116,6 +119,7 @@ export const useProducts = () => {
                     stock: typeof stockVal === 'string' ? stockVal : String(stockVal),
                     baseWeight: parseBaseWeight(stockVal),
                     stockStr: typeof stockVal === 'string' ? stockVal : `${stockVal}g`,
+                    isActive: data.isActive !== false && data.status !== 'Inactive',
                 } as Product;
             });
             updateState();

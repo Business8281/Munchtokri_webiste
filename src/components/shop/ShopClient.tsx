@@ -21,8 +21,10 @@ interface ShopClientProps {
 }
 
 export default function ShopClient({ allProducts }: ShopClientProps) {
-    const { products: liveProducts, loading } = useProducts();
-    const [products, setProducts] = useState<Product[]>(allProducts);
+    const { products: liveProducts, loading } = useProducts(true);
+    const [products, setProducts] = useState<Product[]>(() =>
+        allProducts.filter(p => p.isActive !== false && p.status !== 'Inactive')
+    );
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [priceRange, setPriceRange] = useState(1000);

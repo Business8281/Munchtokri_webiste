@@ -9,6 +9,7 @@ export interface Product {
     stock: string;
     discount: number;
     status: string;
+    isActive?: boolean;
     image?: string;
     imageURL?: string;
     imageURLs?: string[];

@@ -26,7 +26,7 @@ function BuildMixtureClient() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { addToCart, setIsCartOpen, cartItems, updateCartItem } = useCart();
-    const { products: ingredients, loading: productsLoading } = useProducts();
+    const { products: ingredients, loading: productsLoading } = useProducts(true);
     
     const [selections, setSelections] = useState<Record<string, number>>({});
     const [editId, setEditId] = useState<string | null>(null);

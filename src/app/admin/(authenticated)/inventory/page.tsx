@@ -20,7 +20,9 @@ import {
     Tag,
     Edit2,
     Trash2,
-    Loader2
+    Loader2,
+    Eye,
+    EyeOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast, Toaster } from 'react-hot-toast';
@@ -49,6 +51,7 @@ export default function InventoryPage() {
         price: 0,
         originalPrice: 0,
         status: 'In Stock',
+        isActive: true,
         discount: 0,
         description: '',
         overview: '',
@@ -175,6 +178,7 @@ export default function InventoryPage() {
             price: 0,
             originalPrice: 0,
             status: 'In Stock',
+            isActive: true,
             discount: 0,
             description: '',
             overview: '',
@@ -201,6 +205,7 @@ export default function InventoryPage() {
             price: product.price || 0,
             originalPrice: product.originalPrice || 0,
             status: product.status || 'In Stock',
+            isActive: product.isActive !== false && product.status !== 'Inactive',
             discount: product.discount || 0,
             description: product.description || '',
             overview: product.overview || '',
@@ -225,6 +230,18 @@ export default function InventoryPage() {
             await updateProduct(id, { status: nextStatus });
         } catch (error) {
             console.error("Error updating product status:", error);
+        }
+    };
+
+    const toggleActive = async (id: string, currentActive: boolean) => {
+        const nextActive = !currentActive;
+        const toastId = toast.loading(nextActive ? "Making product live..." : "Hiding product from website...");
+        try {
+            await updateProduct(id, { isActive: nextActive });
+            toast.success(nextActive ? "Product is now LIVE on website!" : "Product is now HIDDEN from website!", { id: toastId });
+        } catch (error: any) {
+            console.error("Error toggling product active status:", error);
+            toast.error(error.message || "Failed to update product visibility.", { id: toastId });
         }
     };
 
@@ -295,13 +312,14 @@ export default function InventoryPage() {
                             <th>Category</th>
                             <th>Grams</th>
                             <th>Price</th>
-                            <th>Status</th>
+                            <th>Stock</th>
+                            <th>Live Website</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {loading ? (
-                            <tr><td colSpan={6} style={{ textAlign: 'center', padding: '3rem' }}>
+                            <tr><td colSpan={7} style={{ textAlign: 'center', padding: '3rem' }}>
                                 <Loader2 size={32} className="animate-spin" style={{ margin: '0 auto', color: 'var(--primary)' }} />
                             </td></tr>
                         ) : products.length > 0 ? (
@@ -345,9 +363,30 @@ export default function InventoryPage() {
                                                     }`}
                                                 onClick={() => toggleStatus(row.id, row.status)}
                                                 style={{ cursor: 'pointer' }}
+                                                title="Click to toggle stock status"
                                             >
                                                 {row.status}
                                             </span>
+                                        </td>
+                                        <td>
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleActive(row.id, row.isActive !== false)}
+                                                className={row.isActive !== false ? styles.activeBadge : styles.inactiveBadge}
+                                                title={row.isActive !== false ? "Click to deactivate and hide from live website" : "Click to activate and show on live website"}
+                                            >
+                                                {row.isActive !== false ? (
+                                                    <>
+                                                        <Eye size={14} />
+                                                        <span>Active (Live)</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <EyeOff size={14} />
+                                                        <span>Inactive (Hidden)</span>
+                                                    </>
+                                                )}
+                                            </button>
                                         </td>
                                         <td className={styles.actionsCell}>
                                             <button
@@ -364,14 +403,14 @@ export default function InventoryPage() {
                                                 {editingId === row.id ? <X size={16} /> : <Edit2 size={16} />}
                                                 {editingId === row.id ? 'Close' : 'Edit'}
                                             </button>
-                                            {user && user.role.toLowerCase() !== 'employee' && (
-                                                <button
-                                                    className={styles.deleteActionBtn}
-                                                    onClick={() => handleDeleteProduct(row.id, row.name)}
-                                                >
-                                                    <Trash2 size={16} /> Remove
-                                                </button>
-                                            )}
+                                            <button
+                                                type="button"
+                                                className={styles.deleteActionBtn}
+                                                onClick={() => handleDeleteProduct(row.id, row.name)}
+                                                title="Delete product permanently"
+                                            >
+                                                <Trash2 size={16} /> Delete
+                                            </button>
                                         </td>
                                     </tr>
 
@@ -379,7 +418,7 @@ export default function InventoryPage() {
                                     <AnimatePresence>
                                         {editingId === row.id && (
                                             <tr>
-                                                <td colSpan={6} style={{ padding: 0, border: 'none' }}>
+                                                <td colSpan={7} style={{ padding: 0, border: 'none' }}>
                                                     <motion.div
                                                         initial={{ height: 0, opacity: 0 }}
                                                         animate={{ height: 'auto', opacity: 1 }}
@@ -580,6 +619,22 @@ export default function InventoryPage() {
                         </div>
                     </div>
 
+                    <div className={styles.labelSection}>
+                        <label className={styles.sectionLabel}>Live Website Visibility</label>
+                        <div className={styles.checkboxRow}>
+                            <label className={styles.checkboxLabel} style={{ fontWeight: 600 }}>
+                                <input
+                                    type="checkbox"
+                                    checked={newProduct.isActive !== false}
+                                    onChange={(e) => setNewProduct({ ...newProduct, isActive: e.target.checked })}
+                                />
+                                <span style={{ color: newProduct.isActive !== false ? '#099268' : '#fa5252' }}>
+                                    {newProduct.isActive !== false ? '🟢 Active (Visible on Live Website)' : '⚪ Inactive (Hidden from Live Website)'}
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
                     <div className={styles.inputGroup}>
                         <label>Short Description</label>
                         <input
@@ -611,7 +666,7 @@ export default function InventoryPage() {
                     </div>
 
                     <div className={styles.submitActions}>
-                        {editingId && user && user.role.toLowerCase() !== 'employee' && (
+                        {editingId && (
                             <button
                                 type="button"
                                 className={styles.deleteFormBtn}
@@ -619,7 +674,7 @@ export default function InventoryPage() {
                                 disabled={saving}
                             >
                                 <Trash2 size={18} style={{ marginRight: '8px' }} />
-                                Remove Product
+                                Delete Product
                             </button>
                         )}
                         <button type="button" className={styles.cancelBtn} onClick={() => {

@@ -41,8 +41,10 @@ interface HomeClientProps {
 }
 
 export default function HomeClient({ bestSellers }: HomeClientProps) {
-    const { products: liveProducts, loading } = useProducts();
-    const [products, setProducts] = useState<Product[]>(bestSellers);
+    const { products: liveProducts, loading } = useProducts(true);
+    const [products, setProducts] = useState<Product[]>(() =>
+        bestSellers.filter(p => p.isActive !== false && p.status !== 'Inactive')
+    );
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
 
