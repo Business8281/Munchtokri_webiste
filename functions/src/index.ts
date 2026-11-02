@@ -2924,7 +2924,14 @@ export const magicCheckoutShippingInfo = onRequest(
         return;
       }
 
-      const isFreeShipping = subtotalInRupees >= freeShippingThreshold;
+      const isCodAdvance = lineItems.some(
+        (it: any) =>
+          it.sku === "cod_advance_20" ||
+          it.id === "cod_advance_20" ||
+          String(it.name || "").toLowerCase().includes("advance") ||
+          String(it.name || "").toLowerCase().includes("cod")
+      );
+      const isFreeShipping = isCodAdvance || subtotalInRupees >= freeShippingThreshold;
       const shippingFeeInRupees = isFreeShipping ? 0 : shippingRate;
       const shippingFeeInPaise = shippingFeeInRupees * 100;
 

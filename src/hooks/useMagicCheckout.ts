@@ -117,6 +117,24 @@ export function useMagicCheckout() {
                 itemCount: formattedItems.length,
             });
 
+            // For COD, pass ONLY the 20% advance payment item so backend Razorpay order
+            // calculates line items and total amount strictly as the 20% advance
+            const itemsForPayOrder = isCodRequested
+                ? [
+                      {
+                          id: 'cod_advance_20',
+                          productId: 'cod_advance_20',
+                          name: '20% Advance Payment for COD Order',
+                          price: advanceAmount,
+                          quantity: 1,
+                          baseWeight: 1,
+                          category: 'Combos',
+                          variant: `Balance ₹${codBalance.toFixed(2)} on Delivery`,
+                          imageURL: 'https://munchtokri.com/logo.png',
+                      },
+                  ]
+                : formattedItems;
+
             // 3. Create Razorpay Order from backend with mandatory line_items and line_items_total
             const createPayOrder = httpsCallable(functions, 'createPayOrder');
             const res = (await createPayOrder({
@@ -125,7 +143,7 @@ export function useMagicCheckout() {
                 totalOrderAmount: calculatedTotal,
                 codBalance: codBalance,
                 advancePaid: advanceAmount,
-                items: formattedItems,
+                items: itemsForPayOrder,
                 userId: currentUserId,
                 notes: {
                     source: 'magic_checkout',

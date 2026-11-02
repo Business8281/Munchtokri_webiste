@@ -142,7 +142,7 @@ function CheckoutContent() {
                         <div className={styles.card}>
                             <RazorpayMagicCheckoutWidget
                                 onBuyNow={() => openMagicCheckout({ isCod: false })}
-                                buttonText="Pay Full Online with Magic Checkout"
+                                buttonText="Pay Online (Full Amount)"
                                 loading={isLoading}
                                 showProtectionBar={true}
                             />
@@ -174,7 +174,7 @@ function CheckoutContent() {
                                     }}
                                 >
                                     <Truck size={18} />
-                                    Cash on Delivery (Pay 20% Advance via Magic Checkout)
+                                    Cash on Delivery (20% Advance Payment)
                                 </button>
                             </div>
 

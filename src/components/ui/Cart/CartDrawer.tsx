@@ -209,7 +209,7 @@ export default function CartDrawer() {
                                 setIsCartOpen(false);
                                 openMagicCheckout();
                             }}
-                            buttonText="Pay Now with Magic Checkout"
+                            buttonText="Pay Online (Full Amount)"
                             loading={isMagicCheckoutLoading}
                             showProtectionBar={false}
                         />
@@ -241,7 +241,7 @@ export default function CartDrawer() {
                             }}
                         >
                             <Truck size={18} />
-                            Cash on Delivery (Pay 20% Advance)
+                            Cash on Delivery (20% Advance Payment)
                         </button>
                     </div>
                 )}

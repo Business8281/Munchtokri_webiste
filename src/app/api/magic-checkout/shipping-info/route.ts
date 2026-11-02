@@ -24,9 +24,17 @@ export async function POST(req: NextRequest) {
     }
     const subtotalInRupees = cartTotalInPaise > 0 ? cartTotalInPaise / 100 : 0;
 
+    const isCodAdvance = lineItems.some(
+      (it: any) =>
+        it.sku === 'cod_advance_20' ||
+        it.id === 'cod_advance_20' ||
+        String(it.name || '').toLowerCase().includes('advance') ||
+        String(it.name || '').toLowerCase().includes('cod')
+    );
+
     const freeShippingThreshold = 350;
     const shippingRate = 50;
-    const isFreeShipping = subtotalInRupees >= freeShippingThreshold;
+    const isFreeShipping = isCodAdvance || subtotalInRupees >= freeShippingThreshold;
     const shippingFeeInRupees = isFreeShipping ? 0 : shippingRate;
     const shippingFeeInPaise = shippingFeeInRupees * 100;
 

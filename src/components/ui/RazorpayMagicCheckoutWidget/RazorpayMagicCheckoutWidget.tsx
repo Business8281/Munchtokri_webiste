@@ -16,7 +16,7 @@ export default function RazorpayMagicCheckoutWidget({
     onBuyNow,
     disabled = false,
     loading = false,
-    buttonText = "Buy Now",
+    buttonText = "Pay Online (Full Amount)",
     showProtectionBar = true,
 }: RazorpayMagicCheckoutWidgetProps) {
     return (
