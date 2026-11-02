@@ -350,15 +350,29 @@ function SuccessContent() {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             {order.items.map((it: any, idx: number) => {
                                 const isCombo = it.category === 'Combos';
-                                const qtyLabel = isCombo
+                                const isCustomMix = it.isCustomMix || it.id?.startsWith('custom-mix');
+                                const qtyLabel = isCustomMix
+                                    ? `1 Custom Pack (${it.quantity || it.baseWeight}g)`
+                                    : isCombo
                                     ? `${it.quantity} ${it.quantity === 1 ? 'pack' : 'packs'}`
                                     : `${it.quantity}g`;
+                                const itemTotal = isCustomMix
+                                    ? Number(it.price || 0)
+                                    : (it.price / (it.baseWeight || 100)) * it.quantity;
+
                                 return (
-                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.88rem', color: '#334155' }}>
-                                        <span>
-                                            • <strong>{it.name}</strong> ({qtyLabel})
-                                        </span>
-                                        <span>₹{((it.price / (it.baseWeight || 100)) * it.quantity).toFixed(2)}</span>
+                                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', fontSize: '0.88rem', color: '#334155', borderBottom: idx < order.items.length - 1 ? '1px dashed #e2e8f0' : 'none', paddingBottom: '0.4rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span>
+                                                • <strong>{it.name}</strong> ({qtyLabel})
+                                            </span>
+                                            <span style={{ fontWeight: 600 }}>₹{itemTotal.toFixed(2)}</span>
+                                        </div>
+                                        {isCustomMix && it.products && it.products.length > 0 && (
+                                            <div style={{ paddingLeft: '1rem', fontSize: '0.78rem', color: '#64748b' }}>
+                                                {it.products.map((p: any) => `${p.name} (${p.weight || p.quantity || 0}g)`).join(', ')}
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}

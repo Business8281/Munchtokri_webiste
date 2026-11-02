@@ -274,6 +274,63 @@
     box-shadow: none;
 }
 
+.codBreakdown {
+    margin: 0.35rem 0 0.1rem 0;
+    padding: 0.65rem 0.85rem;
+    background-color: rgba(255, 255, 255, 0.12);
+    border: 1px dashed rgba(255, 255, 255, 0.4);
+    border-radius: 10px;
+    font-size: 0.8rem;
+    color: #ffffff;
+    text-align: left;
+}
+
+.codBreakdownTitle {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    color: #FFD700;
+}
+
+.codBreakdownRow {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.95);
+    margin-top: 0.15rem;
+}
+
+.codBtn {
+    width: 100%;
+    background: #ffffff;
+    color: #dc2626;
+    border: 2px solid #ffffff;
+    font-weight: 700;
+    padding: 0.8rem 1rem;
+    border-radius: 50px;
+    font-size: 0.92rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.codBtn:hover:not(:disabled) {
+    background: #fff5f5;
+    border-color: #ffd2d2;
+    transform: translateY(-1px);
+}
+
+.codBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
 @media (max-width: 1200px) {
     .ingredientGrid {
         grid-template-columns: repeat(3, 1fr);

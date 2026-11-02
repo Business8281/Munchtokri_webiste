@@ -114,22 +114,34 @@ export async function generateOrderPDF(order: any) {
         if (item.variant && !productName.includes(item.variant)) {
             productName = `${productName} (${item.variant})`;
         }
-        const isCombo = item.category === 'Combos' || item.baseWeight === 1 || (item.products && item.products.length > 0);
+        const cat = item.category?.toLowerCase();
+        const isCustomMix = cat === 'custom mix' || item.category === 'Custom Mix' || item.name.startsWith('Custom Mix (');
+        const isCombo = !isCustomMix && (cat === 'combos' || cat === 'combo' || item.baseWeight === 1);
         const comboGrams = item.grams || (item.products ? item.products.reduce((s: number, p: any) => s + (Number(p.grams) || 0), 0) : 0);
-        if (isCombo && item.products && item.products.length > 0) {
+        
+        if (isCustomMix && item.products && item.products.length > 0) {
+            const packList = item.products.map((p: any) => `  • ${p.name} (${p.grams}g)`).join('\n');
+            productName = `Custom Mix\nIngredients:\n${packList}`;
+        } else if (isCombo && item.products && item.products.length > 0) {
             const packList = item.products.map((p: any) => `  • ${p.name} (${p.grams}g)`).join('\n');
             const totalPackWeightStr = comboGrams > 0 ? ` [${comboGrams}g/pack]` : '';
             productName = `${productName}\nPack of ${item.products.length}${totalPackWeightStr} includes:\n${packList}`;
         }
         const unitLabel = isCombo 
             ? ` Pack${item.quantity > 1 ? 's' : ''}${comboGrams > 0 ? ` (${comboGrams * item.quantity}g)` : ''}` 
-            : (item.baseWeight === 1 ? ' Unit' : 'g');
+            : (isCustomMix ? `${item.quantity}g` : (item.baseWeight === 1 ? ' Unit' : 'g'));
+        const unitCostStr = isCustomMix
+            ? `Rs. ${item.price.toFixed(2)}`
+            : `Rs. ${(item.price / (item.baseWeight || 100)).toFixed(2)}`;
+        const amountStr = isCustomMix
+            ? `Rs. ${item.price.toFixed(2)}`
+            : `Rs. ${((item.price / (item.baseWeight || 100)) * item.quantity).toFixed(2)}`;
         return [
             '', // Placeholder for Image rendered via didDrawCell
             productName,
-            `Rs. ${(item.price / (item.baseWeight || 100)).toFixed(2)}`,
-            `${item.quantity}${unitLabel}`,
-            `Rs. ${((item.price / (item.baseWeight || 100)) * item.quantity).toFixed(2)}`
+            unitCostStr,
+            isCustomMix ? `${item.quantity}g` : `${item.quantity}${unitLabel}`,
+            amountStr
         ];
     });
 
@@ -166,7 +178,10 @@ export async function generateOrderPDF(order: any) {
     });
 
     const finalY = (doc as any).lastAutoTable.finalY + 10;
-    const subtotal = order.items.reduce((sum: number, item: any) => sum + ((item.price / (item.baseWeight || 100)) * item.quantity), 0);
+    const subtotal = order.items.reduce((sum: number, item: any) => {
+        const isCustomMix = item.category?.toLowerCase() === 'custom mix' || item.category === 'Custom Mix' || item.name.startsWith('Custom Mix (');
+        return sum + (isCustomMix ? item.price : ((item.price / (item.baseWeight || 100)) * item.quantity));
+    }, 0);
     const shippingCost = subtotal < 350 ? 50 : 0;
     const tax = subtotal * 0.05;
 
@@ -262,7 +277,10 @@ export async function generateOrderPDF(order: any) {
 }
 
 export async function sendOrderConfirmationEmail(order: any, pdfBuffer: ArrayBuffer) {
-    const subtotal = order.items.reduce((sum: number, item: any) => sum + ((item.price / (item.baseWeight || 100)) * item.quantity), 0);
+    const subtotal = order.items.reduce((sum: number, item: any) => {
+        const isCustomMix = item.category?.toLowerCase() === 'custom mix' || item.category === 'Custom Mix' || item.name.startsWith('Custom Mix (');
+        return sum + (isCustomMix ? item.price : ((item.price / (item.baseWeight || 100)) * item.quantity));
+    }, 0);
     const shippingCost = subtotal < 350 ? 50 : 0;
     const tax = subtotal * 0.05;
 
@@ -278,10 +296,20 @@ export async function sendOrderConfirmationEmail(order: any, pdfBuffer: ArrayBuf
     const codBalance = Number(order.paymentDetails?.codBalance || (isCodOrder ? Math.max(0, totalNumeric - advancePaid) : 0));
 
     const productRows = order.items.map((item: any) => {
-        const isCombo = item.category === 'Combos' || item.baseWeight === 1 || (item.products && item.products.length > 0);
+        const cat = item.category?.toLowerCase();
+        const isCustomMix = cat === 'custom mix' || item.category === 'Custom Mix' || item.name.startsWith('Custom Mix (');
+        const isCombo = !isCustomMix && (cat === 'combos' || cat === 'combo' || item.baseWeight === 1);
         const comboGrams = item.grams || (item.products ? item.products.reduce((s: number, p: any) => s + (Number(p.grams) || 0), 0) : 0);
         let itemsHtml = '';
-        if (isCombo && item.products && item.products.length > 0) {
+        if (isCustomMix && item.products && item.products.length > 0) {
+            itemsHtml = `
+            <div style="margin-top:6px;padding:6px 10px;background:#f0fdfa;border-left:3px solid #0d9488;border-radius:4px;text-align:left;">
+                <div style="font-size:11px;font-weight:700;color:#0f766e;margin-bottom:3px;">Ingredients:</div>
+                <div style="font-size:11px;color:#334155;line-height:1.5;">
+                    ${item.products.map((p: any) => `<div style="margin-bottom:2px;">• <strong>${p.name}</strong> (${p.grams || 0}g)</div>`).join('')}
+                </div>
+            </div>`;
+        } else if (isCombo && item.products && item.products.length > 0) {
             const totalPackWeightStr = comboGrams > 0 ? ` • Total ${comboGrams}g` : '';
             itemsHtml = `
             <div style="margin-top:6px;padding:6px 10px;background:#f0fdfa;border-left:3px solid #0d9488;border-radius:4px;text-align:left;">
@@ -293,8 +321,16 @@ export async function sendOrderConfirmationEmail(order: any, pdfBuffer: ArrayBuf
         }
         const unitLabel = isCombo 
             ? ` Pack${item.quantity > 1 ? 's' : ''}${comboGrams > 0 ? ` (${comboGrams * item.quantity}g)` : ''}` 
-            : (item.baseWeight === 1 ? ' Unit' : 'g');
-        const itemTitle = item.variant && !item.name.includes(item.variant) ? `${item.name} (${item.variant})` : item.name;
+            : (isCustomMix ? `${item.quantity}g` : (item.baseWeight === 1 ? ' Unit' : 'g'));
+        const itemTitle = isCustomMix
+            ? 'Custom Mix'
+            : (item.variant && !item.name.includes(item.variant) ? `${item.name} (${item.variant})` : item.name);
+        const unitCostStr = isCustomMix
+            ? `Rs. ${item.price.toFixed(2)}`
+            : `Rs. ${(item.price / (item.baseWeight || 100)).toFixed(2)}`;
+        const amountStr = isCustomMix
+            ? `Rs. ${item.price.toFixed(2)}`
+            : `Rs. ${((item.price / (item.baseWeight || 100)) * item.quantity).toFixed(2)}`;
 
         return `
         <tr style="border-bottom: 1px solid #eee">
@@ -303,9 +339,9 @@ export async function sendOrderConfirmationEmail(order: any, pdfBuffer: ArrayBuf
                 <div style="font-weight:600">${itemTitle}</div>
                 ${itemsHtml}
             </td>
-            <td align="center" style="padding: 10px">Rs. ${(item.price / (item.baseWeight || 100)).toFixed(2)}</td>
-            <td align="center" style="padding: 10px">${item.quantity}${unitLabel}</td>
-            <td align="right" style="padding: 10px">Rs. ${((item.price / (item.baseWeight || 100)) * item.quantity).toFixed(2)}</td>
+            <td align="center" style="padding: 10px">${unitCostStr}</td>
+            <td align="center" style="padding: 10px">${isCustomMix ? `${item.quantity}g` : `${item.quantity}${unitLabel}`}</td>
+            <td align="right" style="padding: 10px">${amountStr}</td>
         </tr>
         `;
     }).join('');

@@ -88,8 +88,9 @@ function CheckoutContent() {
 
                         <div className={styles.itemsList}>
                             {cartItems.map((item) => {
-                                const isCombo = item.category === 'Combos';
-                                const itemTotal = (item.price / (item.baseWeight || 100)) * item.quantity;
+                                const isCustomMix = item.category === 'Custom Mix' || item.name.startsWith('Custom Mix (');
+                                const isCombo = item.category === 'Combos' && !isCustomMix;
+                                const itemTotal = isCustomMix ? item.price : (item.price / (item.baseWeight || 100)) * item.quantity;
                                 const weightText = isCombo
                                     ? `${item.quantity} ${item.quantity === 1 ? 'unit' : 'units'}`
                                     : `${item.quantity}g`;
@@ -102,10 +103,17 @@ function CheckoutContent() {
                                             className={styles.itemImage}
                                         />
                                         <div className={styles.itemInfo}>
-                                            <h3 className={styles.itemName}>{item.name}</h3>
+                                            <h3 className={styles.itemName}>
+                                                {isCustomMix ? 'Custom Mix' : item.name}
+                                            </h3>
+                                            {isCustomMix && item.products && (
+                                                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                                                    {item.products.map(p => `${p.name} (${p.grams}g)`).join(', ')}
+                                                </div>
+                                            )}
                                             <div className={styles.itemMeta}>
                                                 <span>Qty: {weightText}</span>
-                                                {item.variant && <span>• {item.variant}</span>}
+                                                {item.variant && !isCustomMix && <span>• {item.variant}</span>}
                                             </div>
                                         </div>
                                         <div className={styles.itemPrice}>

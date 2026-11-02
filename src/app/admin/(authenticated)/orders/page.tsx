@@ -205,19 +205,25 @@ export default function OrdersPage() {
                                                         {row.items && row.items.length > 0 ? (
                                                             <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                                                                 {row.items.map((item, idx) => {
+                                                                    const isCustomMix = (item as any).isCustomMix || (item as any).id?.startsWith('custom-mix') || item.name?.startsWith('Custom Mix') || item.name?.toLowerCase().includes('custom');
                                                                     const renderItemName = (name: string, quantity: number, category?: string, products?: any[], baseWeight?: number, itemGrams?: number, variant?: string) => {
-                                                                        if (name.startsWith('Custom Mix (')) {
-                                                                            const match = name.match(/Custom Mix \((.*)\)/);
-                                                                            if (match && match[1]) {
-                                                                                const ingredients = match[1].split(', ');
-                                                                                return (
-                                                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                                                                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1e293b' }}>
-                                                                                            Custom Mix
-                                                                                        </div>
-                                                                                        <div style={{ fontSize: '0.8rem', color: '#0d9488', fontWeight: 600 }}>
-                                                                                            Total Weight: {quantity}g
-                                                                                        </div>
+                                                                        if (isCustomMix) {
+                                                                            let ingredients: string[] = [];
+                                                                            if (products && products.length > 0) {
+                                                                                ingredients = products.map((p: any) => `${p.name} (${p.grams || p.weight || 0}g)`);
+                                                                            } else if (name.startsWith('Custom Mix (')) {
+                                                                                const match = name.match(/Custom Mix \((.*)\)/);
+                                                                                if (match && match[1]) ingredients = match[1].split(', ');
+                                                                            }
+                                                                            return (
+                                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                                                                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1e293b' }}>
+                                                                                        {name.startsWith('Custom Mix (') ? 'Custom Mix' : name}
+                                                                                    </div>
+                                                                                    <div style={{ fontSize: '0.8rem', color: '#0d9488', fontWeight: 600 }}>
+                                                                                        Total Weight: {quantity}g
+                                                                                    </div>
+                                                                                    {ingredients.length > 0 && (
                                                                                         <div style={{ marginTop: '0.2rem', paddingLeft: '0.5rem', borderLeft: '2px solid #0d9488' }}>
                                                                                             <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0f766e', marginBottom: '0.15rem' }}>
                                                                                                 Included Ingredients:
@@ -230,15 +236,15 @@ export default function OrdersPage() {
                                                                                                 ))}
                                                                                             </ul>
                                                                                         </div>
-                                                                                    </div>
-                                                                                );
-                                                                            }
+                                                                                    )}
+                                                                                </div>
+                                                                            );
                                                                         }
 
                                                                         const isCombo = category === 'Combos' || (products && products.length > 0) || baseWeight === 1;
                                                                         if (isCombo) {
                                                                             const packCount = products ? products.length : 0;
-                                                                            const effectiveGrams = itemGrams || (products ? products.reduce((s: number, p: any) => s + (Number(p.grams) || 0), 0) : 0);
+                                                                            const effectiveGrams = itemGrams || (products ? products.reduce((s: number, p: any) => s + (Number(p.grams || p.weight) || 0), 0) : 0);
                                                                             return (
                                                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                                                                                     <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1e293b' }}>
@@ -262,7 +268,7 @@ export default function OrdersPage() {
                                                                                                     <li key={i} style={{ color: '#334155', fontSize: '0.85rem', marginBottom: '0.25rem', lineHeight: 1.4 }}>
                                                                                                         <span style={{ color: '#0d9488', fontWeight: 'bold' }}>• </span>
                                                                                                         <span style={{ fontWeight: 600 }}>{p.name}</span>{' '}
-                                                                                                        <span style={{ color: '#64748b', fontSize: '0.8rem' }}>({p.grams}g)</span>
+                                                                                                        <span style={{ color: '#64748b', fontSize: '0.8rem' }}>({p.grams || p.weight}g)</span>
                                                                                                     </li>
                                                                                                 ))}
                                                                                             </ul>
@@ -281,13 +287,17 @@ export default function OrdersPage() {
                                                                         );
                                                                     };
 
+                                                                    const itemTotal = isCustomMix
+                                                                        ? Number(item.price || 0)
+                                                                        : ((item.price * item.quantity) / (item.baseWeight || 100));
+
                                                                     return (
                                                                         <li key={idx} style={{ padding: '0.75rem 0', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1.5rem' }}>
                                                                             <div style={{ flex: 1, minWidth: 0 }}>
                                                                                 {renderItemName(item.name, item.quantity, (item as any).category, (item as any).products, item.baseWeight, (item as any).grams, (item as any).variant)}
                                                                             </div>
                                                                             <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem', flexShrink: 0, textAlign: 'right' }}>
-                                                                                ₹{((item.price * item.quantity) / (item.baseWeight || 100)).toFixed(2)}
+                                                                                ₹{itemTotal.toFixed(2)}
                                                                             </div>
                                                                         </li>
                                                                     );

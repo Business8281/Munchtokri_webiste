@@ -87,6 +87,13 @@ export function useMagicCheckout() {
                     imageURL: item.imageURL || '/Logo Munch Tokri.png',
                     variant: item.variant || undefined,
                     grams: (item as any).grams || (item as any).variantGrams || undefined,
+                    products: (item as any).products ? (item as any).products.map((p: any) => ({
+                        productId: p.productId || p.id || '',
+                        name: p.name,
+                        grams: Number(p.grams) || 0,
+                        price: Number(p.price) || 0,
+                        imageURL: p.imageURL || p.image || undefined,
+                    })) : undefined,
                 };
             });
 
@@ -95,23 +102,46 @@ export function useMagicCheckout() {
                 options?.total !== undefined
                     ? options.total
                     : Math.round(
-                          targetItems.reduce(
-                              (sum, it) => sum + (it.price / (it.baseWeight || 100)) * it.quantity,
-                              0
-                          ) * 100
+                          targetItems.reduce((sum, it) => {
+                              const isCustomMix = it.category === 'Custom Mix' || it.name.startsWith('Custom Mix (');
+                              return sum + (isCustomMix ? it.price : (it.price / (it.baseWeight || 100)) * it.quantity);
+                          }, 0) * 100
                       ) / 100;
 
             const currentUser = auth.currentUser;
             const currentUserId = currentUser?.uid || null;
 
+            // Fetch store settings for shipping & COD rules
+            let shippingRate = 80;
+            let freeShippingThreshold = 450;
+            let codPrice = 50;
+            try {
+                const { getDoc, doc } = await import('firebase/firestore');
+                const storeSnap = await getDoc(doc(db, 'settings', 'store'));
+                if (storeSnap.exists()) {
+                    const data = storeSnap.data();
+                    if (data?.shippingRate !== undefined) shippingRate = Number(data.shippingRate);
+                    if (data?.freeShippingThreshold !== undefined) freeShippingThreshold = Number(data.freeShippingThreshold);
+                    if (data?.codPrice !== undefined) codPrice = Number(data.codPrice);
+                }
+            } catch (e) {
+                // Keep default business rules (80 shipping, 450 free threshold, 50 COD charge)
+            }
+
             const isCodRequested = Boolean(options?.isCod);
-            const advanceAmount = isCodRequested ? Math.max(1, Math.round(calculatedTotal * 0.20 * 100) / 100) : calculatedTotal;
-            const codBalance = isCodRequested ? Math.max(0, Math.round((calculatedTotal - advanceAmount) * 100) / 100) : 0;
+            const isFreeShipping = calculatedTotal >= freeShippingThreshold;
+            const shippingFee = isFreeShipping ? 0 : shippingRate;
+            const codExtraFee = isCodRequested ? codPrice : 0;
+            const effectiveTotalOrder = calculatedTotal + shippingFee + codExtraFee;
+
+            const advanceAmount = isCodRequested ? Math.max(1, Math.round(effectiveTotalOrder * 0.20 * 100) / 100) : calculatedTotal;
+            const codBalance = isCodRequested ? Math.max(0, Math.round((effectiveTotalOrder - advanceAmount) * 100) / 100) : 0;
             const payableAmount = advanceAmount;
 
             tracker.track('checkout_start', {
                 source: isCodRequested ? 'magic_checkout_cod' : 'magic_checkout',
                 cartTotal: calculatedTotal,
+                effectiveTotalOrder,
                 payableAmount,
                 isCod: isCodRequested,
                 itemCount: formattedItems.length,
@@ -129,10 +159,11 @@ export function useMagicCheckout() {
             let runningAdvanceRupees = 0;
             const itemsForPayOrder = isCodRequested
                 ? formattedItems.map((item, idx) => {
-                      const isCombo = item.category === 'Combos' || item.baseWeight === 1;
+                      const isCustomMix = item.category === 'Custom Mix' || item.name.startsWith('Custom Mix (');
+                      const isCombo = (item.category === 'Combos' || item.baseWeight === 1) && !isCustomMix;
                       const qty = Number(item.quantity) || 1;
                       const price = Number(item.price) || 0;
-                      const baseWeight = Number(item.baseWeight) || 100;
+                      const baseWeight = Number(item.baseWeight) || (isCustomMix ? qty : 100);
 
                       let itemTotalRupees = 0;
                       let displayQty = 1;
@@ -142,6 +173,10 @@ export function useMagicCheckout() {
                           displayQty = Math.max(1, Math.round(qty));
                           itemTotalRupees = price * displayQty;
                           itemVariantDesc = item.variant || `${displayQty} unit(s)`;
+                      } else if (isCustomMix) {
+                          itemTotalRupees = price;
+                          displayQty = 1;
+                          itemVariantDesc = `${qty}g Custom Mix pack`;
                       } else {
                           itemTotalRupees = (price / baseWeight) * qty;
                           displayQty = 1;
@@ -166,22 +201,27 @@ export function useMagicCheckout() {
                           price: unitAdvanceRupees,
                           quantity: displayQty,
                           baseWeight: 1,
-                          category: 'Combos',
+                          category: item.category || (isCustomMix ? 'Custom Mix' : 'Combos'),
                           variant: `${itemVariantDesc} | Full: ₹${itemTotalRupees.toFixed(2)} (Advance ₹${(unitAdvanceRupees * displayQty).toFixed(2)} + Balance ₹${itemCodBalanceRupees.toFixed(2)} on COD)`,
                           imageURL: resolveImageUrl(item.imageURL),
+                          products: item.products,
                       };
                   })
                 : formattedItems.map((item, idx) => {
-                      const isCombo = item.category === 'Combos' || item.baseWeight === 1;
+                      const isCustomMix = item.category === 'Custom Mix' || item.name.startsWith('Custom Mix (');
+                      const isCombo = (item.category === 'Combos' || item.baseWeight === 1) && !isCustomMix;
                       const qty = Number(item.quantity) || 1;
-                      const baseWeight = Number(item.baseWeight) || 100;
+                      const baseWeight = Number(item.baseWeight) || (isCustomMix ? qty : 100);
                       const itemVariantDesc = isCombo
                           ? (item.variant || `${qty} unit(s)`)
+                          : isCustomMix
+                          ? `${qty}g Custom Mix pack`
                           : (item.variant || `${qty}g pack`);
                       return {
                           ...item,
                           variant: itemVariantDesc,
                           imageURL: resolveImageUrl(item.imageURL),
+                          products: item.products,
                       };
                   });
 
@@ -190,7 +230,7 @@ export function useMagicCheckout() {
             const res = (await createPayOrder({
                 amount: payableAmount,
                 isCod: isCodRequested,
-                totalOrderAmount: calculatedTotal,
+                totalOrderAmount: effectiveTotalOrder,
                 codBalance: codBalance,
                 advancePaid: advanceAmount,
                 items: itemsForPayOrder,
@@ -200,7 +240,9 @@ export function useMagicCheckout() {
                     isCod: isCodRequested ? 'true' : 'false',
                     advancePaid: String(advanceAmount),
                     codBalance: String(codBalance),
-                    totalOrderAmount: String(calculatedTotal),
+                    totalOrderAmount: String(effectiveTotalOrder),
+                    shippingFee: String(shippingFee),
+                    codExtraFee: String(codExtraFee),
                     ...(options?.notes || {}),
                 },
             })) as {
@@ -248,15 +290,19 @@ export function useMagicCheckout() {
             // Convert items to Razorpay line_items with paise pricing for the Magic Checkout order summary
             let lineItemsSumPaise = 0;
             const lineItemsCart = itemsForPayOrder.map((item, idx) => {
-                const isCombo = item.category === 'Combos' || item.baseWeight === 1;
+                const isCustomMix = item.category === 'Custom Mix' || item.name.startsWith('Custom Mix (');
+                const isCombo = (item.category === 'Combos' || item.baseWeight === 1) && !isCustomMix;
                 const qty = Number(item.quantity) || 1;
                 const price = Number(item.price) || 0;
-                const baseWeight = Number(item.baseWeight) || 100;
+                const baseWeight = Number(item.baseWeight) || (isCustomMix ? qty : 100);
                 let itemTotalPaise = 0;
                 let displayQty = 1;
                 if (isCombo) {
                     displayQty = Math.max(1, Math.round(qty));
                     itemTotalPaise = Math.round(price * 100) * displayQty;
+                } else if (isCustomMix) {
+                    itemTotalPaise = Math.round(price * 100);
+                    displayQty = 1;
                 } else {
                     const totalRupees = (price / baseWeight) * qty;
                     itemTotalPaise = Math.round(totalRupees * 100);
@@ -304,7 +350,9 @@ export function useMagicCheckout() {
                     isCod: isCodRequested ? 'true' : 'false',
                     advancePaid: String(advanceAmount),
                     codBalance: String(codBalance),
-                    totalOrderAmount: String(calculatedTotal),
+                    totalOrderAmount: String(effectiveTotalOrder),
+                    shippingFee: String(shippingFee),
+                    codExtraFee: String(codExtraFee),
                     ...(options?.notes || {}),
                 },
                 prefill: {
@@ -455,8 +503,9 @@ export function useMagicCheckout() {
 
                                 // Increment sales counts
                                 for (const item of formattedItems) {
+                                    const isCustomMix = item.category === 'Custom Mix' || item.name.startsWith('Custom Mix (');
                                     const isCombo = item.category === 'Combos';
-                                    const isProduct = !isCombo && item.category !== 'Custom Mix';
+                                    const isProduct = !isCombo && !isCustomMix;
                                     if (isProduct || isCombo) {
                                         const colName = isCombo ? 'combos' : 'products';
                                         let targetId = item.productId || item.cartItemId || '';
@@ -467,6 +516,16 @@ export function useMagicCheckout() {
                                             transaction.set(itemRef, {
                                                 salesCount: increment(item.quantity || 1)
                                             }, { merge: true });
+                                        }
+                                    } else if (isCustomMix && Array.isArray(item.products)) {
+                                        for (const subProd of item.products) {
+                                            const subId = subProd.productId || (subProd as any).id;
+                                            if (subId) {
+                                                const prodRef = doc(db, 'products', subId);
+                                                transaction.set(prodRef, {
+                                                    salesCount: increment(1)
+                                                }, { merge: true });
+                                            }
                                         }
                                     }
                                 }

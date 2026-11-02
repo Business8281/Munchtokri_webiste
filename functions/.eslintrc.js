@@ -35,6 +35,7 @@ module.exports = {
     "no-trailing-spaces": 0,
     "no-unused-vars": 0,
     "@typescript-eslint/no-unused-vars": 0,
+    "@typescript-eslint/no-explicit-any": 0,
     "google-camelcase/google-camelcase": 0,
     "require-jsdoc": 0,
     "valid-jsdoc": 0,

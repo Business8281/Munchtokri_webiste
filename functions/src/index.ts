@@ -632,12 +632,12 @@ async function generateOrderPDF(
   // Table
   const tableData = order.items.map((item: OrderItem) => {
     const cat = item.category?.toLowerCase();
-    const isCombo = cat === "combos" || cat === "combo" || item.baseWeight === 1;
-    const isCustomMix = cat === "custom mix" || item.category === "Custom Mix";
+    const isCustomMix = cat === "custom mix" || item.category === "Custom Mix" || item.name.startsWith("Custom Mix (");
+    const isCombo = (cat === "combos" || cat === "combo" || item.baseWeight === 1) && !isCustomMix;
 
     // Quantity display (Units for combos, grams for everything else)
     const comboGrams = (item as any).grams || (item.products ? item.products.reduce((s: number, p: any) => s + (Number(p.grams) || 0), 0) : 0);
-    const displayQty = isCombo && !isCustomMix ?
+    const displayQty = isCombo ?
       `${item.quantity} Unit${item.quantity > 1 ? "s" : ""}${comboGrams > 0 ? ` (${comboGrams * item.quantity}g)` : ""}` :
       isCustomMix ? `${item.quantity}g` : `${item.quantity / (item.baseWeight || 100)} Units (${item.quantity}g)`;
 
@@ -656,16 +656,16 @@ async function generateOrderPDF(
     }
 
     // Unit Price string
-    const unitPriceLabel = isCombo && !isCustomMix ? "/ Unit" : `/ ${(item.baseWeight || 100)}g`;
-    const unitPrice = `Rs. ${item.price.toFixed(2)} ${unitPriceLabel}`;
+    const unitPriceLabel = isCustomMix ? "" : (isCombo ? "/ Unit" : `/ ${(item.baseWeight || 100)}g`);
+    const unitPrice = isCustomMix ? `Rs. ${item.price.toFixed(2)}` : `Rs. ${item.price.toFixed(2)} ${unitPriceLabel}`;
+    const amountVal = isCustomMix ? item.price : ((item.price / (item.baseWeight || 100)) * item.quantity);
 
     return [
       "", // Cell where image is rendered via didDrawCell
       displayName,
       unitPrice,
       displayQty,
-      `Rs. ${((item.price / (item.baseWeight || 100)) *
-        item.quantity).toFixed(2)}`,
+      `Rs. ${amountVal.toFixed(2)}`,
     ];
   });
 
@@ -706,8 +706,10 @@ async function generateOrderPDF(
   });
 
   const finalY = doc.lastAutoTable.finalY + 10;
-  const subtotal = order.items.reduce((sum: number, item: OrderItem) =>
-    sum + ((item.price / (item.baseWeight || 100)) * item.quantity), 0);
+  const subtotal = order.items.reduce((sum: number, item: OrderItem) => {
+    const isCustomMix = item.category?.toLowerCase() === "custom mix" || item.category === "Custom Mix" || item.name.startsWith("Custom Mix (");
+    return sum + (isCustomMix ? item.price : ((item.price / (item.baseWeight || 100)) * item.quantity));
+  }, 0);
 
   // Fetch store settings for shipping rules
   const storeSnap = await admin.firestore().collection("settings").doc("store").get();
@@ -715,8 +717,8 @@ async function generateOrderPDF(
 
   let shippingCost = 0;
   if (storeSettings?.enableFlatRateShipping !== false) {
-    const threshold = storeSettings?.freeShippingThreshold ?? 350;
-    const rate = storeSettings?.shippingRate ?? 50;
+    const threshold = storeSettings?.freeShippingThreshold ?? 450;
+    const rate = storeSettings?.shippingRate ?? 80;
     shippingCost = subtotal < threshold ? rate : 0;
   }
 
@@ -829,18 +831,18 @@ async function generateOrderPDF(
     margin: { left: 20, right: 20 },
     body: isCodOrder ?
       [
-          ["Payment Method", "Cash on Delivery (20% Advance Paid)"],
-          ["20% Advance Payment", `Rs. ${advancePaid.toFixed(2)} (Paid Online via Razorpay)`],
-          ["Remaining Balance on Delivery", `Rs. ${codBalance.toFixed(2)} (To be collected by Courier)`],
-          ["Delivery Courier", `${order.courierName || "Velocity Express"}${order.velocityAWB ? ` (AWB: ${order.velocityAWB})` : ""}`],
-          ["Customer Contact", `${order.shippingDetails?.mobile || "N/A"}${order.customerEmail ? ` • ${order.customerEmail}` : ""}`],
-        ] :
+        ["Payment Method", "Cash on Delivery (20% Advance Paid)"],
+        ["20% Advance Payment", `Rs. ${advancePaid.toFixed(2)} (Paid Online via Razorpay)`],
+        ["Remaining Balance on Delivery", `Rs. ${codBalance.toFixed(2)} (To be collected by Courier)`],
+        ["Delivery Courier", `${order.courierName || "Velocity Express"}${order.velocityAWB ? ` (AWB: ${order.velocityAWB})` : ""}`],
+        ["Customer Contact", `${order.shippingDetails?.mobile || "N/A"}${order.customerEmail ? ` • ${order.customerEmail}` : ""}`],
+      ] :
       [
-          ["Payment Method", order.method?.payment || "Online Payment (Prepaid)"],
-          ["Payment Status", "Paid in Full"],
-          ["Delivery Courier", `${order.courierName || "Velocity Express"}${order.velocityAWB ? ` (AWB: ${order.velocityAWB})` : ""}`],
-          ["Customer Contact", `${order.shippingDetails?.mobile || "N/A"}${order.customerEmail ? ` • ${order.customerEmail}` : ""}`],
-        ],
+        ["Payment Method", order.method?.payment || "Online Payment (Prepaid)"],
+        ["Payment Status", "Paid in Full"],
+        ["Delivery Courier", `${order.courierName || "Velocity Express"}${order.velocityAWB ? ` (AWB: ${order.velocityAWB})` : ""}`],
+        ["Customer Contact", `${order.shippingDetails?.mobile || "N/A"}${order.customerEmail ? ` • ${order.customerEmail}` : ""}`],
+      ],
     theme: "plain",
     styles: { fontSize: 9, cellPadding: 2 },
     columnStyles: {
@@ -868,8 +870,10 @@ async function sendOrderConfirmationEmail(
   order: OrderData,
   pdfBuffer: Buffer
 ): Promise<void> { // Changed to void
-  const subtotal = order.items.reduce((sum: number, item: OrderItem) =>
-    sum + ((item.price / (item.baseWeight || 100)) * item.quantity), 0);
+  const subtotal = order.items.reduce((sum: number, item: OrderItem) => {
+    const isCustomMix = item.category?.toLowerCase() === 'custom mix' || item.category === 'Custom Mix' || item.name.startsWith('Custom Mix (');
+    return sum + (isCustomMix ? item.price : ((item.price / (item.baseWeight || 100)) * item.quantity));
+  }, 0);
 
   // Fetch store settings for shipping rules
   const storeSnap = await admin.firestore().collection("settings").doc("store").get();
@@ -877,19 +881,19 @@ async function sendOrderConfirmationEmail(
 
   let shippingCost = 0;
   if (storeSettings?.enableFlatRateShipping !== false) {
-    const threshold = storeSettings?.freeShippingThreshold ?? 350;
-    const rate = storeSettings?.shippingRate ?? 50;
+    const threshold = storeSettings?.freeShippingThreshold ?? 450;
+    const rate = storeSettings?.shippingRate ?? 80;
     shippingCost = subtotal < threshold ? rate : 0;
   }
   const tax = subtotal * 0.05;
   const displayAmount = (order.amount || "").replace("₹", "Rs. ");
 
   const productRows = order.items.map((item: OrderItem) => {
-    const amount = ((item.price / (item.baseWeight || 100)) *
-      item.quantity).toFixed(2);
     const cat = item.category?.toLowerCase();
-    const isCombo = cat === 'combos' || cat === 'combo' || item.baseWeight === 1;
-    const isCustomMix = cat === 'custom mix' || item.category === 'Custom Mix';
+    const isCustomMix = cat === 'custom mix' || item.category === 'Custom Mix' || item.name.startsWith('Custom Mix (');
+    const isCombo = (cat === 'combos' || cat === 'combo' || item.baseWeight === 1) && !isCustomMix;
+    const amount = isCustomMix ? item.price.toFixed(2) : ((item.price / (item.baseWeight || 100)) *
+      item.quantity).toFixed(2);
 
     let imgSrc = item.imageURL;
     if (isCombo && (!imgSrc || imgSrc.includes('Logo') || imgSrc.startsWith('/'))) {
@@ -908,7 +912,7 @@ async function sendOrderConfirmationEmail(
     }
 
     const comboGrams = (item as any).grams || (item.products ? item.products.reduce((s: number, p: any) => s + (Number(p.grams) || 0), 0) : 0);
-    const displayQty = isCombo && !isCustomMix ?
+    const displayQty = isCombo ?
       `${item.quantity} Unit${item.quantity > 1 ? "s" : ""}${comboGrams > 0 ? ` (${comboGrams * item.quantity}g)` : ""}` :
       isCustomMix ? `${item.quantity}g` : `${item.quantity / (item.baseWeight || 100)} Units (${item.quantity}g)`;
 
@@ -929,8 +933,8 @@ async function sendOrderConfirmationEmail(
       `;
     }
 
-    const unitPriceLabel = isCombo && !isCustomMix ? "/ Unit" : `/ ${(item.baseWeight || 100)}g`;
-    const displayUnitCost = `${item.price.toFixed(2)} ${unitPriceLabel}`;
+    const unitPriceLabel = isCustomMix ? "" : (isCombo ? "/ Unit" : `/ ${(item.baseWeight || 100)}g`);
+    const displayUnitCost = isCustomMix ? `${item.price.toFixed(2)}` : `${item.price.toFixed(2)} ${unitPriceLabel}`;
 
     return `
     <tr style="border-bottom: 1px solid #eee">
@@ -1172,10 +1176,10 @@ async function sendAdminNotificationEmail(
         <h3 style="color: #333; margin-top: 20px; font-size: 16px;">Items Ordered:</h3>
         <ul style="padding-left: 20px; margin: 10px 0;">
           ${order.items.map((item: any) => {
-      const isCombo = item.category?.toLowerCase() === 'combos' || item.category?.toLowerCase() === 'combo' || item.baseWeight === 1;
-      const isCustomMix = item.category?.toLowerCase() === 'custom mix' || item.category === 'Custom Mix';
+      const isCustomMix = item.category?.toLowerCase() === 'custom mix' || item.category === 'Custom Mix' || item.name.startsWith('Custom Mix (');
+      const isCombo = (item.category?.toLowerCase() === 'combos' || item.category?.toLowerCase() === 'combo' || item.baseWeight === 1) && !isCustomMix;
       const comboGrams = (item as any).grams || (item.products ? item.products.reduce((s: number, p: any) => s + (Number(p.grams) || 0), 0) : 0);
-      const qtyStr = isCombo && !isCustomMix ? `${item.quantity} Unit(s)${comboGrams > 0 ? ` (${comboGrams * item.quantity}g)` : ''}` : isCustomMix ? `${item.quantity}g` : `${item.quantity / (item.baseWeight || 100)} Units (${item.quantity}g)`;
+      const qtyStr = isCombo ? `${item.quantity} Unit(s)${comboGrams > 0 ? ` (${comboGrams * item.quantity}g)` : ''}` : isCustomMix ? `${item.quantity}g` : `${item.quantity / (item.baseWeight || 100)} Units (${item.quantity}g)`;
       let subItemsHtml = '';
       if ((isCombo || isCustomMix) && item.products && item.products.length > 0) {
         const weightHeader = (!isCustomMix && comboGrams > 0) ? ` • Total ${comboGrams}g` : "";
@@ -1309,14 +1313,14 @@ export const createShiprocketOrder = onCall(
         shipping_is_billing: true,
         order_items: order.items.map((item: OrderItem) => {
           const cat = item.category?.toLowerCase();
-          const isCombo = cat === 'combos' || cat === 'combo' || item.baseWeight === 1;
-          const isCustomMix = cat === 'custom mix' || item.category === 'Custom Mix';
-          const units = (isCombo && !isCustomMix) ? item.quantity : Math.max(1, Math.floor(item.quantity / (item.baseWeight || 100)));
+          const isCustomMix = cat === 'custom mix' || item.category === 'Custom Mix' || item.name.startsWith('Custom Mix (');
+          const isCombo = (cat === 'combos' || cat === 'combo' || item.baseWeight === 1) && !isCustomMix;
+          const units = isCustomMix ? 1 : (isCombo ? item.quantity : Math.max(1, Math.floor(item.quantity / (item.baseWeight || 100))));
           return {
             name: item.name,
             sku: item.productId || item.name,
             units: units,
-            selling_price: item.price / (isCustomMix ? 1 : units), // Estimate per unit
+            selling_price: isCustomMix ? item.price : item.price / units, // Estimate per unit
           };
         }),
         payment_method: order.method?.payment === "COD" ? "COD" : "Prepaid",
@@ -1402,7 +1406,7 @@ export const createVelocityOrder = onCall(
 
     const token = velocityApiKey.value().trim();
     if (!token) {
-        throw new HttpsError("internal", "Velocity API key not configured");
+      throw new HttpsError("internal", "Velocity API key not configured");
     }
 
     try {
@@ -1453,14 +1457,14 @@ export const createVelocityOrder = onCall(
         print_label: true,
         order_items: order.items.map((item: OrderItem) => {
           const cat = item.category?.toLowerCase();
-          const isCombo = cat === 'combos' || cat === 'combo' || item.baseWeight === 1;
-          const isCustomMix = cat === 'custom mix' || item.category === 'Custom Mix';
-          const units = (isCombo && !isCustomMix) ? item.quantity : Math.max(1, Math.floor(item.quantity / (item.baseWeight || 100)));
+          const isCustomMix = cat === 'custom mix' || item.category === 'Custom Mix' || item.name.startsWith('Custom Mix (');
+          const isCombo = (cat === 'combos' || cat === 'combo' || item.baseWeight === 1) && !isCustomMix;
+          const units = isCustomMix ? 1 : (isCombo ? item.quantity : Math.max(1, Math.floor(item.quantity / (item.baseWeight || 100))));
           return {
             name: item.name,
             sku: item.productId || item.name,
             units: units,
-            selling_price: item.price / (isCustomMix ? 1 : units), // Estimate per unit
+            selling_price: isCustomMix ? item.price : item.price / units, // Estimate per unit
             discount: 0,
             tax: 0
           };
@@ -1490,7 +1494,7 @@ export const createVelocityOrder = onCall(
       console.log("Velocity Response:", response.data);
 
       if (response.data.status !== 1 && response.data.status !== "SUCCESS" && !response.data.payload) {
-         throw new Error(JSON.stringify(response.data));
+        throw new Error(JSON.stringify(response.data));
       }
 
       const payload = response.data.payload;
@@ -1589,8 +1593,9 @@ export const createPayOrder = onCall(
         lineItemsTotal = finalAmountInPaise;
       } else {
         lineItems = itemsList.map((item: any, idx: number) => {
-          const isCombo = item.category === "Combos" || item.baseWeight === 1;
-          const baseWeight = Number(item.baseWeight) || 100;
+          const isCustomMix = item.category === "Custom Mix" || String(item.name || "").startsWith("Custom Mix (");
+          const isCombo = (item.category === "Combos" || item.baseWeight === 1) && !isCustomMix;
+          const baseWeight = Number(item.baseWeight) || (isCustomMix ? Number(item.quantity) : 100);
           const qty = Number(item.quantity) || 1;
           const price = Number(item.price) || 0;
 
@@ -1603,6 +1608,10 @@ export const createPayOrder = onCall(
             const unitPricePaise = Math.round(price * 100);
             itemTotalPaise = unitPricePaise * displayQty;
             itemDesc = item.variant || `${displayQty} unit(s)`;
+          } else if (isCustomMix) {
+            itemTotalPaise = Math.round(price * 100);
+            displayQty = 1;
+            itemDesc = item.variant || `${qty}g custom mix`;
           } else {
             // Regular snack where quantity is in grams
             const totalRupees = (price / baseWeight) * qty;
@@ -1663,6 +1672,26 @@ export const createPayOrder = onCall(
       console.log("Creating Razorpay Magic order with options:", JSON.stringify(options));
       const order = await razorpay.orders.create(options);
       console.log("Razorpay Magic order created successfully:", order.id);
+
+      // Cache session details including items and ingredients for idempotency & webhook fallback
+      try {
+        const db = admin.firestore();
+        await db.collection("magic_checkout_sessions").doc(order.id).set({
+          orderId: order.id,
+          items: itemsList,
+          amount: finalAmountInPaise / 100,
+          totalOrderAmount: totalOrderAmount,
+          advancePaid: advancePaid,
+          codBalance: codBalance,
+          isCod: isCodOrder,
+          userId: String(request.data.userId || request.auth?.uid || ""),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+        console.log("Cached Magic Checkout session items for order:", order.id);
+      } catch (cacheErr: any) {
+        console.warn("Could not cache magic checkout session:", cacheErr.message);
+      }
+
       return { success: true, order };
     } catch (err: unknown) {
       const error = err as {
@@ -1914,9 +1943,9 @@ async function saveMagicOrderToFirestore(params: {
         updateData["shippingDetails.mobile"] = mobile;
       }
       if (addressLine !== "Standard Delivery Address" &&
-          (!existingData.shippingDetails?.address ||
-           existingData.shippingDetails?.address === "Standard Delivery Address" ||
-           existingData.shippingDetails?.address === "Razorpay Magic Checkout Delivery")) {
+        (!existingData.shippingDetails?.address ||
+          existingData.shippingDetails?.address === "Standard Delivery Address" ||
+          existingData.shippingDetails?.address === "Razorpay Magic Checkout Delivery")) {
         updateData["shippingDetails.address"] = addressLine;
       }
       if (city && city !== "Bengaluru" && existingData.shippingDetails?.city === "Bengaluru") {
@@ -1955,6 +1984,20 @@ async function saveMagicOrderToFirestore(params: {
         imageURL: String(it.imageURL || "/Logo Munch Tokri.png"),
         variant: it.variant ? String(it.variant) : null,
         grams: it.grams ? Number(it.grams) : null,
+        products: Array.isArray(it.products) ? it.products : (it.products || null),
+      }));
+    } else if (sessionData?.items && Array.isArray(sessionData.items) && sessionData.items.length > 0) {
+      finalItems = sessionData.items.map((it: any) => ({
+        name: String(it.name || "Snack Item"),
+        price: Number(it.price) || 0,
+        quantity: Number(it.quantity) || 1,
+        baseWeight: Number(it.baseWeight) || (it.category === "Combos" ? 1 : 100),
+        category: String(it.category || "Snacks"),
+        productId: String(it.productId || it.id || ""),
+        imageURL: String(it.imageURL || "/Logo Munch Tokri.png"),
+        variant: it.variant ? String(it.variant) : null,
+        grams: it.grams ? Number(it.grams) : null,
+        products: Array.isArray(it.products) ? it.products : (it.products || null),
       }));
     } else if (Array.isArray(rzpOrder.line_items) && rzpOrder.line_items.length > 0) {
       finalItems = rzpOrder.line_items.map((li: any) => ({
@@ -1967,6 +2010,7 @@ async function saveMagicOrderToFirestore(params: {
         imageURL: String(li.image_url || "/Logo Munch Tokri.png"),
         variant: null,
         grams: null,
+        products: null,
       }));
     } else {
       const fallbackAmount = Number(rzpOrder.amount) > 0 ? Number(rzpOrder.amount) / 100 : 0;
@@ -1980,6 +2024,7 @@ async function saveMagicOrderToFirestore(params: {
         imageURL: "/Logo Munch Tokri.png",
         variant: null,
         grams: null,
+        products: null,
       }];
     }
 
@@ -2010,7 +2055,10 @@ async function saveMagicOrderToFirestore(params: {
       const advancePaid = Number(rzpOrder.notes?.advancePaid) || (isCodOrder ? Number(rzpOrder.amount) / 100 : 0);
       const orderTotalRupees = totalAmountFromNotes > 0 ? totalAmountFromNotes : (
         Number(rzpOrder.amount) > 0 ? Number(rzpOrder.amount) / 100 :
-        finalItems.reduce((sum: number, it: any) => sum + (it.price / (it.baseWeight || 100)) * it.quantity, 0)
+          finalItems.reduce((sum: number, it: any) => {
+            const isCustomMix = it.category === "Custom Mix" || String(it.name || "").startsWith("Custom Mix (");
+            return sum + (isCustomMix ? it.price : (it.price / (it.baseWeight || 100)) * it.quantity);
+          }, 0)
       );
       const codBalance = isCodOrder ? (Number(rzpOrder.notes?.codBalance) || Math.max(0, orderTotalRupees - advancePaid)) : 0;
       const orderTotalStr = `₹${orderTotalRupees.toFixed(2)}`;
@@ -2055,8 +2103,9 @@ async function saveMagicOrderToFirestore(params: {
 
       // Update sales count on items
       for (const item of finalItems) {
+        const isCustomMix = item.category === "Custom Mix" || String(item.name || "").startsWith("Custom Mix (");
         const isCombo = item.category === "Combos";
-        const isProduct = !isCombo && item.category !== "Custom Mix";
+        const isProduct = !isCombo && !isCustomMix;
         if (isProduct || isCombo) {
           const colName = isCombo ? "combos" : "products";
           let targetId = item.productId || item.id || "";
@@ -2067,6 +2116,16 @@ async function saveMagicOrderToFirestore(params: {
             transaction.set(itemRef, {
               salesCount: admin.firestore.FieldValue.increment(item.quantity || 1)
             }, { merge: true });
+          }
+        } else if (isCustomMix && Array.isArray(item.products)) {
+          for (const subProd of item.products) {
+            const subId = subProd.productId || subProd.id;
+            if (subId) {
+              const prodRef = db.collection("products").doc(subId);
+              transaction.set(prodRef, {
+                salesCount: admin.firestore.FieldValue.increment(1)
+              }, { merge: true });
+            }
           }
         }
       }
@@ -2994,11 +3053,21 @@ export const magicCheckoutShippingInfo = onRequest(
         const qty = Number(item.quantity || 1);
         cartTotalInPaise += priceInPaise * qty;
       }
-      const subtotalInRupees = cartTotalInPaise > 0 ? (cartTotalInPaise / 100) : 0;
+      let subtotalInRupees = cartTotalInPaise > 0 ? (cartTotalInPaise / 100) : 0;
+      if (subtotalInRupees === 0) {
+        const rawAmount = body.order_amount || body.amount || body.order?.amount || body.total_amount || 0;
+        if (rawAmount > 0) {
+          subtotalInRupees = Number(rawAmount) / 100;
+        }
+      }
 
       // Fetch dynamic store settings if configured
-      let freeShippingThreshold = 350;
-      let shippingRate = 50;
+      let freeShippingThreshold = 450;
+      let shippingRate = 80;
+      let codPrice = 50;
+      let enableCOD = true;
+      let enableFlatRateShipping = true;
+
       try {
         const storeSettingsDoc = await db.collection("settings").doc("store").get();
         if (storeSettingsDoc.exists) {
@@ -3009,9 +3078,18 @@ export const magicCheckoutShippingInfo = onRequest(
           if (settings?.shippingRate !== undefined) {
             shippingRate = Number(settings.shippingRate);
           }
+          if (settings?.codPrice !== undefined) {
+            codPrice = Number(settings.codPrice);
+          }
+          if (settings?.enableCOD !== undefined) {
+            enableCOD = Boolean(settings.enableCOD);
+          }
+          if (settings?.enableFlatRateShipping !== undefined) {
+            enableFlatRateShipping = Boolean(settings.enableFlatRateShipping);
+          }
         }
       } catch (e) {
-        console.warn("Could not fetch store settings, using defaults (350/50):", e);
+        console.warn("Could not fetch store settings, using defaults (450/80/50):", e);
       }
 
       // Check country and pincode serviceability
@@ -3033,9 +3111,19 @@ export const magicCheckoutShippingInfo = onRequest(
           String(it.name || "").toLowerCase().includes("advance") ||
           String(it.name || "").toLowerCase().includes("cod")
       );
-      const isFreeShipping = isCodAdvance || subtotalInRupees >= freeShippingThreshold;
+
+      // If line_items sent was the 20% advance amount, convert back to 100% full subtotal for shipping rules
+      let effectiveSubtotal = subtotalInRupees;
+      if (isCodAdvance && effectiveSubtotal > 0) {
+        effectiveSubtotal = Math.round((effectiveSubtotal / 0.20) * 100) / 100;
+      }
+
+      const isFreeShipping = !enableFlatRateShipping || effectiveSubtotal >= freeShippingThreshold;
       const shippingFeeInRupees = isFreeShipping ? 0 : shippingRate;
-      const shippingFeeInPaise = shippingFeeInRupees * 100;
+      const shippingFeeInPaise = Math.round(shippingFeeInRupees * 100);
+
+      const codFeeInRupees = enableCOD ? codPrice : 0;
+      const codFeeInPaise = Math.round(codFeeInRupees * 100);
 
       let incomingAddresses: any[] = [{ id: "0" }];
       if (Array.isArray(body.addresses) && body.addresses.length > 0) {
@@ -3045,6 +3133,22 @@ export const magicCheckoutShippingInfo = onRequest(
       } else if (rawAddress && Object.keys(rawAddress).length > 0) {
         incomingAddresses = [rawAddress];
       }
+
+      const shippingMethods = [
+        {
+          id: "standard_shipping",
+          name: "Standard Delivery",
+          description: isFreeShipping ?
+            "Free Delivery (3-5 business days)" :
+            `Flat Delivery (₹${shippingRate}) - Free on orders above ₹${freeShippingThreshold}`,
+          serviceable: true,
+          shipping_fee: shippingFeeInPaise,
+          cod: enableCOD,
+          cod_serviceable: enableCOD,
+          cod_available: enableCOD,
+          cod_fee: codFeeInPaise,
+        },
+      ];
 
       const mappedAddresses = incomingAddresses.map((addr: any, idx: number) => {
         const addrId = String(addr.id || addr.address_id || idx);
@@ -3058,53 +3162,23 @@ export const magicCheckoutShippingInfo = onRequest(
           state_code: addrState,
           country: addrCountry,
           serviceable: true,
-          cod: true,
-          cod_serviceable: true,
-          cod_available: true,
+          cod: enableCOD,
+          cod_serviceable: enableCOD,
+          cod_available: enableCOD,
           shipping_fee: shippingFeeInPaise,
-          cod_fee: 0,
+          cod_fee: codFeeInPaise,
           estimated_delivery_days: 3,
-          shipping_methods: [
-            {
-              id: "standard_shipping",
-              name: "Standard Delivery",
-              description: isFreeShipping ?
-                "Free Delivery (3-5 business days)" :
-                `Flat Delivery (3-5 business days) - Free on orders above ₹${freeShippingThreshold}`,
-              serviceable: true,
-              shipping_fee: shippingFeeInPaise,
-              cod: true,
-              cod_serviceable: true,
-              cod_available: true,
-              cod_fee: 0,
-            },
-          ],
+          shipping_methods: shippingMethods,
         };
       });
-
-      const shippingMethods = [
-        {
-          id: "standard_shipping",
-          name: "Standard Delivery",
-          description: isFreeShipping ?
-            "Free Delivery (3-5 business days)" :
-            `Flat Delivery (3-5 business days) - Free on orders above ₹${freeShippingThreshold}`,
-          serviceable: true,
-          shipping_fee: shippingFeeInPaise,
-          cod: true,
-          cod_serviceable: true,
-          cod_available: true,
-          cod_fee: 0,
-        },
-      ];
 
       res.status(200).json({
         success: true,
         serviceable: true,
-        cod: true,
-        cod_serviceable: true,
-        cod_available: true,
-        cod_fee: 0,
+        cod: enableCOD,
+        cod_serviceable: enableCOD,
+        cod_available: enableCOD,
+        cod_fee: codFeeInPaise,
         addresses: mappedAddresses,
         shipping_methods: shippingMethods,
         data: {
@@ -3115,7 +3189,7 @@ export const magicCheckoutShippingInfo = onRequest(
     } catch (error: unknown) {
       const e = error as Error;
       console.error("Magic Checkout Shipping Info Error:", e);
-      // Return safe fallback so checkout does not fail
+      // Return safe fallback with business rules (₹80 shipping, ₹50 COD)
       const fallbackAddresses = [
         {
           id: "0",
@@ -3126,20 +3200,20 @@ export const magicCheckoutShippingInfo = onRequest(
           cod: true,
           cod_serviceable: true,
           cod_available: true,
-          shipping_fee: 5000,
-          cod_fee: 0,
+          shipping_fee: 8000,
+          cod_fee: 5000,
           estimated_delivery_days: 3,
           shipping_methods: [
             {
               id: "standard_shipping",
               name: "Standard Delivery",
-              description: "Delivery within 3-5 business days",
+              description: "Delivery within 3-5 business days - Free above ₹450",
               serviceable: true,
-              shipping_fee: 5000,
+              shipping_fee: 8000,
               cod: true,
               cod_serviceable: true,
               cod_available: true,
-              cod_fee: 0,
+              cod_fee: 5000,
             },
           ],
         },
@@ -3150,21 +3224,9 @@ export const magicCheckoutShippingInfo = onRequest(
         cod: true,
         cod_serviceable: true,
         cod_available: true,
-        cod_fee: 0,
+        cod_fee: 5000,
         addresses: fallbackAddresses,
-        shipping_methods: [
-          {
-            id: "standard_shipping",
-            name: "Standard Delivery",
-            description: "Delivery within 3-5 business days",
-            serviceable: true,
-            shipping_fee: 5000,
-            cod: true,
-            cod_serviceable: true,
-            cod_available: true,
-            cod_fee: 0,
-          },
-        ],
+        shipping_methods: fallbackAddresses[0].shipping_methods,
         data: {
           addresses: fallbackAddresses,
         },
