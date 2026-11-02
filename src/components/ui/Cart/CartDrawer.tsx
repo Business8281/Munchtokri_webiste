@@ -214,35 +214,67 @@ export default function CartDrawer() {
                             showProtectionBar={false}
                         />
 
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setIsCartOpen(false);
-                                openMagicCheckout({ isCod: true });
-                            }}
-                            disabled={isMagicCheckoutLoading}
-                            style={{
-                                width: '100%',
-                                marginTop: '0.6rem',
-                                padding: '0.75rem 1rem',
-                                backgroundColor: '#ffffff',
-                                border: '2px solid #ef4444',
-                                borderRadius: '8px',
-                                color: '#ef4444',
-                                fontWeight: 700,
-                                fontSize: '0.88rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '0.5rem',
-                                cursor: isMagicCheckoutLoading ? 'not-allowed' : 'pointer',
-                                opacity: isMagicCheckoutLoading ? 0.7 : 1,
-                                transition: 'all 0.2s ease',
-                            }}
-                        >
-                            <Truck size={18} />
-                            Cash on Delivery (20% Advance Payment)
-                        </button>
+                        {/* Transparent COD Breakdown & Action */}
+                        {(() => {
+                            const codAdvance = Math.max(1, Math.round(cartTotal * 0.20 * 100) / 100);
+                            const codBalance = Math.max(0, Math.round((cartTotal - codAdvance) * 100) / 100);
+                            return (
+                                <>
+                                    <div style={{
+                                        margin: '0.65rem 0 0.35rem 0',
+                                        padding: '0.55rem 0.75rem',
+                                        backgroundColor: '#fff7ed',
+                                        border: '1px dashed #fb923c',
+                                        borderRadius: '8px',
+                                        fontSize: '0.78rem',
+                                        color: '#9a3412',
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, marginBottom: '0.2rem' }}>
+                                            <span>📦 Cash on Delivery Breakdown</span>
+                                            <span>Total: ₹{cartTotal.toFixed(2)}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ea580c', fontWeight: 600 }}>
+                                            <span>• 20% Advance Online:</span>
+                                            <span>₹{codAdvance.toFixed(2)}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#7c2d12', fontWeight: 600 }}>
+                                            <span>• 80% Cash on Delivery:</span>
+                                            <span>₹{codBalance.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsCartOpen(false);
+                                            openMagicCheckout({ isCod: true });
+                                        }}
+                                        disabled={isMagicCheckoutLoading}
+                                        style={{
+                                            width: '100%',
+                                            marginTop: '0.25rem',
+                                            padding: '0.75rem 1rem',
+                                            backgroundColor: '#ffffff',
+                                            border: '2px solid #ef4444',
+                                            borderRadius: '8px',
+                                            color: '#ef4444',
+                                            fontWeight: 700,
+                                            fontSize: '0.88rem',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '0.5rem',
+                                            cursor: isMagicCheckoutLoading ? 'not-allowed' : 'pointer',
+                                            opacity: isMagicCheckoutLoading ? 0.7 : 1,
+                                            transition: 'all 0.2s ease',
+                                        }}
+                                    >
+                                        <Truck size={18} />
+                                        Cash on Delivery (Pay ₹{codAdvance.toFixed(2)} Advance)
+                                    </button>
+                                </>
+                            );
+                        })()}
                     </div>
                 )}
             </div>

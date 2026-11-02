@@ -147,35 +147,66 @@ function CheckoutContent() {
                                 showProtectionBar={true}
                             />
 
-                            <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
-                                <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: '#64748b' }}>
+                            <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e2e8f0', textAlign: 'left' }}>
+                                <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: '#64748b', textAlign: 'center' }}>
                                     Prefer Cash on Delivery?
                                 </p>
-                                <button
-                                    type="button"
-                                    onClick={() => openMagicCheckout({ isCod: true })}
-                                    disabled={isLoading}
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '0.5rem',
-                                        width: '100%',
-                                        padding: '0.85rem 1rem',
-                                        backgroundColor: '#ffffff',
-                                        border: '2px solid #ef4444',
-                                        borderRadius: '8px',
-                                        color: '#ef4444',
-                                        fontWeight: 700,
-                                        fontSize: '0.9rem',
-                                        cursor: isLoading ? 'not-allowed' : 'pointer',
-                                        boxSizing: 'border-box',
-                                        transition: 'all 0.2s ease',
-                                    }}
-                                >
-                                    <Truck size={18} />
-                                    Cash on Delivery (20% Advance Payment)
-                                </button>
+                                {(() => {
+                                    const codAdvance = Math.max(1, Math.round(cartTotal * 0.20 * 100) / 100);
+                                    const codBalance = Math.max(0, Math.round((cartTotal - codAdvance) * 100) / 100);
+                                    return (
+                                        <>
+                                            <div style={{
+                                                margin: '0 0 0.6rem 0',
+                                                padding: '0.65rem 0.85rem',
+                                                backgroundColor: '#fff7ed',
+                                                border: '1px dashed #fb923c',
+                                                borderRadius: '8px',
+                                                fontSize: '0.82rem',
+                                                color: '#9a3412',
+                                            }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, marginBottom: '0.25rem' }}>
+                                                    <span>📦 COD Pricing Breakdown</span>
+                                                    <span>Total: ₹{cartTotal.toFixed(2)}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ea580c', fontWeight: 600 }}>
+                                                    <span>• 20% Advance Online:</span>
+                                                    <span>₹{codAdvance.toFixed(2)}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#7c2d12', fontWeight: 600 }}>
+                                                    <span>• 80% Cash on Delivery:</span>
+                                                    <span>₹{codBalance.toFixed(2)}</span>
+                                                </div>
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => openMagicCheckout({ isCod: true })}
+                                                disabled={isLoading}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '0.5rem',
+                                                    width: '100%',
+                                                    padding: '0.85rem 1rem',
+                                                    backgroundColor: '#ffffff',
+                                                    border: '2px solid #ef4444',
+                                                    borderRadius: '8px',
+                                                    color: '#ef4444',
+                                                    fontWeight: 700,
+                                                    fontSize: '0.9rem',
+                                                    cursor: isLoading ? 'not-allowed' : 'pointer',
+                                                    boxSizing: 'border-box',
+                                                    transition: 'all 0.2s ease',
+                                                }}
+                                            >
+                                                <Truck size={18} />
+                                                Cash on Delivery (Pay ₹{codAdvance.toFixed(2)} Advance)
+                                            </button>
+                                        </>
+                                    );
+                                })()}
                             </div>
 
                             <div className={styles.trustList}>

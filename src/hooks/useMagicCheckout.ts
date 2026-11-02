@@ -167,7 +167,7 @@ export function useMagicCheckout() {
                           quantity: displayQty,
                           baseWeight: 1,
                           category: 'Combos',
-                          variant: `${itemVariantDesc} • 20% Advance (Balance ₹${itemCodBalanceRupees.toFixed(2)} on COD)`,
+                          variant: `${itemVariantDesc} | Full: ₹${itemTotalRupees.toFixed(2)} (Advance ₹${(unitAdvanceRupees * displayQty).toFixed(2)} + Balance ₹${itemCodBalanceRupees.toFixed(2)} on COD)`,
                           imageURL: resolveImageUrl(item.imageURL),
                       };
                   })
