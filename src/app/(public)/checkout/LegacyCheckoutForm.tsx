@@ -4,13 +4,13 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, collection, query, where } from 'firebase/firestore';
 import { useOrders, useMembership, useCustomer, updateCustomerProfile } from '@/hooks/useFirestore';
 import { useCart } from '@/contexts/CartContext';
 import {
     Trash2, Plus, Minus, Zap, ShoppingBag, Truck, IndianRupee,
     Star, Coins, ShieldCheck, Loader2, Sparkles, ArrowRight,
-    Pencil, Calendar, CheckCircle2
+    Pencil, Calendar, CheckCircle2, Tag
 } from 'lucide-react';
 import { useNotification } from '@/contexts/NotificationContext';
 import {
@@ -172,7 +172,100 @@ export default function LegacyCheckoutForm() {
 
     // Address Book states
     const [useManualAddress, setUseManualAddress] = useState(false);
-    const [saveAddressToBook, setSaveAddressToBook] = useState(false);
+    const [saveAddressToBook, setSaveAddressToBook] = useState(true);
+
+    // Available coupons from Firestore
+    const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
+
+    useEffect(() => {
+        const q = query(collection(db, 'coupons'), where('status', '==', 'active'));
+        const unsub = onSnapshot(q, (snapshot) => {
+            const now = new Date();
+            const list = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
+                .filter((c: any) => {
+                    if (c.status !== 'active') return false;
+                    if (c.expiryDate) {
+                        const exp = c.expiryDate.toDate ? c.expiryDate.toDate() : new Date(c.expiryDate);
+                        if (now > exp) return false;
+                    }
+                    if (c.maxUses && (c.usedCount || 0) >= c.maxUses) return false;
+                    return true;
+                });
+            setAvailableCoupons(list);
+        }, (err) => {
+            console.error("Coupons fetch error:", err);
+        });
+        return () => unsub();
+    }, []);
+
+    // Auto-save address helper
+    const autoSaveAddress = useCallback(async () => {
+        if (!formData.address.trim() || !formData.pincode.trim()) return;
+
+        // Save locally for guest/returning customer prefill
+        try {
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('munch_saved_address', JSON.stringify({
+                    fullName: formData.fullName,
+                    email: formData.email,
+                    mobile: formData.mobile,
+                    address: formData.address,
+                    city: formData.city,
+                    state: formData.state,
+                    pincode: formData.pincode,
+                }));
+            }
+        } catch (_) {}
+
+        // Save to user's address book in Firestore if logged in
+        if (userId) {
+            try {
+                const existing = customerData?.addresses || [];
+                const isDuplicate = existing.some(
+                    a => a.address.trim().toLowerCase() === formData.address.trim().toLowerCase() &&
+                         a.pincode.trim() === formData.pincode.trim()
+                );
+                if (!isDuplicate) {
+                    const newAddress = {
+                        id: Date.now().toString(),
+                        label: existing.length === 0 ? 'Home' : 'Address ' + (existing.length + 1),
+                        fullName: formData.fullName,
+                        mobile: formData.mobile,
+                        address: formData.address,
+                        city: formData.city,
+                        state: formData.state,
+                        pincode: formData.pincode,
+                        isDefault: existing.length === 0,
+                    };
+                    await updateCustomerProfile(userId, { addresses: [...existing, newAddress] });
+                }
+            } catch (err) {
+                console.error("Auto-save address error:", err);
+            }
+        }
+    }, [formData, userId, customerData?.addresses]);
+
+    // Restore saved address from localStorage if form fields are empty
+    useEffect(() => {
+        try {
+            if (typeof window !== 'undefined') {
+                const saved = localStorage.getItem('munch_saved_address');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    setFormData(prev => ({
+                        ...prev,
+                        fullName: prev.fullName || parsed.fullName || '',
+                        email: prev.email || parsed.email || '',
+                        mobile: prev.mobile || parsed.mobile || '',
+                        address: prev.address || parsed.address || '',
+                        city: prev.city || parsed.city || '',
+                        state: prev.state || parsed.state || 'Karnataka',
+                        pincode: prev.pincode || parsed.pincode || '',
+                    }));
+                }
+            }
+        } catch (_) {}
+    }, []);
 
     // Fetch live config from Firestore settings (Real-time)
     useEffect(() => {
@@ -215,6 +308,8 @@ export default function LegacyCheckoutForm() {
                 });
                 return;
             }
+            // Automatically save address to Address Book
+            autoSaveAddress();
         }
         if (step < totalSteps) {
             const nextStep = step + 1;
@@ -433,29 +528,31 @@ export default function LegacyCheckoutForm() {
         pincode: formData.pincode,
     }), [formData]);
 
-    const handleApplyPromo = async () => {
+    const handleApplyPromo = async (codeOverride?: string) => {
+        const codeToTest = (codeOverride || promoCode).trim().toUpperCase();
         setPromoError('');
-        if (!promoCode.trim()) return;
+        if (!codeToTest) return;
         try {
             const { httpsCallable } = await import('firebase/functions');
             const { functions } = await import('@/lib/firebase');
             const validateCoupon = httpsCallable(functions, 'validateCoupon');
             const result = await validateCoupon({
-                code: promoCode.trim().toUpperCase(),
+                code: codeToTest,
                 subtotal: effectiveSubtotal,
             }) as { data: { valid: boolean; discountType: 'fixed' | 'percentage'; discountValue: number; minOrderValue: number } };
 
             const { discountType, discountValue, minOrderValue } = result.data;
-            setAppliedCoupon({ discountType, discountValue, minOrderValue });
+            setAppliedCoupon({ code: codeToTest, discountType, discountValue, minOrderValue });
+            setPromoCode(codeToTest);
 
             tracker.track('coupon_apply', {
-                code: promoCode.trim().toUpperCase(),
+                code: codeToTest,
                 discountType,
                 discountValue,
                 minOrderValue
             });
 
-            showNotification(`Coupon applied!`, 'success', {
+            showNotification(`Coupon ${codeToTest} applied!`, 'success', {
                 title: 'Discount Applied',
             });
         } catch (err: any) {
@@ -463,7 +560,7 @@ export default function LegacyCheckoutForm() {
             setPromoError(msg);
             setAppliedCoupon(null);
             tracker.track('coupon_error', {
-                code: promoCode.trim().toUpperCase(),
+                code: codeToTest,
                 message: msg
             });
             showNotification(msg, 'error', { title: 'Coupon Error' });
@@ -501,26 +598,9 @@ export default function LegacyCheckoutForm() {
             payment: isMagicDirect ? 'Razorpay Magic Checkout' : formData.paymentMethod,
         };
 
-        const isManualEntry = !customerData?.addresses || customerData.addresses.length === 0 || useManualAddress;
-
-        if (!isMagicDirect && isManualEntry && saveAddressToBook && userId) {
-            try {
-                const newAddress = {
-                    id: Date.now().toString(),
-                    label: 'Other',
-                    fullName: formData.fullName,
-                    mobile: formData.mobile,
-                    address: formData.address,
-                    city: formData.city,
-                    state: formData.state,
-                    pincode: formData.pincode,
-                    isDefault: (!customerData?.addresses || customerData.addresses.length === 0)
-                };
-                const newAddresses = [...(customerData?.addresses || []), newAddress];
-                await updateCustomerProfile(userId, { addresses: newAddresses });
-            } catch (error) {
-                console.error("Failed to save address to book:", error);
-            }
+        // Automatically save address to user's address book and local storage
+        if (!isMagicDirect) {
+            autoSaveAddress();
         }
 
         const isCodOrder = !isMagicDirect && formData.paymentMethod === 'Cash on Delivery (COD)';
@@ -910,17 +990,10 @@ export default function LegacyCheckoutForm() {
                                         </div>
                                     </div>
 
-                                    {userId && (!customerData?.addresses || customerData.addresses.length === 0 || useManualAddress) && (
-                                        <div style={{ marginTop: '0.5rem', gridColumn: '1 / -1' }}>
-                                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: '#000', fontSize: '0.9rem' }}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={saveAddressToBook}
-                                                    onChange={(e) => setSaveAddressToBook(e.target.checked)}
-                                                    style={{ width: '1rem', height: '1rem', accentColor: 'var(--primary)' }}
-                                                />
-                                                Save this address to my Address Book for future use
-                                            </label>
+                                    {(!customerData?.addresses || customerData.addresses.length === 0 || useManualAddress) && (
+                                        <div style={{ marginTop: '0.5rem', gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.85rem', backgroundColor: '#f0fdf4', borderRadius: '0.5rem', border: '1px solid #bbf7d0', color: '#166534', fontSize: '0.85rem', fontWeight: 600 }}>
+                                            <CheckCircle2 size={16} color="#16a34a" />
+                                            <span>This address will be automatically saved for future checkouts</span>
                                         </div>
                                     )}
                                 </>
@@ -1287,6 +1360,165 @@ export default function LegacyCheckoutForm() {
                             )}
                         </div>
 
+                        {/* ── Coupon & Promo Code Section ── */}
+                        <div style={{
+                            margin: '1rem 0 0.75rem',
+                            padding: '0.85rem',
+                            borderRadius: '0.75rem',
+                            backgroundColor: '#f8fafc',
+                            border: '1.5px solid #e2e8f0'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, fontSize: '0.85rem', color: '#1e293b' }}>
+                                    <Tag size={15} style={{ color: 'var(--primary, #0d9488)' }} />
+                                    <span>Coupons & Offers</span>
+                                </div>
+                                {appliedCoupon && (
+                                    <button
+                                        onClick={() => {
+                                            setAppliedCoupon(null);
+                                            setPromoCode('');
+                                            setDiscount(0);
+                                            showNotification('Coupon removed', 'info');
+                                        }}
+                                        style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            color: '#ef4444',
+                                            fontSize: '0.75rem',
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                            padding: 0
+                                        }}
+                                    >
+                                        Remove
+                                    </button>
+                                )}
+                            </div>
+
+                            {appliedCoupon ? (
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    padding: '0.6rem 0.75rem',
+                                    backgroundColor: '#dcfce7',
+                                    borderRadius: '0.5rem',
+                                    border: '1px solid #86efac',
+                                }}>
+                                    <div>
+                                        <span style={{ fontWeight: 800, color: '#166534', fontSize: '0.85rem' }}>
+                                            🎉 {appliedCoupon.code || promoCode}
+                                        </span>
+                                        <span style={{ marginLeft: '0.5rem', fontSize: '0.78rem', color: '#15803d' }}>
+                                            Saved ₹{discount.toFixed(2)}
+                                        </span>
+                                    </div>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#166534', backgroundColor: '#bbf7d0', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                                        APPLIED
+                                    </span>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                    <input
+                                        className={styles.promoInput}
+                                        placeholder="Enter coupon code"
+                                        type="text"
+                                        value={promoCode}
+                                        onChange={e => { setPromoCode(e.target.value.toUpperCase()); setPromoError(''); }}
+                                        onKeyDown={e => e.key === 'Enter' && handleApplyPromo()}
+                                        style={{
+                                            flex: 1,
+                                            textTransform: 'uppercase',
+                                            fontSize: '0.85rem',
+                                            padding: '0.55rem 0.75rem',
+                                            backgroundColor: '#ffffff'
+                                        }}
+                                    />
+                                    <button
+                                        className={styles.promoBtn}
+                                        onClick={() => handleApplyPromo()}
+                                        style={{
+                                            padding: '0.55rem 1rem',
+                                            fontSize: '0.82rem',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Apply
+                                    </button>
+                                </div>
+                            )}
+
+                            {promoError && (
+                                <p style={{ color: '#ef4444', fontSize: '0.78rem', margin: '0.35rem 0 0', paddingLeft: '0.15rem' }}>
+                                    {promoError}
+                                </p>
+                            )}
+
+                            {/* Available Coupons clickable list */}
+                            {availableCoupons.length > 0 && !appliedCoupon && (
+                                <div style={{ marginTop: '0.75rem', paddingTop: '0.6rem', borderTop: '1px dashed #cbd5e1' }}>
+                                    <p style={{ margin: '0 0 0.45rem', fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                        Available Coupons (Tap to Apply):
+                                    </p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: '180px', overflowY: 'auto' }}>
+                                        {availableCoupons.map((c) => {
+                                            const isEligible = effectiveSubtotal >= (c.minOrderValue || 0);
+                                            return (
+                                                <div
+                                                    key={c.id || c.code}
+                                                    onClick={() => {
+                                                        if (isEligible) {
+                                                            handleApplyPromo(c.code);
+                                                        }
+                                                    }}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'space-between',
+                                                        padding: '0.45rem 0.6rem',
+                                                        borderRadius: '0.4rem',
+                                                        border: isEligible ? '1px solid #99f6e4' : '1px solid #e2e8f0',
+                                                        backgroundColor: isEligible ? '#ffffff' : '#f8fafc',
+                                                        cursor: isEligible ? 'pointer' : 'not-allowed',
+                                                        transition: 'all 0.15s ease',
+                                                        opacity: isEligible ? 1 : 0.65,
+                                                    }}
+                                                >
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                                                        <span style={{
+                                                            fontWeight: 800,
+                                                            fontSize: '0.75rem',
+                                                            color: isEligible ? '#0f766e' : '#94a3b8',
+                                                            backgroundColor: isEligible ? '#ccfbf1' : '#e2e8f0',
+                                                            padding: '0.15rem 0.4rem',
+                                                            borderRadius: '4px',
+                                                            border: isEligible ? '1px dashed #0d9488' : '1px dashed #cbd5e1',
+                                                        }}>
+                                                            {c.code}
+                                                        </span>
+                                                        <span style={{ fontSize: '0.75rem', color: '#334155', fontWeight: 500 }}>
+                                                            {c.discountType === 'percentage' ? `${c.discountValue}% OFF` : `₹${c.discountValue} OFF`}
+                                                            {c.minOrderValue > 0 && ` (Min ₹${c.minOrderValue})`}
+                                                        </span>
+                                                    </div>
+                                                    {isEligible ? (
+                                                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--primary, #0d9488)' }}>
+                                                            APPLY →
+                                                        </span>
+                                                    ) : (
+                                                        <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+                                                            Add ₹{(c.minOrderValue - effectiveSubtotal).toFixed(0)}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         {/* Price Breakdown */}
                         <div className={styles.priceBreakdown}>
                             {renderPriceRow('Subtotal', cartTotal, <ShoppingBag size={14} />, undefined, false, false)}
@@ -1306,7 +1538,7 @@ export default function LegacyCheckoutForm() {
                             )}
 
                             {membershipDiscount > 0 && renderPriceRow(`Club Discount (${membershipDiscountPct}%)`, membershipDiscount, <Star size={14} />, 'var(--primary)', true, true)}
-                            {discount > 0 && renderPriceRow('Promo Code', discount, <Zap size={14} />, '#16a34a', true, true)}
+                            {discount > 0 && renderPriceRow(`Coupon (${appliedCoupon?.code || promoCode})`, discount, <Zap size={14} />, '#16a34a', true, true)}
                             {redeemDiscount > 0 && renderPriceRow(`${pointsToRedeem === 1 ? 'Coin' : 'Coins'} Redeemed`, redeemDiscount, <Coins size={14} />, '#eb5a3c', true, true)}
 
                             {renderPriceRow('Shipping', (shippingCost === 0 ? <span className={styles.freeText}>FREE</span> : shippingCost), <Truck size={14} />)}
@@ -1342,22 +1574,9 @@ export default function LegacyCheckoutForm() {
                             )}
                         </div>
 
-                        <div className={styles.trustIndicators}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center', textAlign: 'center', padding: '1rem', background: '#f8fafc', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <span style={{ color: '#16a34a', fontSize: '1.2rem' }}>🔒</span>
-                                    <h4 style={{ margin: 0, fontWeight: 'bold' }}>100% Secure Checkout</h4>
-                                </div>
-                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#000' }}>256-bit encryption • Verified by Razorpay</p>
-                            </div>
-                            <div className={styles.returnPolicy}>
-                                <span>ℹ️</span> Free returns within 7 days of delivery
-                            </div>
-                        </div>
-
                         {/* Redemption Section */}
                         {customerData && (customerData.loyaltyPoints || 0) > 0 && (
-                            <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#f0fdf4', borderRadius: '0.75rem', border: '1px solid #bbf7d0' }}>
+                            <div style={{ marginTop: '1rem', marginBottom: '0.5rem', padding: '1rem', backgroundColor: '#f0fdf4', borderRadius: '0.75rem', border: '1px solid #bbf7d0' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                                     <Zap size={16} fill="var(--primary)" color="var(--primary)" />
                                     <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem', color: '#166534' }}>
@@ -1415,30 +1634,18 @@ export default function LegacyCheckoutForm() {
                             </div>
                         )}
 
-                        {/* Promo Code */}
-                        <div className={styles.promoCodeArea}>
-                            <input
-                                className={styles.promoInput}
-                                placeholder="Promo code"
-                                type="text"
-                                value={promoCode}
-                                onChange={e => { setPromoCode(e.target.value); setPromoError(''); }}
-                                onKeyDown={e => e.key === 'Enter' && handleApplyPromo()}
-                            />
-                            <button className={styles.promoBtn} onClick={handleApplyPromo}>
-                                Apply
-                            </button>
+                        <div className={styles.trustIndicators}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center', textAlign: 'center', padding: '1rem', background: '#f8fafc', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span style={{ color: '#16a34a', fontSize: '1.2rem' }}>🔒</span>
+                                    <h4 style={{ margin: 0, fontWeight: 'bold' }}>100% Secure Checkout</h4>
+                                </div>
+                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#000' }}>256-bit encryption • Verified by Razorpay</p>
+                            </div>
+                            <div className={styles.returnPolicy}>
+                                <span>ℹ️</span> Free returns within 7 days of delivery
+                            </div>
                         </div>
-                        {promoError && (
-                            <p style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', paddingLeft: '0.25rem' }}>
-                                {promoError}
-                            </p>
-                        )}
-                        {discount > 0 && (
-                            <p style={{ color: '#16a34a', fontSize: '0.8rem', marginTop: '0.25rem', paddingLeft: '0.25rem' }}>
-                                ✓ Coupon applied — saving ₹{discount.toFixed(2)}
-                            </p>
-                        )}
                     </div>
                 </aside>
             </div>

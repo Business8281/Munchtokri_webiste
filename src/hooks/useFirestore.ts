@@ -735,5 +735,5 @@ export const updateCustomerProfile = async (
     uid: string,
     data: Partial<Customer>
 ): Promise<void> => {
-    await updateDoc(doc(defaultDb, 'customers', uid), data);
+    await setDoc(doc(defaultDb, 'customers', uid), data, { merge: true });
 };
