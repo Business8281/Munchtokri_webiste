@@ -924,34 +924,34 @@ export default function LegacyCheckoutForm() {
 
     return (
         <div className={styles.checkoutContainer}>
-            <div className={styles.grid}>
-                {/* Left Column */}
-                <div className={styles.mainContent}>
-                    {/* Stepper */}
-                    <nav className={styles.stepperNav}>
-                        {stepNames.map((label, i) => (
-                            <div
-                                key={label}
-                                className={`${styles.step} ${step >= i + 1 ? styles.stepActive : ''}`}
-                                onClick={() => {
-                                    if (step > i + 1) setStep(i + 1);
-                                }}
-                                style={{ cursor: step > i + 1 ? 'pointer' : 'default' }}
-                            >
-                                <span
-                                    className={`${styles.stepIcon} ${step >= i + 1 ? styles.stepIconActive : ''}`}
-                                >
-                                    {i + 1}
-                                </span>
-                                <span
-                                    className={`${styles.stepLabel} ${step >= i + 1 ? styles.stepLabelActive : ''}`}
-                                >
-                                    {label}
-                                </span>
-                            </div>
-                        ))}
-                    </nav>
+            {/* Stepper Navigation */}
+            <nav className={styles.stepperNav} style={{ marginBottom: '1.5rem' }}>
+                {stepNames.map((label, i) => (
+                    <div
+                        key={label}
+                        className={`${styles.step} ${step >= i + 1 ? styles.stepActive : ''}`}
+                        onClick={() => {
+                            if (step > i + 1) setStep(i + 1);
+                        }}
+                        style={{ cursor: step > i + 1 ? 'pointer' : 'default' }}
+                    >
+                        <span
+                            className={`${styles.stepIcon} ${step >= i + 1 ? styles.stepIconActive : ''}`}
+                        >
+                            {i + 1}
+                        </span>
+                        <span
+                            className={`${styles.stepLabel} ${step >= i + 1 ? styles.stepLabelActive : ''}`}
+                        >
+                            {label}
+                        </span>
+                    </div>
+                ))}
+            </nav>
 
+            <div className={styles.grid}>
+                {/* Left Column (Address in Step 1, Review & Payment in Step 2) */}
+                <div className={styles.mainContent}>
                     {/* Step 1: Shipping & Delivery */}
                     {step === 1 && (
                         <section style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
