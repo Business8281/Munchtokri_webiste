@@ -827,15 +827,15 @@ async function generateOrderPDF(
   doc.autoTable({
     startY: finalY + (isCodOrder && advancePaid > 0 ? 50 : 36),
     margin: { left: 20, right: 20 },
-    body: isCodOrder
-      ? [
+    body: isCodOrder ?
+      [
           ["Payment Method", "Cash on Delivery (20% Advance Paid)"],
           ["20% Advance Payment", `Rs. ${advancePaid.toFixed(2)} (Paid Online via Razorpay)`],
           ["Remaining Balance on Delivery", `Rs. ${codBalance.toFixed(2)} (To be collected by Courier)`],
           ["Delivery Courier", `${order.courierName || "Velocity Express"}${order.velocityAWB ? ` (AWB: ${order.velocityAWB})` : ""}`],
           ["Customer Contact", `${order.shippingDetails?.mobile || "N/A"}${order.customerEmail ? ` • ${order.customerEmail}` : ""}`],
-        ]
-      : [
+        ] :
+      [
           ["Payment Method", order.method?.payment || "Online Payment (Prepaid)"],
           ["Payment Status", "Paid in Full"],
           ["Delivery Courier", `${order.courierName || "Velocity Express"}${order.velocityAWB ? ` (AWB: ${order.velocityAWB})` : ""}`],
@@ -1619,9 +1619,9 @@ export const createPayOrder = onCall(
           const itemName = String(item.name || `Snack Item ${idx + 1}`).trim();
 
           const rawImg = item.imageURL || item.imageUrl || "";
-          const imgUrl = rawImg.startsWith("http")
-            ? rawImg
-            : (rawImg.startsWith("/") ? `https://munchtokri.com${rawImg}` : "https://munchtokri.com/logo.png");
+          const imgUrl = rawImg.startsWith("http") ?
+            rawImg :
+            (rawImg.startsWith("/") ? `https://munchtokri.com${rawImg}` : "https://munchtokri.com/logo.png");
 
           return {
             sku: String(item.productId || item.id || `item_${idx + 1}`),
