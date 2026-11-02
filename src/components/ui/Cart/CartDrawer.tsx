@@ -3,7 +3,7 @@
 import React, { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { X, Trash2, Plus, Minus, ShoppingBag, Pencil } from 'lucide-react';
+import { X, Trash2, Plus, Minus, ShoppingBag, Pencil, Truck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import Button from '../Button/Button';
@@ -209,10 +209,38 @@ export default function CartDrawer() {
                                 setIsCartOpen(false);
                                 openMagicCheckout();
                             }}
-                            buttonText="Checkout"
+                            buttonText="Pay Now with Magic Checkout"
                             loading={isMagicCheckoutLoading}
                             showProtectionBar={false}
                         />
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setIsCartOpen(false);
+                                router.push('/checkout?legacy=true&method=cod');
+                            }}
+                            style={{
+                                width: '100%',
+                                marginTop: '0.6rem',
+                                padding: '0.75rem 1rem',
+                                backgroundColor: '#ffffff',
+                                border: '2px solid #ef4444',
+                                borderRadius: '8px',
+                                color: '#ef4444',
+                                fontWeight: 700,
+                                fontSize: '0.88rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.5rem',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                            }}
+                        >
+                            <Truck size={18} />
+                            Cash on Delivery (Pay 20% Advance)
+                        </button>
                     </div>
                 )}
             </div>

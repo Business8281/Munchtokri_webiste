@@ -1326,7 +1326,13 @@ export const createVelocityOrder = onCall(
       const isCod =
         order.method?.payment === "COD" ||
         order.method?.payment === "Cash on Delivery (COD)" ||
+        order.method?.payment?.includes("Cash on Delivery") ||
+        order.paymentDetails?.isCod === true ||
         String(order.paymentDetails?.method || "").toLowerCase().includes("cod");
+
+      const codBalanceToCollect = order.paymentDetails?.codBalance != null
+        ? Number(order.paymentDetails.codBalance)
+        : orderAmount;
 
       const velocityOrder = {
         order_id: order.orderNumber || orderId,
@@ -1361,7 +1367,7 @@ export const createVelocityOrder = onCall(
         }),
         payment_method: isCod ? "COD" : "PREPAID",
         sub_total: orderAmount,
-        cod_collectible: isCod ? orderAmount : 0,
+        cod_collectible: isCod ? codBalanceToCollect : 0,
         length: 10,
         breadth: 10,
         height: 10,

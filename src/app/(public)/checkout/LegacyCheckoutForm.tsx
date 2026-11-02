@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
@@ -39,6 +39,8 @@ const loadScript = (src: string): Promise<boolean> =>
 
 export default function LegacyCheckoutForm() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const isCodParam = searchParams?.get('method') === 'cod';
     const [step, setStep] = useState(1);
     const [userId, setUserId] = useState<string | null>(null);
     const { addOrder } = useOrders();
@@ -59,7 +61,7 @@ export default function LegacyCheckoutForm() {
         address: '',
         city: '',
         state: 'Karnataka',
-        paymentMethod: 'UPI / QR',
+        paymentMethod: isCodParam ? 'Cash on Delivery (COD)' : 'UPI / QR',
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -358,6 +360,18 @@ export default function LegacyCheckoutForm() {
     const orderTotal = Math.round((discountedValue + shippingCost + codFee + totalTax) * 100) / 100;
     const orderTotalStr = `₹${orderTotal.toFixed(2)}`;
 
+    // 20% Advance Calculation for Cash on Delivery (COD)
+    const isCod = formData.paymentMethod === 'Cash on Delivery (COD)';
+    const advanceAmount = useMemo(() => {
+        if (!isCod) return orderTotal;
+        return Math.max(1, Math.round(orderTotal * 0.20 * 100) / 100);
+    }, [isCod, orderTotal]);
+
+    const codBalance = useMemo(() => {
+        if (!isCod) return 0;
+        return Math.max(0, Math.round((orderTotal - advanceAmount) * 100) / 100);
+    }, [isCod, orderTotal, advanceAmount]);
+
     const buildOrderItems = useCallback(() =>
         cartItems.map(item => {
             let realProductId = item.productId || item.id;
@@ -483,49 +497,10 @@ export default function LegacyCheckoutForm() {
             }
         }
 
-        if (!isMagicDirect && formData.paymentMethod === 'Cash on Delivery (COD)') {
-            try {
-                const result = await addOrder({
-                    userId: userId || undefined,
-                    customerName: formData.fullName || 'Guest',
-                    customerEmail: formData.email,
-                    status: 'Processing',
-                    amount: orderTotalStr,
-                    shippingDetails,
-                    method: methodDetails,
-                    items: items as never,
-                    date: null,
-                    codPrice: codFee > 0 ? codFee : undefined,
-                    couponCode: discount > 0 ? promoCode.trim().toUpperCase() : undefined,
-                    discount: discount > 0 ? discount : undefined,
-                    membershipDiscount: membershipDiscount > 0 ? membershipDiscount : undefined,
-                    earnedPoints: earnedPoints,
-                    redeemedPoints: redeemDiscount > 0 ? pointsToRedeem : undefined,
-                    redeemDiscount: redeemDiscount > 0 ? redeemDiscount : undefined,
-                });
+        const isCodOrder = !isMagicDirect && formData.paymentMethod === 'Cash on Delivery (COD)';
+        const amountToCharge = isCodOrder ? advanceAmount : orderTotal;
 
-                isOrderPlacedRef.current = true;
-                tracker.track('purchase_complete', {
-                    orderNumber: result.orderNumber,
-                    amount: orderTotal,
-                    paymentMethod: 'Cash on Delivery (COD)',
-                    isCod: true,
-                    itemCount: items.length
-                });
-
-                clearCart();
-                router.push(`/checkout/success?orderNumber=${result.orderNumber}`);
-            } catch (err) {
-                console.error('Failed to place COD order:', err);
-                showNotification('Failed to place order. Please try again.', 'error', {
-                    title: 'Order Error',
-                });
-                setIsSubmitting(false);
-            }
-            return;
-        }
-
-        // ── Online Payment (Razorpay Magic Checkout) ─────────────────────────
+        // ── Online Payment (Full Online or 20% Advance for COD via Razorpay) ─────────────────────────
         try {
             const loaded =
                 (await loadScript('https://checkout.razorpay.com/v1/magic-checkout.js')) ||
@@ -542,7 +517,7 @@ export default function LegacyCheckoutForm() {
             const { functions } = await import('@/lib/firebase');
 
             const createPayOrder = httpsCallable(functions, 'createPayOrder');
-            const response = await createPayOrder({ amount: orderTotal }) as {
+            const response = await createPayOrder({ amount: amountToCharge }) as {
                 data: { success: boolean; order?: { id: string; amount: number; currency: string }; message?: string };
             };
 
@@ -571,7 +546,9 @@ export default function LegacyCheckoutForm() {
                 amount: orderData.order.amount,
                 currency: orderData.order.currency,
                 name: 'Munch Tokri',
-                description: 'Order Payment',
+                description: isCodOrder 
+                    ? `20% Advance Payment for COD Order (Balance ₹${codBalance.toFixed(2)} on delivery)` 
+                    : 'Order Payment',
                 order_id: orderData.order.id,
                 one_click_checkout: true,
                 handler: async (razorpayResponse: {
@@ -590,8 +567,8 @@ export default function LegacyCheckoutForm() {
 
                         if (verifyResult.data?.status !== 'success') {
                             tracker.track('payment_failure', {
-                                paymentMethod: 'UPI / QR',
-                                amount: orderTotal,
+                                paymentMethod: isCodOrder ? 'Cash on Delivery (20% Advance)' : 'UPI / QR',
+                                amount: amountToCharge,
                                 errorReason: 'Backend signature verification failed'
                             });
                             showNotification(
@@ -604,8 +581,8 @@ export default function LegacyCheckoutForm() {
                         }
 
                         tracker.track('payment_success', {
-                            paymentMethod: 'UPI / QR',
-                            amount: orderTotal,
+                            paymentMethod: isCodOrder ? 'Cash on Delivery (20% Advance)' : 'UPI / QR',
+                            amount: amountToCharge,
                             razorpayOrderId: razorpayResponse.razorpay_order_id,
                             razorpayPaymentId: razorpayResponse.razorpay_payment_id
                         });
@@ -618,7 +595,10 @@ export default function LegacyCheckoutForm() {
                             status: 'Processing',
                             amount: orderTotalStr,
                             shippingDetails,
-                            method: methodDetails,
+                            method: {
+                                ...methodDetails,
+                                payment: isCodOrder ? 'Cash on Delivery (20% Advance Paid)' : methodDetails.payment,
+                            },
                             items: items as never,
                             date: null,
                             codPrice: codFee > 0 ? codFee : undefined,
@@ -632,6 +612,10 @@ export default function LegacyCheckoutForm() {
                                 razorpayOrderId: razorpayResponse.razorpay_order_id,
                                 razorpayPaymentId: razorpayResponse.razorpay_payment_id,
                                 razorpaySignature: razorpayResponse.razorpay_signature,
+                                method: isCodOrder ? 'cod' : 'online',
+                                isCod: isCodOrder,
+                                advancePaid: isCodOrder ? advanceAmount : orderTotal,
+                                codBalance: isCodOrder ? codBalance : 0,
                             },
                         });
 
@@ -639,8 +623,8 @@ export default function LegacyCheckoutForm() {
                         tracker.track('purchase_complete', {
                             orderNumber: result.orderNumber,
                             amount: orderTotal,
-                            paymentMethod: 'UPI / QR',
-                            isCod: false,
+                            paymentMethod: isCodOrder ? 'Cash on Delivery (COD)' : 'UPI / QR',
+                            isCod: isCodOrder,
                             itemCount: items.length
                         });
 
@@ -956,24 +940,58 @@ export default function LegacyCheckoutForm() {
                         <section style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                             <div className={styles.sectionHeader}>
                                 <h2>Payment Method</h2>
-                                <p>Select how you would like to pay.</p>
+                                <p>Select how you would like to pay for your snacks.</p>
                             </div>
                             <div className={styles.formGrid}>
-                                {(['UPI / QR', 'Cash on Delivery (COD)'] as const)
+                                {(['Cash on Delivery (COD)', 'UPI / QR'] as const)
                                     .filter(method => method !== 'Cash on Delivery (COD)' || storeSettings?.enableCOD !== false)
-                                    .map(method => (
-                                        <div key={method} className={styles.inputGroupFull} style={{ padding: '1rem', border: formData.paymentMethod === method ? '2px solid var(--primary)' : '1px solid #e2e8f0', borderRadius: '0.5rem', cursor: 'pointer' }}>
-                                            <label style={{ display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer', margin: 0 }}>
-                                                <input type="radio" name="paymentMethod" value={method} checked={formData.paymentMethod === method} onChange={handleInputChange} style={{ width: '1.25rem', height: '1.25rem', accentColor: 'var(--primary)' }} />
-                                                <div>
-                                                    <h4 style={{ margin: 0, fontWeight: 700 }}>{method}</h4>
-                                                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: '#000' }}>
-                                                        {method === 'UPI / QR' ? 'Pay via Google Pay, PhonePe, Paytm & more' : 'Pay when you receive the order 30Rs Shipping fee will be added'}
-                                                    </p>
-                                                </div>
-                                            </label>
-                                        </div>
-                                    ))}
+                                    .map(method => {
+                                        const isThisCod = method === 'Cash on Delivery (COD)';
+                                        const isSelected = formData.paymentMethod === method;
+                                        return (
+                                            <div 
+                                                key={method} 
+                                                className={styles.inputGroupFull} 
+                                                onClick={() => setFormData(prev => ({ ...prev, paymentMethod: method }))}
+                                                style={{ 
+                                                    padding: '1.25rem', 
+                                                    border: isSelected ? '2px solid var(--primary, #ef4444)' : '1px solid #e2e8f0', 
+                                                    borderRadius: '0.75rem', 
+                                                    cursor: 'pointer',
+                                                    backgroundColor: isSelected ? '#fef2f2' : '#ffffff',
+                                                    transition: 'all 0.2s ease',
+                                                }}
+                                            >
+                                                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', cursor: 'pointer', margin: 0 }}>
+                                                    <input 
+                                                        type="radio" 
+                                                        name="paymentMethod" 
+                                                        value={method} 
+                                                        checked={isSelected} 
+                                                        onChange={handleInputChange} 
+                                                        style={{ width: '1.25rem', height: '1.25rem', accentColor: 'var(--primary, #ef4444)', marginTop: '0.2rem' }} 
+                                                    />
+                                                    <div style={{ flex: 1 }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                                            <h4 style={{ margin: 0, fontWeight: 700, fontSize: '1rem', color: isSelected ? '#b91c1c' : '#1e293b' }}>
+                                                                {isThisCod ? 'Cash on Delivery (COD)' : 'Full Online Payment (UPI / Cards / NetBanking)'}
+                                                            </h4>
+                                                            {isThisCod && (
+                                                                <span style={{ fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#fee2e2', color: '#b91c1c', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                                                                    20% Advance Online
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <p style={{ margin: '0.4rem 0 0', fontSize: '0.875rem', color: '#475569', lineHeight: 1.4 }}>
+                                                            {isThisCod 
+                                                                ? `Pay 20% advance (₹${advanceAmount.toFixed(2)}) online now to confirm your order. The remaining 80% (₹${codBalance.toFixed(2)}) is payable in cash upon doorstep delivery.` 
+                                                                : `Pay 100% (₹${orderTotal.toFixed(2)}) instantly online via Google Pay, PhonePe, Paytm, UPI, Cards, or NetBanking.`}
+                                                        </p>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        );
+                                    })}
                             </div>
                             <div className={styles.actions} style={{ display: 'flex', gap: '1rem' }}>
                                 <button className={styles.submitBtn} style={{ backgroundColor: 'transparent', color: 'var(--primary)', border: '2px solid var(--primary)' }} onClick={() => setStep(2)}>Back</button>
@@ -1002,7 +1020,12 @@ export default function LegacyCheckoutForm() {
                                 </div>
                                 <div style={{ backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
                                     <h4 style={{ margin: '0 0 0.5rem', borderBottom: '1px solid #cbd5e1', paddingBottom: '0.5rem' }}>Payment</h4>
-                                    <p style={{ margin: 0, color: '#000' }}>{formData.paymentMethod}</p>
+                                    <p style={{ margin: 0, color: '#000', fontWeight: 700 }}>{formData.paymentMethod}</p>
+                                    {isCod && (
+                                        <p style={{ margin: '0.35rem 0 0', fontSize: '0.85rem', color: '#b91c1c', fontWeight: 600 }}>
+                                            ₹{advanceAmount.toFixed(2)} (20%) payable now • ₹{codBalance.toFixed(2)} on delivery
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                             <div className={styles.actions} style={{ display: 'flex', gap: '1rem' }}>
@@ -1010,8 +1033,10 @@ export default function LegacyCheckoutForm() {
                                 <button className={styles.submitBtn} onClick={() => handlePlaceOrder(false)} disabled={isSubmitting}>
                                     {isSubmitting ? (
                                         <><Loader2 className="animate-spin" size={18} /> Processing...</>
+                                    ) : isCod ? (
+                                        <><ShieldCheck size={18} /> Pay ₹{advanceAmount.toFixed(2)} (20% Advance) & Confirm COD</>
                                     ) : (
-                                        <><ShieldCheck size={18} /> Place Order</>
+                                        <><ShieldCheck size={18} /> Pay ₹{orderTotal.toFixed(2)} & Place Order</>
                                     )}
                                 </button>
                             </div>
@@ -1145,6 +1170,19 @@ export default function LegacyCheckoutForm() {
                                 </div>
                                 <span>₹{orderTotal.toFixed(2)}</span>
                             </div>
+
+                            {isCod && (
+                                <div style={{ marginTop: '0.75rem', padding: '0.75rem', backgroundColor: '#fef2f2', borderRadius: '0.5rem', border: '1px solid #fecaca' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontWeight: 700, color: '#b91c1c', marginBottom: '0.25rem' }}>
+                                        <span>20% Advance to Pay Now:</span>
+                                        <span>₹{advanceAmount.toFixed(2)}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#4b5563' }}>
+                                        <span>Remaining on Delivery (COD):</span>
+                                        <span style={{ fontWeight: 600 }}>₹{codBalance.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            )}
 
                             {earnedPoints > 0 && (
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: 'var(--primary-light, #f0fdfa)', padding: '0.5rem', borderRadius: '0.5rem', marginTop: '0.5rem', border: '1px solid rgba(0, 128, 128, 0.1)' }}>

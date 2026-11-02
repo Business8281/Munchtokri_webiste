@@ -111,6 +111,11 @@ export interface Order {
         razorpayOrderId?: string;
         razorpayPaymentId?: string;
         razorpaySignature?: string;
+        method?: string;
+        isCod?: boolean;
+        advancePaid?: number;
+        codBalance?: number;
+        [key: string]: any;
     };
     shiprocketOrderId?: string;
     shiprocketShipmentId?: string;

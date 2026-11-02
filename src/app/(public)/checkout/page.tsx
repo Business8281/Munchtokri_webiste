@@ -22,9 +22,9 @@ import styles from './magicCheckoutPage.module.css';
 
 function CheckoutContent() {
     const searchParams = useSearchParams();
-    const isLegacy = searchParams.get('legacy') === 'true';
+    const isLegacy = searchParams.get('legacy') === 'true' || searchParams.get('method') === 'cod';
 
-    // If explicit legacy query param requested, render the preserved legacy 4-step wizard
+    // If explicit legacy query param or COD requested, render the preserved legacy checkout wizard
     if (isLegacy) {
         return <LegacyCheckoutForm />;
     }
@@ -151,6 +151,35 @@ function CheckoutContent() {
                                 loading={isLoading}
                                 showProtectionBar={true}
                             />
+
+                            <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
+                                <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: '#64748b' }}>
+                                    Prefer Cash on Delivery?
+                                </p>
+                                <Link
+                                    href="/checkout?legacy=true&method=cod"
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.5rem',
+                                        width: '100%',
+                                        padding: '0.75rem 1rem',
+                                        backgroundColor: '#ffffff',
+                                        border: '2px solid #ef4444',
+                                        borderRadius: '8px',
+                                        color: '#ef4444',
+                                        fontWeight: 700,
+                                        fontSize: '0.9rem',
+                                        textDecoration: 'none',
+                                        boxSizing: 'border-box',
+                                        transition: 'all 0.2s ease',
+                                    }}
+                                >
+                                    <Truck size={18} />
+                                    Order with Cash on Delivery (Pay 20% Advance)
+                                </Link>
+                            </div>
 
                             <div className={styles.trustList}>
                                 <div className={styles.trustItem}>
