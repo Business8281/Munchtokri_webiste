@@ -12,10 +12,12 @@ import { auth, db, googleProvider } from '@/lib/firebase';
 import Button from '@/components/ui/Button/Button';
 import styles from './auth.module.css';
 
-export default function LoginPage() {
+function LoginContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const redirect = searchParams.get('redirect');
+    const targetEmail = searchParams.get('email');
+    const orderNumber = searchParams.get('orderNumber');
     const [loading, setLoading] = useState(false);
 
     const handleGoogleLogin = async () => {
@@ -40,7 +42,12 @@ export default function LoginPage() {
                     // Use merge: true to avoid overwriting existing stats
                 }, { merge: true });
 
-                toast.success('Welcome to Munch Tokri!', { id: loginToast });
+                if (targetEmail && user.email.toLowerCase() !== targetEmail.toLowerCase()) {
+                    toast.error(`Logged in as ${user.email}. Notice: Your order was placed under ${targetEmail}.`, { duration: 7000 });
+                } else {
+                    toast.success('Welcome to Munch Tokri!', { id: loginToast });
+                }
+
                 setTimeout(() => router.push(redirect || '/'), 1000);
             } else {
                 throw new Error("No mail found associated with your Google account.");
@@ -89,6 +96,25 @@ export default function LoginPage() {
                     </div>
                 </div>
 
+                {targetEmail && (
+                    <div style={{
+                        backgroundColor: '#fffbeb',
+                        border: '1.5px solid #fde68a',
+                        borderRadius: '0.75rem',
+                        padding: '0.85rem 1rem',
+                        marginBottom: '1.25rem',
+                        textAlign: 'left',
+                        fontSize: '0.88rem',
+                        color: '#78350f',
+                        lineHeight: 1.45
+                    }}>
+                        <div style={{ fontWeight: 700, color: '#92400e', marginBottom: '0.25rem' }}>
+                            📦 Link Your Order {orderNumber ? `#${orderNumber}` : ''}
+                        </div>
+                        Please sign in with <strong>{targetEmail}</strong> so your recent order, live tracking, and tax invoice are available in your dashboard.
+                    </div>
+                )}
+
                 <div className={styles.socialAuth}>
                     <Button
                         onClick={handleGoogleLogin}
@@ -124,7 +150,7 @@ export default function LoginPage() {
                                 <path fill="none" d="M1 1h22v22H1z" />
                             </svg>
                         )}
-                        <span>{loading ? 'Verifying Access...' : 'Continue with Google'}</span>
+                        <span>{loading ? 'Verifying Access...' : targetEmail ? `Continue with Google (${targetEmail})` : 'Continue with Google'}</span>
                     </Button>
                 </div>
 
@@ -170,5 +196,13 @@ export default function LoginPage() {
                 }}
             />
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <React.Suspense fallback={<div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>}>
+            <LoginContent />
+        </React.Suspense>
     );
 }

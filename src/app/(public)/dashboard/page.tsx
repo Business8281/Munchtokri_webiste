@@ -189,7 +189,7 @@ function DashboardContent() {
             if (currentUser) {
                 setUser(currentUser);
             } else {
-                router.push('/login');
+                router.push('/login?redirect=/dashboard');
             }
             setLoading(false);
         });
