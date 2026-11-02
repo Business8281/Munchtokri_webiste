@@ -218,8 +218,9 @@ export default function CartDrawer() {
                             type="button"
                             onClick={() => {
                                 setIsCartOpen(false);
-                                router.push('/checkout?legacy=true&method=cod');
+                                openMagicCheckout({ isCod: true });
                             }}
+                            disabled={isMagicCheckoutLoading}
                             style={{
                                 width: '100%',
                                 marginTop: '0.6rem',
@@ -234,7 +235,8 @@ export default function CartDrawer() {
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 gap: '0.5rem',
-                                cursor: 'pointer',
+                                cursor: isMagicCheckoutLoading ? 'not-allowed' : 'pointer',
+                                opacity: isMagicCheckoutLoading ? 0.7 : 1,
                                 transition: 'all 0.2s ease',
                             }}
                         >

@@ -224,63 +224,132 @@ export const useReviews = (productId: string) => {
 
 // ── useOrders ──────────────────────────────────────────────────────────────
 
-export const useOrders = (userId?: string | null, isAdmin: boolean = false) => {
+export const useOrders = (userId?: string | null, isAdmin: boolean = false, userEmail?: string | null) => {
     const { db } = useFirebase();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        // Reset states whenever userId changes
+        // Reset states whenever userId or userEmail changes
         setLoading(true);
         setError(null);
 
-        let q;
-        if (userId) {
-            // User context: fetch only their orders. 
-            // Removed orderBy('date', 'desc') to avoid requiring a composite index.
-            // We'll sort locally in the onSnapshot handler.
-            q = query(
-                collection(db, 'orders'),
-                where('userId', '==', userId)
+        if (isAdmin) {
+            // Admin context: fetch all orders
+            const q = query(collection(db, 'orders'), orderBy('date', 'desc'));
+            const unsubscribe = onSnapshot(
+                q,
+                (snapshot) => {
+                    const items: Order[] = snapshot.docs.map(docSnap => ({
+                        id: docSnap.id,
+                        ...docSnap.data(),
+                    } as Order));
+                    setOrders(items);
+                    setLoading(false);
+                    setError(null);
+                },
+                (err) => {
+                    console.error('useOrders snapshot error:', err);
+                    setError(err.message);
+                    setLoading(false);
+                }
             );
-        } else if (isAdmin) {
-            // Admin context: fetch all orders. orderBy('date') usually has an index in admin views.
-            q = query(collection(db, 'orders'), orderBy('date', 'desc'));
-        } else {
-            // userId is null or undefined (and not admin): don't listen
+            return () => unsubscribe();
+        }
+
+        if (!userId && !userEmail) {
             setOrders([]);
             setLoading(false);
             return;
         }
 
-        const unsubscribe = onSnapshot(
-            q,
-            (snapshot) => {
-                const items: Order[] = snapshot.docs.map(docSnap => ({
-                    id: docSnap.id,
-                    ...docSnap.data(),
-                } as Order));
+        // Customer context:
+        // Match orders by userId OR by customerEmail (from Razorpay Magic Checkout)
+        const unsubscribes: (() => void)[] = [];
+        const orderMap = new Map<string, Order>();
 
-                // Local sort if we didn't sort in the query
-                if (userId) {
-                    items.sort((a, b) => dateToMillis(b.date) - dateToMillis(a.date));
-                }
+        const updateCombinedOrders = () => {
+            const combined = Array.from(orderMap.values());
+            combined.sort((a, b) => dateToMillis(b.date) - dateToMillis(a.date));
+            setOrders(combined);
+            setLoading(false);
+            setError(null);
+        };
 
-                setOrders(items);
-                setLoading(false);
-                setError(null);
-            },
-            (err) => {
-                console.error('useOrders snapshot error:', err);
-                // If it's a permission error and we were trying to fetch "all" (userId undefined),
-                // it might just be the initial public layout loading.
-                setError(err.message);
-                setLoading(false);
+        if (userId) {
+            const qUser = query(collection(db, 'orders'), where('userId', '==', userId));
+            unsubscribes.push(
+                onSnapshot(
+                    qUser,
+                    (snapshot) => {
+                        snapshot.docs.forEach(docSnap => {
+                            orderMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() } as Order);
+                        });
+                        updateCombinedOrders();
+                    },
+                    (err) => {
+                        console.warn('useOrders userId query error:', err);
+                        setError(err.message);
+                        setLoading(false);
+                    }
+                )
+            );
+        }
+
+        if (userEmail) {
+            const normalizedEmail = userEmail.trim().toLowerCase();
+            const qEmail = query(collection(db, 'orders'), where('customerEmail', '==', normalizedEmail));
+            unsubscribes.push(
+                onSnapshot(
+                    qEmail,
+                    (snapshot) => {
+                        snapshot.docs.forEach(docSnap => {
+                            const data = docSnap.data();
+                            orderMap.set(docSnap.id, { id: docSnap.id, ...data } as Order);
+                            // Auto-link order to user's UID if previously placed as guest
+                            if (userId && !data.userId) {
+                                try {
+                                    updateDoc(docSnap.ref, { userId });
+                                } catch (_) {}
+                            }
+                        });
+                        updateCombinedOrders();
+                    },
+                    (err) => {
+                        console.warn('useOrders customerEmail query error:', err);
+                    }
+                )
+            );
+
+            // Also check raw email if casing differed
+            if (userEmail.trim() !== normalizedEmail) {
+                const qEmailRaw = query(collection(db, 'orders'), where('customerEmail', '==', userEmail.trim()));
+                unsubscribes.push(
+                    onSnapshot(
+                        qEmailRaw,
+                        (snapshot) => {
+                            snapshot.docs.forEach(docSnap => {
+                                const data = docSnap.data();
+                                orderMap.set(docSnap.id, { id: docSnap.id, ...data } as Order);
+                                if (userId && !data.userId) {
+                                    try {
+                                        updateDoc(docSnap.ref, { userId });
+                                    } catch (_) {}
+                                }
+                            });
+                            updateCombinedOrders();
+                        },
+                        () => {}
+                    )
+                );
             }
-        );
-        return unsubscribe;
-    }, [db, userId, isAdmin]);
+        }
+
+        return () => {
+            unsubscribes.forEach(unsub => unsub());
+        };
+    }, [db, userId, isAdmin, userEmail]);
 
     const addOrder = useCallback(
         async (order: Omit<Order, 'id'>) => {

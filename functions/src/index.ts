@@ -1468,51 +1468,75 @@ export const createPayOrder = onCall(
       });
 
       const passedAmountInPaise = Math.round(Number(amount) * 100);
+      const isCodOrder = request.data.isCod === true || request.data.notes?.isCod === "true";
+      const totalOrderAmount = Number(request.data.totalOrderAmount) || Number(amount);
+      const advancePaid = isCodOrder ? Number(amount) : totalOrderAmount;
+      const codBalance = isCodOrder ? (Number(request.data.codBalance) || Math.max(0, totalOrderAmount - advancePaid)) : 0;
+
       const itemsList = Array.isArray(request.data.items) ? request.data.items : [];
-      const lineItems = itemsList.map((item: any, idx: number) => {
-        const isCombo = item.category === "Combos" || item.baseWeight === 1;
-        const baseWeight = Number(item.baseWeight) || 100;
-        const qty = Number(item.quantity) || 1;
-        const price = Number(item.price) || 0;
+      let lineItems: any[] = [];
+      let lineItemsTotal = 0;
+      let finalAmountInPaise = passedAmountInPaise;
 
-        let itemTotalPaise = 0;
-        let displayQty = 1;
-        let itemDesc = "Authentic Karnataka snack";
-
-        if (isCombo) {
-          displayQty = Math.max(1, Math.round(qty));
-          const unitPricePaise = Math.round(price * 100);
-          itemTotalPaise = unitPricePaise * displayQty;
-          itemDesc = `${displayQty} unit(s)`;
-        } else {
-          // Regular snack where quantity is in grams
-          const totalRupees = (price / baseWeight) * qty;
-          itemTotalPaise = Math.round(totalRupees * 100);
-          displayQty = 1;
-          itemDesc = item.variant ? `${item.variant} (${qty}g)` : `${qty}g pack`;
-        }
-
-        let calculatedPrice = displayQty > 0 ? Math.round(itemTotalPaise / displayQty) : itemTotalPaise;
-        if (calculatedPrice <= 0 && passedAmountInPaise > 0) {
-          calculatedPrice = passedAmountInPaise;
-        }
-        const unitPriceInPaise = Math.max(100, calculatedPrice);
-        const itemName = String(item.name || `Snack Item ${idx + 1}`).trim();
-
-        return {
-          sku: String(item.productId || item.id || `item_${idx + 1}`),
-          name: itemName,
-          description: itemDesc,
-          price: unitPriceInPaise,
-          offer_price: unitPriceInPaise,
-          quantity: displayQty,
+      if (isCodOrder) {
+        finalAmountInPaise = Math.max(100, Math.round(advancePaid * 100));
+        lineItems = [{
+          sku: "cod_advance_20",
+          name: "20% Advance Payment for COD Order",
+          description: `Total Order: ₹${totalOrderAmount.toFixed(2)} | Balance ₹${codBalance.toFixed(2)} payable on delivery`,
+          price: finalAmountInPaise,
+          offer_price: finalAmountInPaise,
+          quantity: 1,
           type: "physical",
-          image_url: item.imageURL || "https://munchtokri.com/logo.png",
-        };
-      });
+          image_url: "https://munchtokri.com/logo.png",
+        }];
+        lineItemsTotal = finalAmountInPaise;
+      } else {
+        lineItems = itemsList.map((item: any, idx: number) => {
+          const isCombo = item.category === "Combos" || item.baseWeight === 1;
+          const baseWeight = Number(item.baseWeight) || 100;
+          const qty = Number(item.quantity) || 1;
+          const price = Number(item.price) || 0;
 
-      const lineItemsTotal = lineItems.reduce((acc: number, it: any) => acc + (it.price * it.quantity), 0);
-      const finalAmountInPaise = lineItemsTotal > 0 ? lineItemsTotal : (passedAmountInPaise > 0 ? passedAmountInPaise : 100);
+          let itemTotalPaise = 0;
+          let displayQty = 1;
+          let itemDesc = "Authentic Karnataka snack";
+
+          if (isCombo) {
+            displayQty = Math.max(1, Math.round(qty));
+            const unitPricePaise = Math.round(price * 100);
+            itemTotalPaise = unitPricePaise * displayQty;
+            itemDesc = `${displayQty} unit(s)`;
+          } else {
+            // Regular snack where quantity is in grams
+            const totalRupees = (price / baseWeight) * qty;
+            itemTotalPaise = Math.round(totalRupees * 100);
+            displayQty = 1;
+            itemDesc = item.variant ? `${item.variant} (${qty}g)` : `${qty}g pack`;
+          }
+
+          let calculatedPrice = displayQty > 0 ? Math.round(itemTotalPaise / displayQty) : itemTotalPaise;
+          if (calculatedPrice <= 0 && passedAmountInPaise > 0) {
+            calculatedPrice = passedAmountInPaise;
+          }
+          const unitPriceInPaise = Math.max(100, calculatedPrice);
+          const itemName = String(item.name || `Snack Item ${idx + 1}`).trim();
+
+          return {
+            sku: String(item.productId || item.id || `item_${idx + 1}`),
+            name: itemName,
+            description: itemDesc,
+            price: unitPriceInPaise,
+            offer_price: unitPriceInPaise,
+            quantity: displayQty,
+            type: "physical",
+            image_url: item.imageURL || "https://munchtokri.com/logo.png",
+          };
+        });
+
+        lineItemsTotal = lineItems.reduce((acc: number, it: any) => acc + (it.price * it.quantity), 0);
+        finalAmountInPaise = lineItemsTotal > 0 ? lineItemsTotal : (passedAmountInPaise > 0 ? passedAmountInPaise : 100);
+      }
 
       const options: any = {
         amount: finalAmountInPaise,
@@ -1522,9 +1546,10 @@ export const createPayOrder = onCall(
           userId: String(request.data.userId || request.auth?.uid || ""),
           source: "magic_checkout",
           one_click_checkout: "true",
-          cod: "true",
-          allow_cod: "true",
-          cod_fee: "0",
+          isCod: isCodOrder ? "true" : "false",
+          advancePaid: String(advancePaid),
+          codBalance: String(codBalance),
+          totalOrderAmount: String(totalOrderAmount),
           ...(request.data.notes || {}),
         },
       };
@@ -1875,9 +1900,18 @@ async function saveMagicOrderToFirestore(params: {
       const newOrderRef = db.collection("orders").doc();
       newOrderId = newOrderRef.id;
 
-      const orderTotalRupees = Number(rzpOrder.amount) > 0 ?
-        Number(rzpOrder.amount) / 100 :
-        finalItems.reduce((sum: number, it: any) => sum + (it.price / (it.baseWeight || 100)) * it.quantity, 0);
+      const isCodOrder = Boolean(
+        isCod ||
+        rzpOrder.notes?.isCod === "true" ||
+        rzpOrder.notes?.payment_method?.toLowerCase() === "cod"
+      );
+      const totalAmountFromNotes = Number(rzpOrder.notes?.totalOrderAmount);
+      const advancePaid = Number(rzpOrder.notes?.advancePaid) || (isCodOrder ? Number(rzpOrder.amount) / 100 : 0);
+      const orderTotalRupees = totalAmountFromNotes > 0 ? totalAmountFromNotes : (
+        Number(rzpOrder.amount) > 0 ? Number(rzpOrder.amount) / 100 :
+        finalItems.reduce((sum: number, it: any) => sum + (it.price / (it.baseWeight || 100)) * it.quantity, 0)
+      );
+      const codBalance = isCodOrder ? (Number(rzpOrder.notes?.codBalance) || Math.max(0, orderTotalRupees - advancePaid)) : 0;
       const orderTotalStr = `₹${orderTotalRupees.toFixed(2)}`;
 
       const orderData: any = {
@@ -1896,15 +1930,17 @@ async function saveMagicOrderToFirestore(params: {
           pincode: pincode,
         },
         method: {
-          payment: isCod ? "Cash on Delivery (COD)" : "Razorpay Magic Checkout",
+          payment: isCodOrder ? "Cash on Delivery (20% Advance Paid)" : "Razorpay Magic Checkout",
           delivery: "Standard Delivery",
         },
         paymentDetails: {
           razorpayOrderId: razorpayOrderId || "",
-          razorpayPaymentId: razorpayPaymentId || (isCod ? `cod_${razorpayOrderId}` : primaryPayment?.id || ""),
+          razorpayPaymentId: razorpayPaymentId || (isCodOrder ? `cod_${razorpayOrderId}` : primaryPayment?.id || ""),
           razorpaySignature: razorpaySignature || "",
-          method: paymentMethod || (isCod ? "cod" : "online"),
-          isCod: isCod,
+          method: isCodOrder ? "cod" : (paymentMethod || "online"),
+          isCod: isCodOrder,
+          advancePaid: isCodOrder ? advancePaid : orderTotalRupees,
+          codBalance: isCodOrder ? codBalance : 0,
           isMagicCheckout: true,
         },
       };

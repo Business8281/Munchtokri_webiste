@@ -30,6 +30,7 @@ const loadScript = (src: string): Promise<boolean> =>
 export interface MagicCheckoutOptions {
     items?: CartItem[];
     total?: number;
+    isCod?: boolean;
     notes?: Record<string, string>;
 }
 
@@ -103,22 +104,35 @@ export function useMagicCheckout() {
             const currentUser = auth.currentUser;
             const currentUserId = currentUser?.uid || null;
 
+            const isCodRequested = Boolean(options?.isCod);
+            const advanceAmount = isCodRequested ? Math.max(1, Math.round(calculatedTotal * 0.20 * 100) / 100) : calculatedTotal;
+            const codBalance = isCodRequested ? Math.max(0, Math.round((calculatedTotal - advanceAmount) * 100) / 100) : 0;
+            const payableAmount = advanceAmount;
+
             tracker.track('checkout_start', {
-                source: 'magic_checkout',
+                source: isCodRequested ? 'magic_checkout_cod' : 'magic_checkout',
                 cartTotal: calculatedTotal,
+                payableAmount,
+                isCod: isCodRequested,
                 itemCount: formattedItems.length,
             });
 
             // 3. Create Razorpay Order from backend with mandatory line_items and line_items_total
             const createPayOrder = httpsCallable(functions, 'createPayOrder');
             const res = (await createPayOrder({
-                amount: calculatedTotal,
+                amount: payableAmount,
+                isCod: isCodRequested,
+                totalOrderAmount: calculatedTotal,
+                codBalance: codBalance,
+                advancePaid: advanceAmount,
                 items: formattedItems,
                 userId: currentUserId,
                 notes: {
-                    cod: 'true',
-                    allow_cod: 'true',
-                    cod_fee: '0',
+                    source: 'magic_checkout',
+                    isCod: isCodRequested ? 'true' : 'false',
+                    advancePaid: String(advanceAmount),
+                    codBalance: String(codBalance),
+                    totalOrderAmount: String(calculatedTotal),
                     ...(options?.notes || {}),
                 },
             })) as {
@@ -196,19 +210,31 @@ export function useMagicCheckout() {
                 amount: orderData.order.amount,
                 currency: orderData.order.currency,
                 name: 'Munch Tokri',
-                description: 'Authentic Karnataka Snacks & Sweets',
+                description: isCodRequested
+                    ? `20% Advance Payment for COD (Balance ₹${codBalance.toFixed(2)} on delivery)`
+                    : 'Authentic Karnataka Snacks & Sweets',
                 order_id: orderData.order.id,
                 one_click_checkout: true,
                 show_address: true,
                 cart: {
-                    line_items: lineItemsCart,
+                    line_items: isCodRequested ? [{
+                        sku: 'cod_advance_20',
+                        name: '20% Advance Payment for COD Order',
+                        description: `Total Order: ₹${calculatedTotal.toFixed(2)} | Balance ₹${codBalance.toFixed(2)} payable on delivery`,
+                        price: orderData.order.amount,
+                        offer_price: orderData.order.amount,
+                        quantity: 1,
+                        type: 'physical',
+                        image_url: 'https://munchtokri.com/logo.png',
+                    }] : lineItemsCart,
                     line_items_total: orderData.order.amount,
                 },
                 notes: {
                     source: 'magic_checkout',
-                    cod: 'true',
-                    allow_cod: 'true',
-                    cod_fee: '0',
+                    isCod: isCodRequested ? 'true' : 'false',
+                    advancePaid: String(advanceAmount),
+                    codBalance: String(codBalance),
+                    totalOrderAmount: String(calculatedTotal),
                     ...(options?.notes || {}),
                 },
                 prefill: {
@@ -235,6 +261,7 @@ export function useMagicCheckout() {
                         ).toLowerCase();
 
                         const isCodOrder =
+                            isCodRequested ||
                             selectedPaymentMethod === 'cod' ||
                             responseMethod === 'cod' ||
                             responseMethod.includes('cash') ||
@@ -335,15 +362,17 @@ export function useMagicCheckout() {
                                         pincode: resolvedPincode,
                                     },
                                     method: {
-                                        payment: isCodOrder ? 'Cash on Delivery (COD)' : 'Razorpay Magic Checkout',
+                                        payment: isCodOrder ? 'Cash on Delivery (20% Advance Paid)' : 'Razorpay Magic Checkout',
                                         delivery: 'Standard Delivery',
                                     },
                                     paymentDetails: {
                                         razorpayOrderId: response.razorpay_order_id,
                                         razorpayPaymentId: effectivePaymentId,
                                         razorpaySignature: response.razorpay_signature || '',
-                                        method: effectiveMethod,
+                                        method: isCodOrder ? 'cod' : effectiveMethod,
                                         isCod: isCodOrder,
+                                        advancePaid: isCodOrder ? advanceAmount : calculatedTotal,
+                                        codBalance: isCodOrder ? codBalance : 0,
                                         isMagicCheckout: true,
                                     },
                                 };

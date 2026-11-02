@@ -22,12 +22,7 @@ import styles from './magicCheckoutPage.module.css';
 
 function CheckoutContent() {
     const searchParams = useSearchParams();
-    const isLegacy = searchParams.get('legacy') === 'true' || searchParams.get('method') === 'cod';
-
-    // If explicit legacy query param or COD requested, render the preserved legacy checkout wizard
-    if (isLegacy) {
-        return <LegacyCheckoutForm />;
-    }
+    const isCodParam = searchParams.get('method') === 'cod';
 
     const { cartItems, cartTotal } = useCart();
     const { openMagicCheckout, isLoading } = useMagicCheckout();
@@ -39,11 +34,11 @@ function CheckoutContent() {
             autoTriggeredRef.current = true;
             // Short timeout ensures DOM and scripts are fully initialized
             const timer = setTimeout(() => {
-                openMagicCheckout();
+                openMagicCheckout({ isCod: isCodParam });
             }, 300);
             return () => clearTimeout(timer);
         }
-    }, [cartItems, openMagicCheckout]);
+    }, [cartItems, isCodParam, openMagicCheckout]);
 
     if (cartItems.length === 0) {
         return (
@@ -146,8 +141,8 @@ function CheckoutContent() {
                         {/* 1-Click Razorpay Magic Checkout Widget with Buyer Protection */}
                         <div className={styles.card}>
                             <RazorpayMagicCheckoutWidget
-                                onBuyNow={() => openMagicCheckout()}
-                                buttonText="Complete Order with Magic Checkout"
+                                onBuyNow={() => openMagicCheckout({ isCod: false })}
+                                buttonText="Pay Full Online with Magic Checkout"
                                 loading={isLoading}
                                 showProtectionBar={true}
                             />
@@ -156,29 +151,31 @@ function CheckoutContent() {
                                 <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: '#64748b' }}>
                                     Prefer Cash on Delivery?
                                 </p>
-                                <Link
-                                    href="/checkout?legacy=true&method=cod"
+                                <button
+                                    type="button"
+                                    onClick={() => openMagicCheckout({ isCod: true })}
+                                    disabled={isLoading}
                                     style={{
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         gap: '0.5rem',
                                         width: '100%',
-                                        padding: '0.75rem 1rem',
+                                        padding: '0.85rem 1rem',
                                         backgroundColor: '#ffffff',
                                         border: '2px solid #ef4444',
                                         borderRadius: '8px',
                                         color: '#ef4444',
                                         fontWeight: 700,
                                         fontSize: '0.9rem',
-                                        textDecoration: 'none',
+                                        cursor: isLoading ? 'not-allowed' : 'pointer',
                                         boxSizing: 'border-box',
                                         transition: 'all 0.2s ease',
                                     }}
                                 >
                                     <Truck size={18} />
-                                    Order with Cash on Delivery (Pay 20% Advance)
-                                </Link>
+                                    Cash on Delivery (Pay 20% Advance via Magic Checkout)
+                                </button>
                             </div>
 
                             <div className={styles.trustList}>

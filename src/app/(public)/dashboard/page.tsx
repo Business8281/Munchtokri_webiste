@@ -165,7 +165,7 @@ function DashboardContent() {
     // Fetch user profile and orders real-time
     const { customer: realtimeUserData } = useCustomer(user ? user.uid : null);
     const { membership, loading: membershipLoading } = useMembership(user ? user.uid : null);
-    const { orders, loading: ordersLoading, error: ordersError, updateOrderStatus } = useOrders(user ? user.uid : null);
+    const { orders, loading: ordersLoading, error: ordersError, updateOrderStatus } = useOrders(user ? user.uid : null, false, user ? user.email : null);
 
     // Sync form with live realtimeUserData when it loads/changes, but ONLY if not in edit mode
     useEffect(() => {
