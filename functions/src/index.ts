@@ -200,7 +200,11 @@ export const onOrderCreated = onDocumentCreated(
 
       if (pdfBuffer) {
         // Send customer email if valid email present and not fallback placeholder
-        if (order.customerEmail && !order.customerEmail.includes("customer@munchtokri.com") && order.customerEmail.includes("@")) {
+        const isFallbackEmail = !order.customerEmail ||
+          order.customerEmail.includes("customer@munchtokri.com") ||
+          order.customerEmail.includes("orders@munchtokri.com") ||
+          order.customerEmail.includes("@munchtokri.in");
+        if (!isFallbackEmail && order.customerEmail.includes("@")) {
           try {
             console.log(`Sending confirmation email to: ${order.customerEmail}`);
             await sendOrderConfirmationEmail(order, pdfBuffer);
@@ -1347,7 +1351,7 @@ export const createVelocityOrder = onCall(
         billing_pincode: order.shippingDetails.pincode,
         billing_state: order.shippingDetails.state,
         billing_country: "India",
-        billing_email: order.customerEmail,
+        billing_email: order.customerEmail || "orders@munchtokri.com",
         billing_phone: order.shippingDetails.mobile,
         shipping_is_billing: true,
         print_label: true,

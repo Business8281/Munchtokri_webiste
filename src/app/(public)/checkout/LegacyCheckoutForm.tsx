@@ -145,10 +145,9 @@ export default function LegacyCheckoutForm() {
 
     const validateShippingForm = (): string => {
         if (!formData.fullName.trim()) return 'Full Name is required';
-        if (!formData.email.trim()) return 'Email Address is required';
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
+        if (formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim()))
             return 'Please enter a valid email address';
-        if (!formData.mobile.trim()) return 'Mobile Number is required';
+        if (!formData.mobile.trim()) return 'Mobile Number is required for delivery & tracking updates';
         if (formData.mobile.replace(/\D/g, '').length < 10)
             return 'Please enter a valid 10-digit mobile number';
         if (!formData.pincode.trim()) return 'Pincode is required';
@@ -521,11 +520,11 @@ export default function LegacyCheckoutForm() {
         [cartItems]);
 
     const buildShippingDetails = useCallback(() => ({
-        mobile: formData.mobile,
-        address: formData.address,
-        city: formData.city,
-        state: formData.state,
-        pincode: formData.pincode,
+        mobile: formData.mobile.replace(/\D/g, ''),
+        address: formData.address.trim(),
+        city: formData.city.trim(),
+        state: formData.state.trim(),
+        pincode: formData.pincode.trim(),
     }), [formData]);
 
     const handleApplyPromo = async (codeOverride?: string) => {
@@ -643,11 +642,6 @@ export default function LegacyCheckoutForm() {
 
     const handlePlaceOrder = async (isMagicDirect = false) => {
         if (isSubmitting) return; // Double-click guard
-        if (!isMagicDirect && !userId) {
-            showNotification('Please log in to place an order.', 'info', { title: 'Login Required' });
-            router.push('/login?redirect=/checkout');
-            return;
-        }
         if (cartItems.length === 0) {
             showNotification('Please add items to your cart.', 'error', { title: 'Empty Cart' });
             router.push('/shop');
@@ -766,10 +760,14 @@ export default function LegacyCheckoutForm() {
                         });
 
                         // ── STEP 2: Save order only after verified ───────────────────
+                        const cleanMobile = formData.mobile.replace(/\D/g, '');
+                        const fallbackEmail = `${cleanMobile}@munchtokri.in`;
+                        const resolvedCustomerEmail = formData.email.trim() || fallbackEmail;
+
                         const result = await addOrder({
                             userId: userId || undefined,
-                            customerName: formData.fullName || 'Guest',
-                            customerEmail: formData.email,
+                            customerName: formData.fullName.trim() || 'Guest',
+                            customerEmail: resolvedCustomerEmail,
                             status: 'Processing',
                             amount: orderTotalStr,
                             shippingDetails,
@@ -824,9 +822,9 @@ export default function LegacyCheckoutForm() {
                     }
                 },
                 prefill: {
-                    name: formData.fullName || 'Guest',
-                    email: formData.email,
-                    contact: formData.mobile || '',
+                    name: formData.fullName.trim() || 'Guest',
+                    email: formData.email.trim() || `${formData.mobile.replace(/\D/g, '')}@munchtokri.in`,
+                    contact: formData.mobile.replace(/\D/g, '') || '',
                 },
                 theme: { color: '#ef4444' },
                 modal: {
@@ -1026,15 +1024,20 @@ export default function LegacyCheckoutForm() {
                                             <input className={styles.inputField} name="fullName" value={formData.fullName} onChange={handleInputChange} placeholder="Arjun Sharma" type="text" />
                                         </div>
                                         <div className={`${styles.inputGroup} ${styles.inputGroupFull}`}>
-                                            <label className={styles.inputLabel}>Email Address</label>
-                                            <input className={styles.inputField} name="email" value={formData.email} onChange={handleInputChange} placeholder="arjun@example.com" type="email" />
+                                            <label className={styles.inputLabel}>
+                                                Email Address <span style={{ fontWeight: 400, color: '#6b7280', fontSize: '0.85em' }}>(Optional)</span>
+                                            </label>
+                                            <input className={styles.inputField} name="email" value={formData.email} onChange={handleInputChange} placeholder="yourname@example.com (optional)" type="email" />
                                         </div>
                                         <div className={styles.inputGroup}>
-                                            <label className={styles.inputLabel}>Mobile Number</label>
+                                            <label className={styles.inputLabel}>Mobile Number *</label>
                                             <div className={styles.inputRelative}>
                                                 <span className={styles.inputPrefix}>+91</span>
                                                 <input className={`${styles.inputField} ${styles.inputWithPrefix}`} name="mobile" value={formData.mobile} onChange={handleInputChange} placeholder="98765 43210" type="tel" maxLength={10} />
                                             </div>
+                                            <span style={{ fontSize: '0.78rem', color: '#059669', marginTop: '0.35rem', display: 'block', fontWeight: 500 }}>
+                                                📱 Tracking & delivery updates sent to this number
+                                            </span>
                                         </div>
                                         <div className={styles.inputGroup}>
                                             <label className={styles.inputLabel}>Pincode</label>
@@ -1204,7 +1207,12 @@ export default function LegacyCheckoutForm() {
                                     {formData.address}, {formData.city}, {formData.state} - <strong>{formData.pincode}</strong>
                                 </p>
                                 <p style={{ margin: '0 0 0.6rem', color: '#64748b', fontSize: '0.85rem' }}>
-                                    📞 Mobile: <strong style={{ color: '#0f172a' }}>+91 {formData.mobile}</strong> • ✉️ {formData.email}
+                                    📞 Mobile: <strong style={{ color: '#0f172a' }}>+91 {formData.mobile}</strong>
+                                    {formData.email.trim() ? (
+                                        <span> • ✉️ {formData.email.trim()}</span>
+                                    ) : (
+                                        <span style={{ color: '#059669' }}> • Updates via WhatsApp / SMS</span>
+                                    )}
                                 </p>
                                 <div style={{
                                     display: 'inline-flex',
