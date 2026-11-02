@@ -1330,9 +1330,9 @@ export const createVelocityOrder = onCall(
         order.paymentDetails?.isCod === true ||
         String(order.paymentDetails?.method || "").toLowerCase().includes("cod");
 
-      const codBalanceToCollect = order.paymentDetails?.codBalance != null
-        ? Number(order.paymentDetails.codBalance)
-        : orderAmount;
+      const codBalanceToCollect = order.paymentDetails?.codBalance != null ?
+        Number(order.paymentDetails.codBalance) :
+        orderAmount;
 
       const velocityOrder = {
         order_id: order.orderNumber || orderId,
