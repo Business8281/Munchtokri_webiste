@@ -1478,12 +1478,12 @@ export const createPayOrder = onCall(
       let lineItemsTotal = 0;
       let finalAmountInPaise = passedAmountInPaise;
 
-      if (isCodOrder) {
-        finalAmountInPaise = Math.max(100, Math.round(advancePaid * 100));
+      if (itemsList.length === 0) {
+        finalAmountInPaise = passedAmountInPaise > 0 ? passedAmountInPaise : 100;
         lineItems = [{
-          sku: "cod_advance_20",
-          name: "20% Advance Payment for COD Order",
-          description: `Total Order: ₹${totalOrderAmount.toFixed(2)} | Balance ₹${codBalance.toFixed(2)} payable on delivery`,
+          sku: isCodOrder ? "cod_advance_20" : "snack_order",
+          name: isCodOrder ? "20% Advance Payment for COD Order" : "Snack Order",
+          description: `Total Order: ₹${totalOrderAmount.toFixed(2)}${isCodOrder ? ` | Balance ₹${codBalance.toFixed(2)} on delivery` : ""}`,
           price: finalAmountInPaise,
           offer_price: finalAmountInPaise,
           quantity: 1,
@@ -1506,7 +1506,7 @@ export const createPayOrder = onCall(
             displayQty = Math.max(1, Math.round(qty));
             const unitPricePaise = Math.round(price * 100);
             itemTotalPaise = unitPricePaise * displayQty;
-            itemDesc = `${displayQty} unit(s)`;
+            itemDesc = item.variant || `${displayQty} unit(s)`;
           } else {
             // Regular snack where quantity is in grams
             const totalRupees = (price / baseWeight) * qty;
@@ -1522,6 +1522,11 @@ export const createPayOrder = onCall(
           const unitPriceInPaise = Math.max(100, calculatedPrice);
           const itemName = String(item.name || `Snack Item ${idx + 1}`).trim();
 
+          const rawImg = item.imageURL || item.imageUrl || "";
+          const imgUrl = rawImg.startsWith("http")
+            ? rawImg
+            : (rawImg.startsWith("/") ? `https://munchtokri.com${rawImg}` : "https://munchtokri.com/logo.png");
+
           return {
             sku: String(item.productId || item.id || `item_${idx + 1}`),
             name: itemName,
@@ -1530,7 +1535,7 @@ export const createPayOrder = onCall(
             offer_price: unitPriceInPaise,
             quantity: displayQty,
             type: "physical",
-            image_url: item.imageURL || "https://munchtokri.com/logo.png",
+            image_url: imgUrl,
           };
         });
 
@@ -2695,13 +2700,14 @@ export const magicCheckoutApplyPromotion = onRequest(
         return;
       }
 
-      // Minimum order check (if cart_total provided)
-      let cartAmountInRupees = 0;
-      if (body.cart && typeof body.cart.cart_total === "number") {
-        cartAmountInRupees = body.cart.cart_total > 1000 ?
-          body.cart.cart_total / 100 :
-          body.cart.cart_total;
+      // Minimum order check (if cart_total or line_items provided)
+      let cartTotalInPaise = Number(body.cart?.cart_total || body.cart_total || 0);
+      if (!cartTotalInPaise && Array.isArray(body.cart?.line_items)) {
+        cartTotalInPaise = body.cart.line_items.reduce((acc: number, it: any) => {
+          return acc + (Number(it.offer_price || it.price || 0) * Number(it.quantity || 1));
+        }, 0);
       }
+      const cartAmountInRupees = cartTotalInPaise > 0 ? cartTotalInPaise / 100 : 0;
 
       const minOrder = Number(data.minOrderValue) || 0;
       if (cartAmountInRupees > 0 && minOrder > 0 && cartAmountInRupees < minOrder) {

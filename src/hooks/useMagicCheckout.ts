@@ -117,23 +117,73 @@ export function useMagicCheckout() {
                 itemCount: formattedItems.length,
             });
 
-            // For COD, pass ONLY the 20% advance payment item so backend Razorpay order
-            // calculates line items and total amount strictly as the 20% advance
+            const resolveImageUrl = (url?: string) => {
+                if (!url) return 'https://munchtokri.com/logo.png';
+                if (url.startsWith('http://') || url.startsWith('https://')) return url;
+                if (url.startsWith('/')) return `https://munchtokri.com${url}`;
+                return `https://munchtokri.com/${url}`;
+            };
+
+            // Build itemized list for backend order and Magic Checkout modal
+            // Both Online and COD show all items, thumbnails, weights, and amounts
+            let runningAdvanceRupees = 0;
             const itemsForPayOrder = isCodRequested
-                ? [
-                      {
-                          id: 'cod_advance_20',
-                          productId: 'cod_advance_20',
-                          name: '20% Advance Payment for COD Order',
-                          price: advanceAmount,
-                          quantity: 1,
+                ? formattedItems.map((item, idx) => {
+                      const isCombo = item.category === 'Combos' || item.baseWeight === 1;
+                      const qty = Number(item.quantity) || 1;
+                      const price = Number(item.price) || 0;
+                      const baseWeight = Number(item.baseWeight) || 100;
+
+                      let itemTotalRupees = 0;
+                      let displayQty = 1;
+                      let itemVariantDesc = '';
+
+                      if (isCombo) {
+                          displayQty = Math.max(1, Math.round(qty));
+                          itemTotalRupees = price * displayQty;
+                          itemVariantDesc = item.variant || `${displayQty} unit(s)`;
+                      } else {
+                          itemTotalRupees = (price / baseWeight) * qty;
+                          displayQty = 1;
+                          itemVariantDesc = item.variant || `${qty}g pack`;
+                      }
+
+                      let itemAdvanceRupees = Math.round(itemTotalRupees * 0.20 * 100) / 100;
+                      if (idx === formattedItems.length - 1) {
+                          const diff = Math.round((payableAmount - (runningAdvanceRupees + itemAdvanceRupees)) * 100) / 100;
+                          itemAdvanceRupees = Math.max(1, itemAdvanceRupees + diff);
+                      } else {
+                          runningAdvanceRupees += itemAdvanceRupees;
+                      }
+
+                      const unitAdvanceRupees = displayQty > 0 ? Math.round((itemAdvanceRupees / displayQty) * 100) / 100 : itemAdvanceRupees;
+                      const itemCodBalanceRupees = Math.max(0, itemTotalRupees - (unitAdvanceRupees * displayQty));
+
+                      return {
+                          id: item.productId || `item_${idx + 1}`,
+                          productId: item.productId || `item_${idx + 1}`,
+                          name: item.name,
+                          price: unitAdvanceRupees,
+                          quantity: displayQty,
                           baseWeight: 1,
                           category: 'Combos',
-                          variant: `Balance ₹${codBalance.toFixed(2)} on Delivery`,
-                          imageURL: 'https://munchtokri.com/logo.png',
-                      },
-                  ]
-                : formattedItems;
+                          variant: `${itemVariantDesc} • 20% Advance (Balance ₹${itemCodBalanceRupees.toFixed(2)} on COD)`,
+                          imageURL: resolveImageUrl(item.imageURL),
+                      };
+                  })
+                : formattedItems.map((item, idx) => {
+                      const isCombo = item.category === 'Combos' || item.baseWeight === 1;
+                      const qty = Number(item.quantity) || 1;
+                      const baseWeight = Number(item.baseWeight) || 100;
+                      const itemVariantDesc = isCombo
+                          ? (item.variant || `${qty} unit(s)`)
+                          : (item.variant || `${qty}g pack`);
+                      return {
+                          ...item,
+                          variant: itemVariantDesc,
+                          imageURL: resolveImageUrl(item.imageURL),
+                      };
+                  });
 
             // 3. Create Razorpay Order from backend with mandatory line_items and line_items_total
             const createPayOrder = httpsCallable(functions, 'createPayOrder');
@@ -195,7 +245,9 @@ export function useMagicCheckout() {
 
             let selectedPaymentMethod: 'online' | 'cod' = 'online';
 
-            const lineItemsCart = formattedItems.map((item, idx) => {
+            // Convert items to Razorpay line_items with paise pricing for the Magic Checkout order summary
+            let lineItemsSumPaise = 0;
+            const lineItemsCart = itemsForPayOrder.map((item, idx) => {
                 const isCombo = item.category === 'Combos' || item.baseWeight === 1;
                 const qty = Number(item.quantity) || 1;
                 const price = Number(item.price) || 0;
@@ -211,17 +263,26 @@ export function useMagicCheckout() {
                     displayQty = 1;
                 }
                 const unitPricePaise = displayQty > 0 ? Math.round(itemTotalPaise / displayQty) : itemTotalPaise;
+                lineItemsSumPaise += unitPricePaise * displayQty;
                 return {
-                    sku: String(item.productId || `item_${idx + 1}`),
+                    sku: String(item.productId || (item as any).id || (item as any).cartItemId || `item_${idx + 1}`),
                     name: item.name,
                     description: item.variant || `${item.quantity} units`,
                     price: unitPricePaise,
                     offer_price: unitPricePaise,
                     quantity: displayQty,
                     type: 'physical',
-                    image_url: item.imageURL || 'https://munchtokri.com/logo.png',
+                    image_url: resolveImageUrl(item.imageURL),
                 };
             });
+
+            // Reconcile line items total with order amount if any paise difference
+            if (lineItemsCart.length > 0 && lineItemsSumPaise !== orderData.order.amount) {
+                const diff = orderData.order.amount - lineItemsSumPaise;
+                const last = lineItemsCart[lineItemsCart.length - 1];
+                last.price = Math.max(100, last.price + diff);
+                last.offer_price = last.price;
+            }
 
             const rzpOptions: any = {
                 key: razorpayKey,
@@ -235,16 +296,7 @@ export function useMagicCheckout() {
                 one_click_checkout: true,
                 show_address: true,
                 cart: {
-                    line_items: isCodRequested ? [{
-                        sku: 'cod_advance_20',
-                        name: '20% Advance Payment for COD Order',
-                        description: `Total Order: ₹${calculatedTotal.toFixed(2)} | Balance ₹${codBalance.toFixed(2)} payable on delivery`,
-                        price: orderData.order.amount,
-                        offer_price: orderData.order.amount,
-                        quantity: 1,
-                        type: 'physical',
-                        image_url: 'https://munchtokri.com/logo.png',
-                    }] : lineItemsCart,
+                    line_items: lineItemsCart,
                     line_items_total: orderData.order.amount,
                 },
                 notes: {
