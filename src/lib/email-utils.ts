@@ -170,6 +170,17 @@ export async function generateOrderPDF(order: any) {
     const shippingCost = subtotal < 350 ? 50 : 0;
     const tax = subtotal * 0.05;
 
+    const isCodOrder =
+        order.method?.payment === 'COD' ||
+        order.method?.payment === 'Cash on Delivery (COD)' ||
+        order.method?.payment?.includes('Cash on Delivery') ||
+        order.paymentDetails?.isCod === true ||
+        String(order.paymentDetails?.method || '').toLowerCase().includes('cod');
+
+    const totalNumeric = parseFloat(String(order.amount || '').replace(/[^0-9.-]+/g, '')) || 0;
+    const advancePaid = Number(order.paymentDetails?.advancePaid || (isCodOrder ? totalNumeric * 0.2 : 0));
+    const codBalance = Number(order.paymentDetails?.codBalance || (isCodOrder ? Math.max(0, totalNumeric - advancePaid) : 0));
+
     // Totals Grid
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
@@ -190,29 +201,58 @@ export async function generateOrderPDF(order: any) {
     doc.setFont("helvetica", "bold");
     doc.text('Order Total', 120, currentY + 9);
     doc.text(`${displayAmount}`, pageWidth - 20, currentY + 9, { align: 'right' });
+    currentY += 16;
+
+    if (isCodOrder && advancePaid > 0) {
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(22, 163, 74); // green
+        doc.text('20% Advance Paid Online (Razorpay)', 120, currentY);
+        doc.text(`-Rs. ${advancePaid.toFixed(2)}`, pageWidth - 20, currentY, { align: 'right' });
+        currentY += 7;
+
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(211, 47, 47); // red
+        doc.text('Balance Due on Delivery (Cash to Courier)', 120, currentY);
+        doc.text(`Rs. ${codBalance.toFixed(2)}`, pageWidth - 20, currentY, { align: 'right' });
+        currentY += 8;
+        doc.setTextColor(0, 0, 0); // reset black
+    }
 
     doc.setDrawColor(240, 240, 240);
-    doc.line(20, currentY + 15, pageWidth - 20, currentY + 15);
+    doc.line(20, currentY + 4, pageWidth - 20, currentY + 4);
 
     // Transaction Details - Table format to match email look
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
-    doc.text('Transaction', 20, currentY + 25);
+    doc.text('Payment & Delivery Details', 20, currentY + 12);
     
     doc.autoTable({
-        startY: currentY + 29,
+        startY: currentY + 16,
         margin: { left: 20, right: 20 },
-        body: [
-            [order.method?.payment || 'N/A', order.status === 'Paid' || order.method?.payment !== 'Cash on Delivery (COD)' ? 'Paid' : 'Pending']
-        ],
+        body: isCodOrder
+            ? [
+                ['Payment Method', 'Cash on Delivery (20% Advance Paid)'],
+                ['20% Advance Payment', `Rs. ${advancePaid.toFixed(2)} (Paid Online via Razorpay)`],
+                ['Remaining Balance on Delivery', `Rs. ${codBalance.toFixed(2)} (To be collected by Courier)`],
+                ['Delivery Courier', `${order.courierName || 'Velocity Express'}${order.velocityAWB ? ` (AWB: ${order.velocityAWB})` : ''}`],
+                ['Customer Contact', `${order.shippingDetails?.mobile || 'N/A'}${order.customerEmail ? ` • ${order.customerEmail}` : ''}`],
+              ]
+            : [
+                ['Payment Method', order.method?.payment || 'Online Payment (Prepaid)'],
+                ['Payment Status', 'Paid in Full'],
+                ['Delivery Courier', `${order.courierName || 'Velocity Express'}${order.velocityAWB ? ` (AWB: ${order.velocityAWB})` : ''}`],
+                ['Customer Contact', `${order.shippingDetails?.mobile || 'N/A'}${order.customerEmail ? ` • ${order.customerEmail}` : ''}`],
+              ],
         theme: 'plain',
-        styles: { fontSize: 10, cellPadding: 2 },
+        styles: { fontSize: 9, cellPadding: 2 },
         columnStyles: {
-            1: { halign: 'right' }
+            1: { halign: 'right', fontStyle: 'bold' }
         }
     });
 
-    const footerY = (doc as any).lastAutoTable.finalY + 20;
+    const footerY = (doc as any).lastAutoTable.finalY + 18;
     doc.setFontSize(9);
     doc.setTextColor(150, 150, 150);
     doc.setFont("helvetica", "normal");
@@ -225,6 +265,17 @@ export async function sendOrderConfirmationEmail(order: any, pdfBuffer: ArrayBuf
     const subtotal = order.items.reduce((sum: number, item: any) => sum + ((item.price / (item.baseWeight || 100)) * item.quantity), 0);
     const shippingCost = subtotal < 350 ? 50 : 0;
     const tax = subtotal * 0.05;
+
+    const isCodOrder =
+        order.method?.payment === 'COD' ||
+        order.method?.payment === 'Cash on Delivery (COD)' ||
+        order.method?.payment?.includes('Cash on Delivery') ||
+        order.paymentDetails?.isCod === true ||
+        String(order.paymentDetails?.method || '').toLowerCase().includes('cod');
+
+    const totalNumeric = parseFloat(String(order.amount || '').replace(/[^0-9.-]+/g, '')) || 0;
+    const advancePaid = Number(order.paymentDetails?.advancePaid || (isCodOrder ? totalNumeric * 0.2 : 0));
+    const codBalance = Number(order.paymentDetails?.codBalance || (isCodOrder ? Math.max(0, totalNumeric - advancePaid) : 0));
 
     const productRows = order.items.map((item: any) => {
         const isCombo = item.category === 'Combos' || item.baseWeight === 1 || (item.products && item.products.length > 0);
@@ -262,10 +313,10 @@ export async function sendOrderConfirmationEmail(order: any, pdfBuffer: ArrayBuf
     const displayAmount = (order.amount || '').replace('₹', 'Rs. ');
 
     const htmlContent = `
-        <div style="font-family:Arial,Helvetica,sans-serif;background:#f2f2f2;padding:30px">
-            <div style="max-width:800px;margin:auto;background:white;border-radius:6px;padding:30px">
-                <div style="text-align:center; margin-bottom: 20px;">
-                    <img src="${LOGO_URL}" width="200" alt="Munch Tokri">
+        <div style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; border-radius: 8px;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <img src="${LOGO_URL}" alt="Munch Tokri Logo" style="max-height: 80px;" />
                 </div>
                 <h2 style="color:#d32f2f">Order Confirmation</h2>
                 <p>Hi ${order.customerName},</p>
@@ -320,16 +371,55 @@ export async function sendOrderConfirmationEmail(order: any, pdfBuffer: ArrayBuf
                         <td align="right">Rs. ${tax.toFixed(2)}</td>
                     </tr>
                     <tr>
-                        <td><b>Order Total</b></td>
+                        <td><b>Total Order Amount</b></td>
                         <td align="right"><b>${displayAmount}</b></td>
                     </tr>
+                    ${isCodOrder && advancePaid > 0 ? `
+                    <tr style="color: #16a34a;">
+                        <td><b>20% Advance Paid Online (Razorpay)</b></td>
+                        <td align="right"><b>- Rs. ${advancePaid.toFixed(2)}</b></td>
+                    </tr>
+                    <tr style="background-color: #fffbeb; color: #b45309; font-size: 15px;">
+                        <td style="padding: 8px 4px;"><b>Balance Due on Delivery (Cash to Courier)</b></td>
+                        <td align="right" style="padding: 8px 4px;"><b>Rs. ${codBalance.toFixed(2)}</b></td>
+                    </tr>
+                    ` : ''}
                 </table>
                 <hr style="border: none; border-top: 1px solid #eee">
-                <h3>Transaction</h3>
-                <table width="100%">
+                <h3>Payment & Delivery Information</h3>
+                <table width="100%" style="font-size: 14px; border-collapse: collapse;">
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding: 6px 0; color: #64748b;">Payment Method:</td>
+                        <td align="right" style="padding: 6px 0; font-weight: bold;">
+                            ${isCodOrder ? 'Cash on Delivery (20% Advance Paid Online)' : (order.method?.payment || 'Prepaid Online')}
+                        </td>
+                    </tr>
+                    ${isCodOrder ? `
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding: 6px 0; color: #64748b;">20% Advance Paid Online:</td>
+                        <td align="right" style="padding: 6px 0; font-weight: bold; color: #16a34a;">Rs. ${advancePaid.toFixed(2)} (Paid)</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding: 6px 0; color: #64748b;">Remaining Balance on Delivery:</td>
+                        <td align="right" style="padding: 6px 0; font-weight: bold; color: #d32f2f;">Rs. ${codBalance.toFixed(2)} (To Pay Courier)</td>
+                    </tr>
+                    ` : `
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding: 6px 0; color: #64748b;">Payment Status:</td>
+                        <td align="right" style="padding: 6px 0; font-weight: bold; color: #16a34a;">Paid in Full</td>
+                    </tr>
+                    `}
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding: 6px 0; color: #64748b;">Delivery Courier:</td>
+                        <td align="right" style="padding: 6px 0; font-weight: bold;">
+                            ${order.courierName || 'Velocity Express'}${order.velocityAWB ? ` (AWB: ${order.velocityAWB})` : ''}
+                        </td>
+                    </tr>
                     <tr>
-                        <td>${order.method?.payment || 'N/A'}</td>
-                        <td align="right">${order.status === 'Paid' || order.method?.payment !== 'Cash on Delivery (COD)' ? 'Paid' : 'Pending'}</td>
+                        <td style="padding: 6px 0; color: #64748b;">Live Updates Sent To:</td>
+                        <td align="right" style="padding: 6px 0; font-weight: bold;">
+                            WhatsApp / SMS: +91 ${order.shippingDetails?.mobile || 'N/A'}
+                        </td>
                     </tr>
                 </table>
                 <p style="font-size:13px;color:#777;margin-top:30px">

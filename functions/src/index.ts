@@ -775,15 +775,40 @@ async function generateOrderPDF(
   doc.text(`Rs. ${tax.toFixed(2)}`, pageWidth - 20, currentY, { align: "right" });
   currentY += 9;
 
+  const isCodOrder =
+    Boolean(order.paymentDetails?.isCod) ||
+    order.method?.payment?.includes("Cash on Delivery") ||
+    order.method?.payment?.includes("COD");
+  const advancePaid = Number(order.paymentDetails?.advancePaid) || 0;
+  const codBalance = Number(order.paymentDetails?.codBalance) || 0;
+
   // Net Total
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
-  doc.text("Net Total", 120, currentY);
+  doc.text("Total Order Amount", 120, currentY);
   doc.text(`${displayAmount}`, pageWidth - 20, currentY, { align: "right" });
+  currentY += 8;
+
+  if (isCodOrder && advancePaid > 0) {
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(22, 163, 74); // green
+    doc.text("20% Advance Paid Online (Razorpay)", 120, currentY);
+    doc.text(`-Rs. ${advancePaid.toFixed(2)}`, pageWidth - 20, currentY, { align: "right" });
+    currentY += 7;
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(211, 47, 47); // red
+    doc.text("Balance Due on Delivery (Cash to Courier)", 120, currentY);
+    doc.text(`Rs. ${codBalance.toFixed(2)}`, pageWidth - 20, currentY, { align: "right" });
+    currentY += 8;
+    doc.setTextColor(0, 0, 0); // reset black
+  }
 
   // Loyalty Points
   if (order.earnedPoints && order.earnedPoints > 0) {
-    currentY += 10;
+    currentY += 2;
     doc.setFontSize(10);
     doc.setTextColor(211, 47, 47);
     doc.text(`Loyalty Points Earned: ${order.earnedPoints} Coins`,
@@ -797,24 +822,29 @@ async function generateOrderPDF(
   // Transaction Details - Table format to match email look
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text("Transaction", 20, finalY + 32);
-
-  const isPaid = order.status === "Paid" ||
-    order.method?.payment !== "Cash on Delivery (COD)";
+  doc.text("Payment & Delivery Details", 20, finalY + (isCodOrder && advancePaid > 0 ? 46 : 32));
 
   doc.autoTable({
-    startY: finalY + 36,
+    startY: finalY + (isCodOrder && advancePaid > 0 ? 50 : 36),
     margin: { left: 20, right: 20 },
-    body: [
-      [
-        order.method?.payment || "N/A",
-        isPaid ? "Paid" : "Pending",
-      ],
-    ],
+    body: isCodOrder
+      ? [
+          ["Payment Method", "Cash on Delivery (20% Advance Paid)"],
+          ["20% Advance Payment", `Rs. ${advancePaid.toFixed(2)} (Paid Online via Razorpay)`],
+          ["Remaining Balance on Delivery", `Rs. ${codBalance.toFixed(2)} (To be collected by Courier)`],
+          ["Delivery Courier", `${order.courierName || "Velocity Express"}${order.velocityAWB ? ` (AWB: ${order.velocityAWB})` : ""}`],
+          ["Customer Contact", `${order.shippingDetails?.mobile || "N/A"}${order.customerEmail ? ` • ${order.customerEmail}` : ""}`],
+        ]
+      : [
+          ["Payment Method", order.method?.payment || "Online Payment (Prepaid)"],
+          ["Payment Status", "Paid in Full"],
+          ["Delivery Courier", `${order.courierName || "Velocity Express"}${order.velocityAWB ? ` (AWB: ${order.velocityAWB})` : ""}`],
+          ["Customer Contact", `${order.shippingDetails?.mobile || "N/A"}${order.customerEmail ? ` • ${order.customerEmail}` : ""}`],
+        ],
     theme: "plain",
-    styles: { fontSize: 10, cellPadding: 2 },
+    styles: { fontSize: 9, cellPadding: 2 },
     columnStyles: {
-      1: { halign: "right" },
+      1: { halign: "right", fontStyle: "bold" },
     },
   });
 
@@ -1011,11 +1041,24 @@ async function sendOrderConfirmationEmail(
     "</tr>" +
     "<tr style=\"font-size: 18px; color: #000; font-weight: bold;\">" +
     "<td style=\"padding: 10px 0; border-top: 1px solid #eee;\">" +
-    "Total Amount</td>" +
+    "Total Order Amount</td>" +
     "<td align=\"right\" style=\"padding: 10px 0; " +
     "border-top: 1px solid #eee;\">" +
     `${displayAmount}</td>` +
     "</tr>" +
+    `${(order.paymentDetails?.isCod || order.method?.payment?.includes("Cash on Delivery") || order.method?.payment?.includes("COD")) && (Number(order.paymentDetails?.advancePaid) || 0) > 0 ?
+      "<tr>" +
+      "<td style=\"padding: 6px 0; color: #16a34a; font-weight: bold;\">" +
+      "20% Advance Paid Online (Razorpay)</td>" +
+      "<td align=\"right\" style=\"padding: 6px 0; color: #16a34a; font-weight: bold;\">" +
+      `- Rs. ${(Number(order.paymentDetails?.advancePaid) || 0).toFixed(2)}</td>` +
+      "</tr>" +
+      "<tr style=\"background: #fffbeb; font-weight: bold;\">" +
+      "<td style=\"padding: 8px 10px; border-radius: 4px; color: #b45309; font-size: 15px;\">" +
+      "Balance Due on Delivery (Cash to Courier)</td>" +
+      "<td align=\"right\" style=\"padding: 8px 10px; border-radius: 4px; color: #b45309; font-size: 15px;\">" +
+      `Rs. ${(Number(order.paymentDetails?.codBalance) || 0).toFixed(2)}</td>` +
+      "</tr>" : ""}` +
     `${order.earnedPoints && order.earnedPoints > 0 ?
       "<tr>" +
       "<td colspan=\"2\" align=\"right\" style=\"padding-top: 10px; " +
@@ -1025,12 +1068,34 @@ async function sendOrderConfirmationEmail(
       "</tr>" : ""}` +
     "</table>" +
     "<hr style=\"border: none; border-top: 1px solid #eee\">" +
-    "<h3>Transaction</h3>" +
-    "<table width=\"100%\">" +
+    "<h3>Payment & Delivery Information</h3>" +
+    "<table width=\"100%\" style=\"font-size: 14px; border-collapse: collapse;\">" +
     "<tr>" +
-    `<td>${order.method?.payment || "N/A"}</td>` +
-    `<td align="right">${isPaid ? "Paid" : "Pending"}</td>` +
+    "<td style=\"padding: 5px 0;\">Payment Method:</td>" +
+    `<td align="right" style="padding: 5px 0;"><strong>${order.method?.payment || (order.paymentDetails?.isCod ? "Cash on Delivery (20% Advance Paid)" : "Online Payment")}</strong></td>` +
     "</tr>" +
+    `${(order.paymentDetails?.isCod || order.method?.payment?.includes("Cash on Delivery")) ?
+      "<tr>" +
+      "<td style=\"padding: 5px 0; color: #16a34a;\">Advance Paid Online:</td>" +
+      `<td align="right" style="padding: 5px 0; color: #16a34a; font-weight: bold;">Rs. ${(Number(order.paymentDetails?.advancePaid) || 0).toFixed(2)} (Paid via Razorpay)</td>` +
+      "</tr>" +
+      "<tr>" +
+      "<td style=\"padding: 5px 0; color: #b45309;\">Balance on Delivery:</td>" +
+      `<td align="right" style="padding: 5px 0; color: #b45309; font-weight: bold;">Rs. ${(Number(order.paymentDetails?.codBalance) || 0).toFixed(2)} (Cash to Courier)</td>` +
+      "</tr>" :
+      "<tr>" +
+      "<td style=\"padding: 5px 0;\">Payment Status:</td>" +
+      `<td align="right" style="padding: 5px 0; color: #16a34a; font-weight: bold;">${isPaid ? "Paid in Full" : "Pending"}</td>` +
+      "</tr>"}` +
+    "<tr>" +
+    "<td style=\"padding: 5px 0;\">Delivery Courier:</td>" +
+    `<td align="right" style="padding: 5px 0;"><strong>${order.courierName || "Velocity Express"}</strong></td>` +
+    "</tr>" +
+    `${order.velocityAWB ?
+      "<tr>" +
+      "<td style=\"padding: 5px 0;\">Velocity AWB Tracking:</td>" +
+      `<td align="right" style="padding: 5px 0; color: #0f766e; font-weight: bold;">${order.velocityAWB}</td>` +
+      "</tr>" : ""}` +
     "</table>" +
     "<p style=\"font-size:13px;color:#777;margin-top:30px\">" +
     "Authentic Karnataka Munchies Since 1961" +
@@ -1084,10 +1149,25 @@ async function sendAdminNotificationEmail(
             ${order.customerName}</p>
           <p style="margin: 5px 0 0;"><strong>Email:</strong>
             ${order.customerEmail}</p>
-          <p style="margin: 5px 0 0;"><strong>Amount:</strong>
+          <p style="margin: 5px 0 0;"><strong>Total Order Value:</strong>
             ${order.amount}</p>
           <p style="margin: 5px 0 0;"><strong>Payment Method:</strong>
             ${order.method?.payment || "N/A"}</p>
+          ${(order.paymentDetails?.isCod || order.method?.payment?.includes("Cash on Delivery")) ? `
+          <p style="margin: 5px 0 0; color: #16a34a;"><strong>20% Advance Paid Online:</strong>
+            Rs. ${(Number(order.paymentDetails?.advancePaid) || 0).toFixed(2)} (via Razorpay)</p>
+          <p style="margin: 5px 0 0; color: #b45309; font-weight: bold;"><strong>Balance to Collect on Delivery:</strong>
+            Rs. ${(Number(order.paymentDetails?.codBalance) || 0).toFixed(2)} (Cash to Courier)</p>
+          ` : `
+          <p style="margin: 5px 0 0; color: #16a34a;"><strong>Payment Status:</strong> Paid in Full (Prepaid)</p>
+          `}
+          <p style="margin: 5px 0 0;"><strong>Phone:</strong>
+            +91 ${order.shippingDetails?.mobile || "N/A"}</p>
+          <p style="margin: 5px 0 0;"><strong>Delivery Address:</strong>
+            ${order.shippingDetails?.address || ""}, ${order.shippingDetails?.city || ""}, ${order.shippingDetails?.state || ""} - ${order.shippingDetails?.pincode || ""}</p>
+          ${order.velocityAWB ? `
+          <p style="margin: 5px 0 0; color: #0f766e;"><strong>Velocity AWB:</strong> ${order.velocityAWB}</p>
+          ` : ""}
         </div>
         <h3 style="color: #333; margin-top: 20px; font-size: 16px;">Items Ordered:</h3>
         <ul style="padding-left: 20px; margin: 10px 0;">
@@ -1336,7 +1416,21 @@ export const createVelocityOrder = onCall(
 
       const codBalanceToCollect = order.paymentDetails?.codBalance != null ?
         Number(order.paymentDetails.codBalance) :
-        orderAmount;
+        (isCod ? Math.round(orderAmount * 0.8) : orderAmount);
+
+      const advancePaid = Number(order.paymentDetails?.advancePaid || (isCod ? Math.round(orderAmount * 0.2) : 0));
+
+      const cleanPhone = (order.shippingDetails?.mobile || "")
+        .replace(/[^0-9]/g, "")
+        .slice(-10) || order.shippingDetails?.mobile || "9999999999";
+
+      const cleanEmail = (order.customerEmail && !order.customerEmail.includes("customer@munchtokri.com")) ?
+        order.customerEmail :
+        "sales@munchtokri.in";
+
+      const codInstruction = isCod ?
+        `COD Order: Collect Balance Rs. ${codBalanceToCollect.toFixed(2)} only (20% Advance Rs. ${advancePaid.toFixed(2)} paid online via Razorpay)` :
+        `Prepaid Order: Fully Paid Online (Rs. ${orderAmount.toFixed(2)})`;
 
       const velocityOrder = {
         order_id: order.orderNumber || orderId,
@@ -1351,8 +1445,10 @@ export const createVelocityOrder = onCall(
         billing_pincode: order.shippingDetails.pincode,
         billing_state: order.shippingDetails.state,
         billing_country: "India",
-        billing_email: order.customerEmail || "orders@munchtokri.com",
-        billing_phone: order.shippingDetails.mobile,
+        billing_email: cleanEmail,
+        billing_phone: cleanPhone,
+        comment: codInstruction,
+        customer_note: codInstruction,
         shipping_is_billing: true,
         print_label: true,
         order_items: order.items.map((item: OrderItem) => {
@@ -1371,7 +1467,7 @@ export const createVelocityOrder = onCall(
         }),
         payment_method: isCod ? "COD" : "PREPAID",
         sub_total: orderAmount,
-        cod_collectible: isCod ? codBalanceToCollect : 0,
+        cod_collectible: isCod ? Math.round(codBalanceToCollect) : 0,
         length: 10,
         breadth: 10,
         height: 10,
