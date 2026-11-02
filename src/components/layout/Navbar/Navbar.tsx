@@ -86,13 +86,51 @@ const Navbar = () => {
                 </div>
 
                 <div className={`${styles.navLinks} ${isMenuOpen ? styles.active : ''} ${isDashboard ? styles.dashboardHidden : ''}`}>
-                    <Link href="/shop" className={styles.navLink} onClick={() => { tracker.track('nav_click', { link: 'Shop', href: '/shop' }); handleNavLinkClick(); }}>Shop</Link>
-                    <Link href="/combos" className={styles.navLink} onClick={() => { tracker.track('nav_click', { link: 'Combos', href: '/combos' }); handleNavLinkClick(); }}>Combos</Link>
-                    <Link href="/build-mixture" className={styles.navLink} onClick={() => { tracker.track('nav_click', { link: 'Build your Mix', href: '/build-mixture' }); handleNavLinkClick(); }}>Build your Mix</Link>
-                    <Link href="/membership" className={styles.navLink} onClick={() => { tracker.track('nav_click', { link: 'Membership', href: '/membership' }); handleNavLinkClick(); }}>Membership</Link>
-                    <Link href="/about" className={styles.navLink} onClick={() => { tracker.track('nav_click', { link: 'About', href: '/about' }); handleNavLinkClick(); }}>About</Link>
-                    <Link href="/vendor" className={styles.navLink} onClick={() => { tracker.track('nav_click', { link: 'Vendor', href: '/vendor' }); handleNavLinkClick(); }}>Vendor</Link>
-                    <Link href="/contact" className={styles.navLink} onClick={() => { tracker.track('nav_click', { link: 'Contact', href: '/contact' }); handleNavLinkClick(); }}>Contact</Link>
+                    {/* Mobile Menu Header with Logo & Close (X) button */}
+                    <div className={styles.mobileMenuHeader}>
+                        <Link href="/" onClick={handleNavLinkClick}>
+                            <Image
+                                src="/MTLogoBR.png"
+                                alt="Munch Tokri Logo"
+                                width={58}
+                                height={48}
+                                priority
+                                style={{ width: 'auto', height: '42px', objectFit: 'contain' }}
+                            />
+                        </Link>
+                        <button
+                            type="button"
+                            className={styles.closeMenuBtn}
+                            onClick={handleNavLinkClick}
+                            aria-label="Close menu"
+                        >
+                            <X size={24} />
+                        </button>
+                    </div>
+
+                    <div className={styles.mobileLinksWrapper}>
+                        <Link href="/shop" className={styles.navLink} onClick={() => { tracker.track('nav_click', { link: 'Shop', href: '/shop' }); handleNavLinkClick(); }}>Shop</Link>
+                        <Link href="/combos" className={styles.navLink} onClick={() => { tracker.track('nav_click', { link: 'Combos', href: '/combos' }); handleNavLinkClick(); }}>Combos</Link>
+                        <Link href="/build-mixture" className={styles.navLink} onClick={() => { tracker.track('nav_click', { link: 'Build your Mix', href: '/build-mixture' }); handleNavLinkClick(); }}>Build your Mix</Link>
+                        <Link href="/membership" className={styles.navLink} onClick={() => { tracker.track('nav_click', { link: 'Membership', href: '/membership' }); handleNavLinkClick(); }}>Membership</Link>
+                        <Link href="/about" className={styles.navLink} onClick={() => { tracker.track('nav_click', { link: 'About', href: '/about' }); handleNavLinkClick(); }}>About</Link>
+                        <Link href="/vendor" className={styles.navLink} onClick={() => { tracker.track('nav_click', { link: 'Vendor', href: '/vendor' }); handleNavLinkClick(); }}>Vendor</Link>
+                        <Link href="/contact" className={styles.navLink} onClick={() => { tracker.track('nav_click', { link: 'Contact', href: '/contact' }); handleNavLinkClick(); }}>Contact</Link>
+                    </div>
+
+                    <div className={styles.mobileMenuFooter}>
+                        {user ? (
+                            <Link href="/dashboard" className={styles.mobileFooterBtn} onClick={() => { tracker.track('nav_click', { link: 'Dashboard', href: '/dashboard' }); handleNavLinkClick(); }}>
+                                <User size={18} />
+                                <span>My Account</span>
+                            </Link>
+                        ) : (
+                            <Link href="/login" className={styles.mobileFooterBtn} onClick={() => { tracker.track('nav_click', { link: 'Sign In', href: '/login' }); handleNavLinkClick(); }}>
+                                <User size={18} />
+                                <span>Sign In / Register</span>
+                            </Link>
+                        )}
+                    </div>
                 </div>
 
                 <div className={styles.actions}>
