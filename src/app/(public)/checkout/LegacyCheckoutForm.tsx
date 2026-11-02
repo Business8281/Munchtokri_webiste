@@ -10,7 +10,7 @@ import { useCart } from '@/contexts/CartContext';
 import {
     Trash2, Plus, Minus, Zap, ShoppingBag, Truck, IndianRupee,
     Star, Coins, ShieldCheck, Loader2, Sparkles, ArrowRight,
-    Pencil
+    Pencil, Calendar, CheckCircle2
 } from 'lucide-react';
 import { useNotification } from '@/contexts/NotificationContext';
 import {
@@ -64,6 +64,32 @@ export default function LegacyCheckoutForm() {
         paymentMethod: isCodParam ? 'Cash on Delivery (COD)' : 'UPI / QR',
     });
 
+    const isCod = formData.paymentMethod === 'Cash on Delivery (COD)';
+    const totalSteps = 2;
+    const stepNames = useMemo(() => isCod
+        ? ['Shipping & Delivery', 'Review & Pay 20%']
+        : ['Shipping & Delivery', 'Review & Payment'],
+    [isCod]);
+
+    // Estimated delivery calculation (3-5 business days)
+    const deliveryEstimate = useMemo(() => {
+        const today = new Date();
+        const addDays = (d: Date, days: number) => {
+            const copy = new Date(d);
+            copy.setDate(copy.getDate() + days);
+            return copy;
+        };
+        const minDate = addDays(today, 3);
+        const maxDate = addDays(today, 5);
+
+        const options: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric' };
+        return {
+            minFormatted: minDate.toLocaleDateString('en-IN', options),
+            maxFormatted: maxDate.toLocaleDateString('en-IN', options),
+            text: `Estimated 3–5 Business Days (${minDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })} – ${maxDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })})`,
+        };
+    }, []);
+
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formError, setFormError] = useState('');
     const stepRef = React.useRef(step);
@@ -74,10 +100,9 @@ export default function LegacyCheckoutForm() {
     }, [step]);
 
     useEffect(() => {
-        const stepNames = ['Shipping', 'Delivery', 'Payment', 'Review'];
         tracker.track('checkout_start', {
             step: 1,
-            stepName: 'Shipping',
+            stepName: stepNames[0],
             cartTotal,
             itemCount: cartItems.length
         });
@@ -94,7 +119,7 @@ export default function LegacyCheckoutForm() {
                 });
             }
         };
-    }, []);
+    }, [stepNames]);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -184,16 +209,15 @@ export default function LegacyCheckoutForm() {
                 setFormError(error);
                 tracker.track('checkout_step', {
                     step: 1,
-                    stepName: 'Shipping',
+                    stepName: stepNames[0],
                     hasValidationError: true,
                     validationError: error
                 });
                 return;
             }
         }
-        if (step < 4) {
+        if (step < totalSteps) {
             const nextStep = step + 1;
-            const stepNames = ['Shipping', 'Delivery', 'Payment', 'Review'];
             tracker.track('checkout_step', {
                 step: nextStep,
                 stepName: stepNames[nextStep - 1],
@@ -202,6 +226,9 @@ export default function LegacyCheckoutForm() {
                 paymentMethod: formData.paymentMethod
             });
             setStep(nextStep);
+            if (typeof window !== 'undefined') {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
         }
     };
 
@@ -361,7 +388,6 @@ export default function LegacyCheckoutForm() {
     const orderTotalStr = `₹${orderTotal.toFixed(2)}`;
 
     // 20% Advance Calculation for Cash on Delivery (COD)
-    const isCod = formData.paymentMethod === 'Cash on Delivery (COD)';
     const advanceAmount = useMemo(() => {
         if (!isCod) return orderTotal;
         return Math.max(1, Math.round(orderTotal * 0.20 * 100) / 100);
@@ -751,10 +777,14 @@ export default function LegacyCheckoutForm() {
                 <div className={styles.mainContent}>
                     {/* Stepper */}
                     <nav className={styles.stepperNav}>
-                        {['Shipping', 'Delivery', 'Payment', 'Review'].map((label, i) => (
+                        {stepNames.map((label, i) => (
                             <div
                                 key={label}
                                 className={`${styles.step} ${step >= i + 1 ? styles.stepActive : ''}`}
+                                onClick={() => {
+                                    if (step > i + 1) setStep(i + 1);
+                                }}
+                                style={{ cursor: step > i + 1 ? 'pointer' : 'default' }}
                             >
                                 <span
                                     className={`${styles.stepIcon} ${step >= i + 1 ? styles.stepIconActive : ''}`}
@@ -770,7 +800,7 @@ export default function LegacyCheckoutForm() {
                         ))}
                     </nav>
 
-                    {/* Step 1: Shipping */}
+                    {/* Step 1: Shipping & Delivery */}
                     {step === 1 && (
                         <section style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                             <div className={styles.sectionHeader}>
@@ -895,142 +925,262 @@ export default function LegacyCheckoutForm() {
                                     )}
                                 </>
                             )}
+
+                            {/* Delivery Estimate Box */}
+                            <div style={{
+                                marginTop: '0.75rem',
+                                padding: '1.25rem',
+                                borderRadius: '0.75rem',
+                                border: '2px solid #0d9488',
+                                backgroundColor: '#f0fdfa',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.75rem',
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <div style={{
+                                            width: '2.5rem',
+                                            height: '2.5rem',
+                                            borderRadius: '50%',
+                                            backgroundColor: '#ccfbf1',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: '#0f766e',
+                                        }}>
+                                            <Truck size={20} />
+                                        </div>
+                                        <div>
+                                            <h4 style={{ margin: 0, fontWeight: 700, fontSize: '1rem', color: '#0f766e' }}>
+                                                Standard Express Delivery
+                                            </h4>
+                                            <p style={{ margin: '0.15rem 0 0', fontSize: '0.85rem', color: '#134e4a', fontWeight: 600 }}>
+                                                ⚡ Estimated 3–5 Business Days
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <span style={{
+                                        fontSize: '0.85rem',
+                                        fontWeight: 800,
+                                        color: shippingCost === 0 ? '#16a34a' : '#0f766e',
+                                        backgroundColor: shippingCost === 0 ? '#dcfce7' : '#e6fffa',
+                                        padding: '0.25rem 0.6rem',
+                                        borderRadius: '9999px',
+                                        border: shippingCost === 0 ? '1px solid #86efac' : '1px solid #99f6e4',
+                                    }}>
+                                        {shippingCost === 0 ? 'FREE DELIVERY' : `₹${shippingCost}`}
+                                    </span>
+                                </div>
+
+                                <div style={{
+                                    padding: '0.6rem 0.85rem',
+                                    backgroundColor: '#ffffff',
+                                    borderRadius: '0.5rem',
+                                    border: '1px solid #99f6e4',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    fontSize: '0.85rem',
+                                    color: '#0f766e',
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <Calendar size={15} style={{ color: '#0d9488' }} />
+                                        <span>Expected Arrival:</span>
+                                        <strong style={{ color: '#115e59' }}>{deliveryEstimate.minFormatted} – {deliveryEstimate.maxFormatted}</strong>
+                                    </div>
+                                    <span style={{ fontSize: '0.75rem', color: '#0d9488', fontWeight: 600 }}>Velocity Express</span>
+                                </div>
+
+                                <p style={{ margin: 0, fontSize: '0.78rem', color: '#115e59', opacity: 0.9 }}>
+                                    📦 Packed fresh upon order and dispatched within 24 hours. Live SMS and WhatsApp tracking updates will be sent.
+                                </p>
+                            </div>
+
                             {formError && (
                                 <div style={{ color: '#ef4444', fontSize: '0.875rem', padding: '0.75rem', backgroundColor: '#fef2f2', borderRadius: '0.375rem', border: '1px solid #fecaca' }}>
                                     {formError}
                                 </div>
                             )}
+
                             <div className={styles.actions}>
                                 <button className={styles.submitBtn} onClick={handleNextStep}>
-                                    <span>Continue to Delivery</span><span>→</span>
+                                    <span>{isCod ? 'Continue to Review (Pay 20% Advance)' : 'Continue to Review & Payment'}</span><span>→</span>
                                 </button>
                             </div>
                         </section>
                     )}
 
-                    {/* Step 2: Delivery */}
+                    {/* Step 2: Review and Make 20% Payment */}
                     {step === 2 && (
                         <section style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                             <div className={styles.sectionHeader}>
-                                <h2>Delivery Priority</h2>
-                                <p>Standard delivery across India.</p>
+                                <h2>{isCod ? 'Review & Pay 20% Advance' : 'Review & Place Order'}</h2>
+                                <p>
+                                    {isCod
+                                        ? 'Review your delivery details and pay 20% advance online to confirm your Cash on Delivery order.'
+                                        : 'Confirm your order details before making payment.'}
+                                </p>
                             </div>
-                            <div className={styles.formGrid}>
-                                <div className={styles.inputGroupFull} style={{ padding: '1rem', border: '2px solid var(--primary)', borderRadius: '0.5rem' }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '1rem', margin: 0 }}>
-                                        <div style={{ flex: 1 }}>
-                                            <h4 style={{ margin: 0, fontWeight: 700 }}>Standard Delivery</h4>
-                                            <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: '#000' }}>Estimated 3–5 business days</p>
+
+                            {/* Shipping To Summary */}
+                            <div style={{
+                                backgroundColor: '#ffffff',
+                                padding: '1.25rem',
+                                borderRadius: '0.75rem',
+                                border: '1px solid #e2e8f0',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <Truck size={18} style={{ color: 'var(--primary, #0d9488)' }} />
+                                        <h4 style={{ margin: 0, fontWeight: 700, fontSize: '0.95rem', color: '#1e293b' }}>Delivering To</h4>
+                                    </div>
+                                    <button
+                                        onClick={() => setStep(1)}
+                                        style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            color: 'var(--primary, #0d9488)',
+                                            fontSize: '0.85rem',
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.25rem',
+                                        }}
+                                    >
+                                        <Pencil size={14} /> Change Address
+                                    </button>
+                                </div>
+                                <p style={{ margin: '0 0 0.35rem', fontWeight: 700, fontSize: '1rem', color: '#0f172a' }}>{formData.fullName}</p>
+                                <p style={{ margin: '0 0 0.35rem', color: '#334155', fontSize: '0.9rem', lineHeight: 1.4 }}>
+                                    {formData.address}, {formData.city}, {formData.state} - <strong>{formData.pincode}</strong>
+                                </p>
+                                <p style={{ margin: '0 0 0.6rem', color: '#64748b', fontSize: '0.85rem' }}>
+                                    📞 Mobile: <strong style={{ color: '#0f172a' }}>+91 {formData.mobile}</strong> • ✉️ {formData.email}
+                                </p>
+                                <div style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    backgroundColor: '#f0fdfa',
+                                    padding: '0.35rem 0.65rem',
+                                    borderRadius: '6px',
+                                    border: '1px solid #99f6e4',
+                                    fontSize: '0.82rem',
+                                    color: '#0f766e',
+                                    fontWeight: 600,
+                                }}>
+                                    <Calendar size={14} />
+                                    <span>Standard Express (3–5 Business Days) • Expected: <strong>{deliveryEstimate.minFormatted} – {deliveryEstimate.maxFormatted}</strong></span>
+                                </div>
+                            </div>
+
+                            {/* Payment Section (COD 20% Advance Breakdown) */}
+                            {isCod ? (
+                                <div style={{
+                                    backgroundColor: '#fef2f2',
+                                    padding: '1.25rem',
+                                    borderRadius: '0.75rem',
+                                    border: '1.5px solid #fecaca',
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <span style={{ fontSize: '1.2rem' }}>💵</span>
+                                            <h4 style={{ margin: 0, fontWeight: 700, fontSize: '1rem', color: '#991b1b' }}>
+                                                Cash on Delivery (20% Advance)
+                                            </h4>
                                         </div>
-                                        <span style={{ fontWeight: 700 }}>
-                                            {shippingCost === 0 ? 'FREE' : `₹${shippingCost}`}
+                                        <span style={{
+                                            fontSize: '0.75rem',
+                                            fontWeight: 700,
+                                            backgroundColor: '#fee2e2',
+                                            color: '#991b1b',
+                                            padding: '0.2rem 0.55rem',
+                                            borderRadius: '4px',
+                                            border: '1px solid #fca5a5',
+                                        }}>
+                                            COD CONFIRMATION
                                         </span>
-                                    </label>
-                                </div>
-                            </div>
-                            <div className={styles.actions} style={{ display: 'flex', gap: '1rem' }}>
-                                <button className={styles.submitBtn} style={{ backgroundColor: 'transparent', color: 'var(--primary)', border: '2px solid var(--primary)' }} onClick={() => setStep(1)}>Back</button>
-                                <button className={styles.submitBtn} onClick={handleNextStep}>Continue to Payment →</button>
-                            </div>
-                        </section>
-                    )}
+                                    </div>
 
-                    {/* Step 3: Payment */}
-                    {step === 3 && (
-                        <section style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                            <div className={styles.sectionHeader}>
-                                <h2>Payment Method</h2>
-                                <p>Select how you would like to pay for your snacks.</p>
-                            </div>
-                            <div className={styles.formGrid}>
-                                {(['Cash on Delivery (COD)', 'UPI / QR'] as const)
-                                    .filter(method => method !== 'Cash on Delivery (COD)' || storeSettings?.enableCOD !== false)
-                                    .map(method => {
-                                        const isThisCod = method === 'Cash on Delivery (COD)';
-                                        const isSelected = formData.paymentMethod === method;
-                                        return (
-                                            <div 
-                                                key={method} 
-                                                className={styles.inputGroupFull} 
-                                                onClick={() => setFormData(prev => ({ ...prev, paymentMethod: method }))}
-                                                style={{ 
-                                                    padding: '1.25rem', 
-                                                    border: isSelected ? '2px solid var(--primary, #ef4444)' : '1px solid #e2e8f0', 
-                                                    borderRadius: '0.75rem', 
-                                                    cursor: 'pointer',
-                                                    backgroundColor: isSelected ? '#fef2f2' : '#ffffff',
-                                                    transition: 'all 0.2s ease',
-                                                }}
-                                            >
-                                                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', cursor: 'pointer', margin: 0 }}>
-                                                    <input 
-                                                        type="radio" 
-                                                        name="paymentMethod" 
-                                                        value={method} 
-                                                        checked={isSelected} 
-                                                        onChange={handleInputChange} 
-                                                        style={{ width: '1.25rem', height: '1.25rem', accentColor: 'var(--primary, #ef4444)', marginTop: '0.2rem' }} 
-                                                    />
-                                                    <div style={{ flex: 1 }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                                            <h4 style={{ margin: 0, fontWeight: 700, fontSize: '1rem', color: isSelected ? '#b91c1c' : '#1e293b' }}>
-                                                                {isThisCod ? 'Cash on Delivery (COD)' : 'Full Online Payment (UPI / Cards / NetBanking)'}
-                                                            </h4>
-                                                            {isThisCod && (
-                                                                <span style={{ fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#fee2e2', color: '#b91c1c', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
-                                                                    20% Advance Online
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        <p style={{ margin: '0.4rem 0 0', fontSize: '0.875rem', color: '#475569', lineHeight: 1.4 }}>
-                                                            {isThisCod 
-                                                                ? `Pay 20% advance (₹${advanceAmount.toFixed(2)}) online now to confirm your order. The remaining 80% (₹${codBalance.toFixed(2)}) is payable in cash upon doorstep delivery.` 
-                                                                : `Pay 100% (₹${orderTotal.toFixed(2)}) instantly online via Google Pay, PhonePe, Paytm, UPI, Cards, or NetBanking.`}
-                                                        </p>
-                                                    </div>
-                                                </label>
-                                            </div>
-                                        );
-                                    })}
-                            </div>
-                            <div className={styles.actions} style={{ display: 'flex', gap: '1rem' }}>
-                                <button className={styles.submitBtn} style={{ backgroundColor: 'transparent', color: 'var(--primary)', border: '2px solid var(--primary)' }} onClick={() => setStep(2)}>Back</button>
-                                <button className={styles.submitBtn} onClick={handleNextStep}>Review Order →</button>
-                            </div>
-                        </section>
-                    )}
+                                    <p style={{ margin: '0 0 1rem', fontSize: '0.85rem', color: '#7f1d1d', lineHeight: 1.5 }}>
+                                        To confirm your Cash on Delivery order, please pay <strong>20% advance</strong> online now. The remaining <strong>80%</strong> will be collected in cash at your doorstep upon delivery.
+                                    </p>
 
-                    {/* Step 4: Review */}
-                    {step === 4 && (
-                        <section style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                            <div className={styles.sectionHeader}>
-                                <h2>Review Your Order</h2>
-                                <p>Confirm your details before placing the order.</p>
-                            </div>
-                            <div style={{ backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
-                                <h4 style={{ margin: '0 0 1rem', borderBottom: '1px solid #cbd5e1', paddingBottom: '0.5rem' }}>Shipping To</h4>
-                                <p style={{ margin: '0 0 0.5rem', fontWeight: 'bold' }}>{formData.fullName}</p>
-                                <p style={{ margin: '0 0 0.5rem', color: '#000' }}>{formData.address}, {formData.city}, {formData.state} {formData.pincode}</p>
-                                <p style={{ margin: 0, color: '#000' }}>+91 {formData.mobile}</p>
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <div style={{ backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
-                                    <h4 style={{ margin: '0 0 0.5rem', borderBottom: '1px solid #cbd5e1', paddingBottom: '0.5rem' }}>Delivery</h4>
-                                    <p style={{ margin: 0, color: '#000' }}>Standard ({shippingCost === 0 ? 'Free' : `₹${shippingCost}`})</p>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+                                        <div style={{
+                                            backgroundColor: '#ffffff',
+                                            padding: '1rem',
+                                            borderRadius: '0.5rem',
+                                            border: '2px solid #ef4444',
+                                            boxShadow: '0 2px 4px rgba(239,68,68,0.08)',
+                                        }}>
+                                            <p style={{ margin: '0 0 0.25rem', fontSize: '0.8rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                                1. Pay Now Online (20%)
+                                            </p>
+                                            <p style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#b91c1c' }}>
+                                                ₹{advanceAmount.toFixed(2)}
+                                            </p>
+                                            <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: '#64748b' }}>
+                                                UPI, GPay, PhonePe, Cards
+                                            </p>
+                                        </div>
+
+                                        <div style={{
+                                            backgroundColor: '#ffffff',
+                                            padding: '1rem',
+                                            borderRadius: '0.5rem',
+                                            border: '1px solid #cbd5e1',
+                                        }}>
+                                            <p style={{ margin: '0 0 0.25rem', fontSize: '0.8rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                                2. Pay on Delivery (80%)
+                                            </p>
+                                            <p style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#1e293b' }}>
+                                                ₹{codBalance.toFixed(2)}
+                                            </p>
+                                            <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: '#64748b' }}>
+                                                Cash to courier at delivery
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: '#7f1d1d' }}>
+                                        <ShieldCheck size={16} color="#b91c1c" />
+                                        <span>Grand Total: <strong>₹{orderTotal.toFixed(2)}</strong> (Includes all taxes & delivery charges)</span>
+                                    </div>
                                 </div>
-                                <div style={{ backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
-                                    <h4 style={{ margin: '0 0 0.5rem', borderBottom: '1px solid #cbd5e1', paddingBottom: '0.5rem' }}>Payment</h4>
-                                    <p style={{ margin: 0, color: '#000', fontWeight: 700 }}>{formData.paymentMethod}</p>
-                                    {isCod && (
-                                        <p style={{ margin: '0.35rem 0 0', fontSize: '0.85rem', color: '#b91c1c', fontWeight: 600 }}>
-                                            ₹{advanceAmount.toFixed(2)} (20%) payable now • ₹{codBalance.toFixed(2)} on delivery
-                                        </p>
-                                    )}
+                            ) : (
+                                <div style={{
+                                    backgroundColor: '#f8fafc',
+                                    padding: '1.25rem',
+                                    borderRadius: '0.75rem',
+                                    border: '1px solid #e2e8f0',
+                                }}>
+                                    <h4 style={{ margin: '0 0 0.5rem', fontWeight: 700, color: '#1e293b' }}>Online Payment</h4>
+                                    <p style={{ margin: 0, fontSize: '0.9rem', color: '#475569' }}>
+                                        Full amount of <strong>₹{orderTotal.toFixed(2)}</strong> payable online via Razorpay (UPI, Google Pay, PhonePe, Cards, NetBanking).
+                                    </p>
                                 </div>
-                            </div>
+                            )}
+
+                            {/* Action Buttons */}
                             <div className={styles.actions} style={{ display: 'flex', gap: '1rem' }}>
-                                <button className={styles.submitBtn} style={{ backgroundColor: 'transparent', color: 'var(--primary)', border: '2px solid var(--primary)' }} onClick={() => setStep(3)} disabled={isSubmitting}>Back</button>
-                                <button className={styles.submitBtn} onClick={() => handlePlaceOrder(false)} disabled={isSubmitting}>
+                                <button
+                                    className={styles.submitBtn}
+                                    style={{ backgroundColor: 'transparent', color: 'var(--primary)', border: '2px solid var(--primary)', flex: '0 0 auto', width: 'auto', padding: '0.75rem 1.5rem' }}
+                                    onClick={() => setStep(1)}
+                                    disabled={isSubmitting}
+                                >
+                                    ← Back
+                                </button>
+                                <button
+                                    className={styles.submitBtn}
+                                    onClick={() => handlePlaceOrder(false)}
+                                    disabled={isSubmitting}
+                                    style={{ flex: 1 }}
+                                >
                                     {isSubmitting ? (
                                         <><Loader2 className="animate-spin" size={18} /> Processing...</>
                                     ) : isCod ? (
@@ -1299,7 +1449,7 @@ export default function LegacyCheckoutForm() {
                     <p className={styles.mobileTotalLabel}>Ground Total</p>
                     <p className={styles.mobileTotalValue}>₹{orderTotal.toFixed(2)}</p>
                 </div>
-                <button className={styles.mobileNextBtn} onClick={step < 4 ? handleNextStep : () => handlePlaceOrder(false)} disabled={isSubmitting}>
+                <button className={styles.mobileNextBtn} onClick={step < totalSteps ? handleNextStep : () => handlePlaceOrder(false)} disabled={isSubmitting}>
                     {isSubmitting ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <Loader2 className="animate-spin" size={18} />
@@ -1307,8 +1457,8 @@ export default function LegacyCheckoutForm() {
                         </div>
                     ) : (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            {step < 4 ? <ArrowRight size={18} /> : <ShieldCheck size={18} />}
-                            <span>{step < 4 ? 'Next Step' : 'Place Order'}</span>
+                            {step < totalSteps ? <ArrowRight size={18} /> : <ShieldCheck size={18} />}
+                            <span>{step < totalSteps ? 'Proceed to Review' : (isCod ? `Pay ₹${advanceAmount.toFixed(2)} (20% Advance)` : 'Place Order')}</span>
                         </div>
                     )}
                 </button>
