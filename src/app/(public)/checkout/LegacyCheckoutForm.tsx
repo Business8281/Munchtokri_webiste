@@ -183,7 +183,6 @@ export default function LegacyCheckoutForm() {
             const list = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
                 .filter((c: any) => {
                     if (c.status !== 'active') return false;
-                    if (c.isInfluencer) return false;
                     if (c.expiryDate) {
                         const exp = c.expiryDate.toDate ? c.expiryDate.toDate() : new Date(c.expiryDate);
                         if (now > exp) return false;
@@ -580,10 +579,6 @@ export default function LegacyCheckoutForm() {
 
             if (!found) {
                 throw new Error('Invalid coupon code');
-            }
-
-            if (found.isInfluencer) {
-                throw new Error('Influencer codes can only be applied on the main checkout page');
             }
 
             // Status check
