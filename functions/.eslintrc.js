@@ -27,6 +27,7 @@ module.exports = {
   ],
   rules: {
     "quotes": 0,
+    "linebreak-style": 0, // Windows checkouts use CRLF
     "import/no-unresolved": 0,
     "indent": 0,
     "object-curly-spacing": 0,
