@@ -715,8 +715,10 @@ async function generateOrderPDF(
   const storeSnap = await admin.firestore().collection("settings").doc("store").get();
   const storeSettings = storeSnap.exists ? storeSnap.data() : null;
 
+  // Influencer coupon orders always ship free
+  const isInfluencerOrder = Boolean((order as any).isInfluencerOrder);
   let shippingCost = 0;
-  if (storeSettings?.enableFlatRateShipping !== false) {
+  if (!isInfluencerOrder && storeSettings?.enableFlatRateShipping !== false) {
     const threshold = storeSettings?.freeShippingThreshold ?? 450;
     const rate = storeSettings?.shippingRate ?? 80;
     shippingCost = subtotal < threshold ? rate : 0;
@@ -741,7 +743,7 @@ async function generateOrderPDF(
   // Promo Discount
   if (order.discount && order.discount > 0) {
     doc.setTextColor(22, 163, 74); // success green
-    doc.text("Promo Discount", 120, currentY);
+    doc.text(isInfluencerOrder ? "Influencer Coupon (100% Off)" : "Promo Discount", 120, currentY);
     doc.text(`-Rs. ${order.discount.toFixed(2)}`,
       pageWidth - 20, currentY, { align: "right" });
     currentY += 7;
@@ -760,7 +762,7 @@ async function generateOrderPDF(
 
   // Shipping
   doc.text("Shipping", 120, currentY);
-  doc.text(`Rs. ${shippingCost.toFixed(2)}`,
+  doc.text(shippingCost === 0 ? "FREE" : `Rs. ${shippingCost.toFixed(2)}`,
     pageWidth - 20, currentY, { align: "right" });
   currentY += 7;
 
@@ -879,8 +881,10 @@ async function sendOrderConfirmationEmail(
   const storeSnap = await admin.firestore().collection("settings").doc("store").get();
   const storeSettings = storeSnap.exists ? storeSnap.data() : null;
 
+  // Influencer coupon orders always ship free
+  const isInfluencerOrder = Boolean((order as any).isInfluencerOrder);
   let shippingCost = 0;
-  if (storeSettings?.enableFlatRateShipping !== false) {
+  if (!isInfluencerOrder && storeSettings?.enableFlatRateShipping !== false) {
     const threshold = storeSettings?.freeShippingThreshold ?? 450;
     const rate = storeSettings?.shippingRate ?? 80;
     shippingCost = subtotal < threshold ? rate : 0;
@@ -1030,7 +1034,7 @@ async function sendOrderConfirmationEmail(
     "<tr>" +
     "<td style=\"padding: 5px 0;\">Shipping</td>" +
     "<td align=\"right\" style=\"padding: 5px 0;\">" +
-    `Rs. ${shippingCost.toFixed(2)}</td>` +
+    `${shippingCost === 0 ? "FREE" : `Rs. ${shippingCost.toFixed(2)}`}</td>` +
     "</tr>" +
     `${order.codPrice && order.codPrice > 0 ?
       "<tr>" +
@@ -2201,6 +2205,9 @@ export const validateCoupon = onCall(
     if (!data) {
       throw new HttpsError("internal", "Coupon data is missing");
     }
+    if (data.isInfluencer) {
+      throw new HttpsError("failed-precondition", "Influencer codes can only be applied on the checkout page");
+    }
 
     // Check if active
     if (data.status !== "active") {
@@ -2232,6 +2239,193 @@ export const validateCoupon = onCall(
       discountValue: data.discountValue,
       minOrderValue: data.minOrderValue,
     };
+  });
+
+// ── Influencer Coupons ─────────────────────────────────────────────────────
+// 100% off on admin-selected products, free shipping, single use.
+// The resulting order costs ₹0 so it bypasses Razorpay entirely and is
+// created here, inside a transaction that also consumes the coupon.
+
+/** Strips variant / combo suffixes so a cart line maps to its product or combo doc ID. */
+function baseItemId(it: any): string {
+  let id = String(it?.productId || it?.id || "");
+  if (id.includes("_v_")) {
+    id = id.split("_v_")[0];
+  } else if (String(it?.category) === "Combos" && id.includes("_")) {
+    id = id.split("_")[0];
+  }
+  return id;
+}
+
+function lineValue(it: any): number {
+  const isCustomMix = it.category === "Custom Mix" || String(it.name || "").startsWith("Custom Mix (");
+  const price = Number(it.price) || 0;
+  const qty = Number(it.quantity) || 1;
+  if (isCustomMix) return price;
+  if (it.category === "Combos" || Number(it.baseWeight) === 1) return price * qty;
+  return (price / (Number(it.baseWeight) || 100)) * qty;
+}
+
+/** Throws HttpsError if the coupon can't be used for these items. */
+function assertInfluencerCouponUsable(data: any, items: any[]) {
+  if (!data || !data.isInfluencer) {
+    throw new HttpsError("not-found", "Invalid influencer code");
+  }
+  if (data.status !== "active") {
+    throw new HttpsError("failed-precondition", "This code is no longer active");
+  }
+  if (data.expiryDate) {
+    const exp = data.expiryDate.toMillis ? data.expiryDate.toMillis() : new Date(data.expiryDate).getTime();
+    if (Date.now() > exp) {
+      throw new HttpsError("failed-precondition", "This code has expired");
+    }
+  }
+  const maxUses = Number(data.maxUses) || 1;
+  if ((Number(data.usedCount) || 0) >= maxUses) {
+    throw new HttpsError("failed-precondition", "This code has already been used");
+  }
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new HttpsError("invalid-argument", "Your cart is empty");
+  }
+  const allowed: string[] = Array.isArray(data.applicableProductIds) ? data.applicableProductIds : [];
+  const notEligible = items.filter((it) => !allowed.includes(baseItemId(it)));
+  if (notEligible.length > 0) {
+    const names = notEligible.map((it) => String(it.name || "item")).join(", ");
+    throw new HttpsError("failed-precondition",
+      `This code is only valid for selected products. Please remove: ${names}`);
+  }
+}
+
+/**
+ * Validates (dryRun) or redeems an influencer coupon and places a ₹0 order.
+ */
+export const placeInfluencerOrder = onCall(
+  { region: "asia-south1", invoker: "public" },
+  async (request) => {
+    const code = String(request.data?.code || "").trim().toUpperCase();
+    const items: any[] = Array.isArray(request.data?.items) ? request.data.items : [];
+    const dryRun = Boolean(request.data?.dryRun);
+    if (!code) {
+      throw new HttpsError("invalid-argument", "Code is required");
+    }
+
+    const db = admin.firestore();
+    const couponRef = db.collection("coupons").doc(code);
+
+    if (dryRun) {
+      const snap = await couponRef.get();
+      assertInfluencerCouponUsable(snap.data(), items);
+      const subtotal = items.reduce((s, it) => s + lineValue(it), 0);
+      return {
+        valid: true,
+        code,
+        influencerName: snap.data()?.influencerName || "",
+        subtotal: Math.round(subtotal * 100) / 100,
+      };
+    }
+
+    // ── Validate shipping details ──
+    const sd = request.data?.shippingDetails || {};
+    const fullName = String(sd.fullName || "").trim();
+    const email = String(sd.email || "").trim();
+    const mobile = String(sd.mobile || "").replace(/\D/g, "").slice(-10);
+    const address = String(sd.address || "").trim();
+    const city = String(sd.city || "").trim();
+    const state = String(sd.state || "").trim();
+    const pincode = String(sd.pincode || "").replace(/\D/g, "");
+    if (!fullName) throw new HttpsError("invalid-argument", "Full name is required");
+    if (mobile.length !== 10) throw new HttpsError("invalid-argument", "Enter a valid 10-digit mobile number");
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new HttpsError("invalid-argument", "Enter a valid email address");
+    }
+    if (address.length < 5) throw new HttpsError("invalid-argument", "Enter your full delivery address");
+    if (!city || !state) throw new HttpsError("invalid-argument", "City and state are required");
+    if (pincode.length !== 6) throw new HttpsError("invalid-argument", "Enter a valid 6-digit pincode");
+
+    const finalItems = items.map((it: any) => ({
+      name: String(it.name || "Snack Item"),
+      price: Number(it.price) || 0,
+      quantity: Number(it.quantity) || 1,
+      baseWeight: Number(it.baseWeight) || (it.category === "Combos" ? 1 : 100),
+      category: String(it.category || "Snacks"),
+      productId: String(it.productId || it.id || ""),
+      imageURL: String(it.imageURL || "/Logo Munch Tokri.png"),
+      variant: it.variant ? String(it.variant) : null,
+      grams: it.grams ? Number(it.grams) : null,
+      products: Array.isArray(it.products) ? it.products : null,
+    }));
+    const subtotal = Math.round(finalItems.reduce((s, it) => s + lineValue(it), 0) * 100) / 100;
+    const counterRef = db.collection("metadata").doc("counters");
+    const customerEmail = email || `${mobile}@munchtokri.in`;
+    const userId = request.auth?.uid || (request.data?.userId ? String(request.data.userId) : "");
+
+    let orderNumber = "";
+    let orderId = "";
+
+    await db.runTransaction(async (tx) => {
+      // Reads
+      const couponSnap = await tx.get(couponRef);
+      const counterSnap = await tx.get(counterRef);
+      const coupon = couponSnap.data();
+      assertInfluencerCouponUsable(coupon, finalItems);
+
+      const nextCount = ((counterSnap.exists ? Number(counterSnap.data()?.orderCount) : 0) || 10000) + 1;
+      orderNumber = `MT-${nextCount}`;
+      const orderRef = db.collection("orders").doc();
+      orderId = orderRef.id;
+
+      // Writes
+      tx.set(counterRef, { orderCount: nextCount }, { merge: true });
+
+      const usedCount = (Number(coupon?.usedCount) || 0) + 1;
+      const maxUses = Number(coupon?.maxUses) || 1;
+      tx.update(couponRef, {
+        usedCount,
+        status: usedCount >= maxUses ? "expired" : "active",
+        redeemedOrderNumber: orderNumber,
+        redeemedBy: fullName,
+        redeemedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      const orderData: any = {
+        orderNumber,
+        customerName: fullName,
+        customerEmail,
+        status: "Processing",
+        amount: "₹0.00",
+        date: admin.firestore.FieldValue.serverTimestamp(),
+        items: finalItems,
+        shippingDetails: { mobile, address, city, state, pincode },
+        method: {
+          payment: "Influencer Coupon (100% Off)",
+          delivery: "Free Shipping",
+        },
+        couponCode: code,
+        discount: subtotal,
+        isInfluencerOrder: true,
+        influencerName: coupon?.influencerName || "",
+        paymentDetails: {
+          method: "influencer_coupon",
+          isCod: false,
+          advancePaid: 0,
+          codBalance: 0,
+        },
+      };
+      if (userId) orderData.userId = userId;
+      tx.set(orderRef, orderData);
+
+      for (const item of finalItems) {
+        const targetId = baseItemId(item);
+        if (!targetId) continue;
+        const colName = item.category === "Combos" ? "combos" : "products";
+        tx.set(db.collection(colName).doc(targetId), {
+          salesCount: admin.firestore.FieldValue.increment(item.quantity || 1),
+        }, { merge: true });
+      }
+    });
+
+    console.log(`Influencer order ${orderNumber} placed with code ${code}`);
+    return { success: true, orderNumber, orderId };
   });
 
 // Webhook endpoint for Shiprocket tracking updates.
@@ -2724,6 +2918,7 @@ export const magicCheckoutPromotions = onRequest(
 
       couponsSnap.forEach((doc) => {
         const data = doc.data();
+        if (data.isInfluencer) return; // never list influencer codes publicly
 
         // Check expiry
         if (data.expiryDate) {
@@ -2819,6 +3014,14 @@ export const magicCheckoutApplyPromotion = onRequest(
         res.status(200).json({
           failure_code: "INVALID_CODE",
           failure_reason: "Coupon data could not be loaded.",
+        });
+        return;
+      }
+
+      if (data.isInfluencer) {
+        res.status(200).json({
+          failure_code: "INVALID_CODE",
+          failure_reason: "Influencer codes must be applied on the Munch Tokri checkout page.",
         });
         return;
       }

@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useEffect, useRef, Suspense } from 'react';
+import React, { useEffect, useRef, useState, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import { useMagicCheckout } from '@/hooks/useMagicCheckout';
 import RazorpayMagicCheckoutWidget from '@/components/ui/RazorpayMagicCheckoutWidget/RazorpayMagicCheckoutWidget';
-import LegacyCheckoutForm from './LegacyCheckoutForm';
+import InfluencerCouponPanel, { AppliedInfluencerCoupon } from './InfluencerCouponPanel';
 import {
     ShoppingBag,
     ShieldCheck,
@@ -23,6 +23,8 @@ import styles from './magicCheckoutPage.module.css';
 function CheckoutContent() {
     const searchParams = useSearchParams();
     const isCodParam = searchParams.get('method') === 'cod';
+    const codeParam = (searchParams.get('code') || '').trim().toUpperCase();
+    const [influencerCoupon, setInfluencerCoupon] = useState<AppliedInfluencerCoupon | null>(null);
 
     const { cartItems, cartTotal } = useCart();
     const { openMagicCheckout, isLoading } = useMagicCheckout();
@@ -30,7 +32,8 @@ function CheckoutContent() {
 
     // Auto-trigger Razorpay Magic Checkout popup directly on mount if cart has items
     useEffect(() => {
-        if (!autoTriggeredRef.current && cartItems.length > 0) {
+        // Skip the Razorpay auto-popup when arriving with an influencer code link
+        if (!autoTriggeredRef.current && cartItems.length > 0 && !codeParam) {
             autoTriggeredRef.current = true;
             // Short timeout ensures DOM and scripts are fully initialized
             const timer = setTimeout(() => {
@@ -38,7 +41,7 @@ function CheckoutContent() {
             }, 300);
             return () => clearTimeout(timer);
         }
-    }, [cartItems, isCodParam, openMagicCheckout]);
+    }, [cartItems, isCodParam, openMagicCheckout, codeParam]);
 
     if (cartItems.length === 0) {
         return (
@@ -129,13 +132,21 @@ function CheckoutContent() {
                                 <span>Subtotal</span>
                                 <span>₹{cartTotal.toFixed(2)}</span>
                             </div>
+                            {influencerCoupon && (
+                                <div className={styles.summaryRow} style={{ color: '#a21caf' }}>
+                                    <span>Coupon ({influencerCoupon.code})</span>
+                                    <span>- ₹{cartTotal.toFixed(2)}</span>
+                                </div>
+                            )}
                             <div className={styles.summaryRow}>
                                 <span>Delivery</span>
-                                <span className={styles.freeShippingTag}>Calculated in Razorpay</span>
+                                <span className={styles.freeShippingTag}>
+                                    {influencerCoupon ? 'FREE SHIPPING' : 'Calculated in Razorpay'}
+                                </span>
                             </div>
                             <div className={styles.summaryTotalRow}>
                                 <span>Total Amount</span>
-                                <span>₹{cartTotal.toFixed(2)}</span>
+                                <span>₹{(influencerCoupon ? 0 : cartTotal).toFixed(2)}</span>
                             </div>
                         </div>
 
@@ -148,6 +159,7 @@ function CheckoutContent() {
                     <div className={styles.ctaCard}>
                         {/* 1-Click Razorpay Magic Checkout Widget with Buyer Protection */}
                         <div className={styles.card}>
+                            {!influencerCoupon && (<>
                             <RazorpayMagicCheckoutWidget
                                 onBuyNow={() => openMagicCheckout({ isCod: false })}
                                 buttonText="Pay Online (Full Amount)"
@@ -216,6 +228,10 @@ function CheckoutContent() {
                                     );
                                 })()}
                             </div>
+
+                            </>)}
+
+                            <InfluencerCouponPanel applied={influencerCoupon} onApplied={setInfluencerCoupon} initialCode={codeParam || undefined} />
 
                             <div className={styles.trustList}>
                                 <div className={styles.trustItem}>
