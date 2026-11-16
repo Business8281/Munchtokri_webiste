@@ -127,8 +127,6 @@ export interface Order {
     courierName?: string;
     couponCode?: string;
     discount?: number;
-    isInfluencerOrder?: boolean;
-    influencerName?: string;
     membershipDiscount?: number;
     codPrice?: number;
     earnedPoints?: number;
@@ -196,15 +194,6 @@ export interface Coupon {
     usedCount: number;
     status: 'active' | 'expired' | 'disabled';
     createdAt: Timestamp | null;
-    /** Influencer coupon: 100% off on selected products + free shipping, single use, ₹0 order */
-    isInfluencer?: boolean;
-    influencerName?: string;
-    /** Product / combo IDs this coupon makes free (influencer coupons only) */
-    applicableProductIds?: string[];
-    freeShipping?: boolean;
-    redeemedOrderNumber?: string;
-    redeemedBy?: string;
-    redeemedAt?: Timestamp | null;
 }
 
 export * from './analytics';

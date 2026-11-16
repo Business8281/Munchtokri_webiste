@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import React, { useState } from 'react';
-import { useCoupons, useProducts, useCombos } from '@/hooks/useFirestore';
+import { useCoupons } from '@/hooks/useFirestore';
 import { Coupon } from '@/types';
 import { Timestamp } from 'firebase/firestore';
 import { useAdmin } from '@/contexts/AdminContext';
@@ -18,9 +18,6 @@ const STATUS_COLORS: Record<string, string> = {
 export default function CouponsPage() {
     const { user } = useAdmin();
     const { coupons, loading, addCoupon, updateCoupon, deleteCoupon } = useCoupons(true);
-    const { products } = useProducts();
-    const { combos } = useCombos();
-    const [productSearch, setProductSearch] = useState('');
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState({
@@ -31,16 +28,12 @@ export default function CouponsPage() {
         maxUses: '',
         expiryDate: '',
         neverExpires: false,
-        isInfluencer: false,
-        influencerName: '',
-        applicableProductIds: [] as string[],
     });
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
 
     const resetForm = () => {
-        setForm({ code: '', discountType: 'percentage', discountValue: '', minOrderValue: '', maxUses: '', expiryDate: '', neverExpires: false, isInfluencer: false, influencerName: '', applicableProductIds: [] });
-        setProductSearch('');
+        setForm({ code: '', discountType: 'percentage', discountValue: '', minOrderValue: '', maxUses: '', expiryDate: '', neverExpires: false });
         setEditingId(null);
         setShowForm(false);
         setError('');
@@ -55,9 +48,6 @@ export default function CouponsPage() {
             maxUses: String(coupon.maxUses),
             expiryDate: coupon.expiryDate ? coupon.expiryDate.toDate().toISOString().split('T')[0] : '',
             neverExpires: !coupon.expiryDate,
-            isInfluencer: !!coupon.isInfluencer,
-            influencerName: coupon.influencerName || '',
-            applicableProductIds: coupon.applicableProductIds || [],
         });
         setEditingId(coupon.id);
         setShowForm(true);
@@ -69,43 +59,22 @@ export default function CouponsPage() {
         setError('');
         const newCode = form.code.trim().toUpperCase();
         if (!newCode) { setError('Coupon code is required'); return; }
-        if (!/^[A-Z0-9_-]+$/.test(newCode)) { setError('Code can only contain letters, numbers, - and _'); return; }
-        if (form.isInfluencer) {
-            if (form.applicableProductIds.length === 0) {
-                setError('Select at least one product for the influencer coupon'); return;
-            }
-        } else if (!form.discountValue || Number(form.discountValue) <= 0) {
+        if (!form.discountValue || Number(form.discountValue) <= 0) {
             setError('Discount value must be positive'); return;
         }
 
         setSaving(true);
         try {
-            const expiryDate = (form.neverExpires || !form.expiryDate)
-                ? null
-                : Timestamp.fromDate(new Date(form.expiryDate));
-            const couponData = form.isInfluencer
-                ? {
-                    // Influencer: always 100% off selected products, free shipping, single use
-                    code: newCode,
-                    discountType: 'percentage' as const,
-                    discountValue: 100,
-                    minOrderValue: 0,
-                    maxUses: 1,
-                    expiryDate,
-                    isInfluencer: true,
-                    influencerName: form.influencerName.trim(),
-                    applicableProductIds: form.applicableProductIds,
-                    freeShipping: true,
-                }
-                : {
-                    code: newCode,
-                    discountType: form.discountType,
-                    discountValue: Number(form.discountValue),
-                    minOrderValue: Number(form.minOrderValue) || 0,
-                    maxUses: Number(form.maxUses) || 0,
-                    expiryDate,
-                    isInfluencer: false,
-                };
+            const couponData = {
+                code: newCode,
+                discountType: form.discountType,
+                discountValue: Number(form.discountValue),
+                minOrderValue: Number(form.minOrderValue) || 0,
+                maxUses: Number(form.maxUses) || 0,
+                expiryDate: (form.neverExpires || !form.expiryDate)
+                    ? null
+                    : Timestamp.fromDate(new Date(form.expiryDate)),
+            };
 
             if (editingId) {
                 if (editingId !== newCode) {
@@ -176,19 +145,6 @@ export default function CouponsPage() {
             {showForm && (
                 <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '1.5rem', marginBottom: '1.5rem' }}>
                     <h3 style={{ marginTop: 0 }}>{editingId ? `Edit Coupon: ${form.code}` : 'New Coupon'}</h3>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', marginBottom: '1rem', background: form.isInfluencer ? '#fdf4ff' : 'white', border: `1px solid ${form.isInfluencer ? '#e879f9' : '#e2e8f0'}`, borderRadius: '0.5rem', cursor: 'pointer' }}>
-                        <input
-                            type="checkbox"
-                            checked={form.isInfluencer}
-                            onChange={e => setForm(f => ({ ...f, isInfluencer: e.target.checked }))}
-                        />
-                        <span>
-                            <strong>Influencer coupon</strong>
-                            <span style={{ display: 'block', fontSize: '0.8rem', color: '#64748b' }}>
-                                100% off on the products you select + free shipping. Works once; the order costs ₹0.
-                            </span>
-                        </span>
-                    </label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
                         <div>
                             <label style={{ fontSize: '0.8rem', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Code *</label>
@@ -199,17 +155,6 @@ export default function CouponsPage() {
                                 placeholder="SAVE20"
                             />
                         </div>
-                        {form.isInfluencer ? (
-                        <div>
-                            <label style={{ fontSize: '0.8rem', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Influencer Name</label>
-                            <input
-                                style={{ width: '100%', padding: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '0.375rem', backgroundColor: 'white' }}
-                                value={form.influencerName}
-                                onChange={e => setForm(f => ({ ...f, influencerName: e.target.value }))}
-                                placeholder="@foodie_priya"
-                            />
-                        </div>
-                        ) : (<>
                         <div>
                             <label style={{ fontSize: '0.8rem', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Type *</label>
                             <select
@@ -256,7 +201,6 @@ export default function CouponsPage() {
                                 placeholder="0"
                             />
                         </div>
-                        </>)}
                         <div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                                 <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Expiry Date</label>
@@ -285,47 +229,6 @@ export default function CouponsPage() {
                             />
                         </div>
                     </div>
-                    {form.isInfluencer && (() => {
-                        const q = productSearch.trim().toLowerCase();
-                        const options = [
-                            ...products.map(p => ({ id: p.id, name: p.name, kind: 'Product', inactive: p.isActive === false })),
-                            ...combos.map(c => ({ id: c.id, name: c.name, kind: 'Combo', inactive: false })),
-                        ].filter(o => !q || o.name.toLowerCase().includes(q));
-                        const toggle = (id: string) => setForm(f => ({
-                            ...f,
-                            applicableProductIds: f.applicableProductIds.includes(id)
-                                ? f.applicableProductIds.filter(x => x !== id)
-                                : [...f.applicableProductIds, id],
-                        }));
-                        return (
-                            <div style={{ marginTop: '1rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
-                                    <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>
-                                        Free Products * ({form.applicableProductIds.length} selected)
-                                    </label>
-                                    <input
-                                        style={{ padding: '0.4rem 0.6rem', border: '1px solid #cbd5e1', borderRadius: '0.375rem', fontSize: '0.85rem', backgroundColor: 'white' }}
-                                        value={productSearch}
-                                        onChange={e => setProductSearch(e.target.value)}
-                                        placeholder="Search products..."
-                                    />
-                                </div>
-                                <div style={{ maxHeight: '240px', overflowY: 'auto', background: 'white', border: '1px solid #e2e8f0', borderRadius: '0.375rem', padding: '0.25rem' }}>
-                                    {options.length === 0 && <p style={{ padding: '0.75rem', color: '#94a3b8', margin: 0 }}>No products found.</p>}
-                                    {options.map(o => (
-                                        <label key={`${o.kind}-${o.id}`} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.5rem', cursor: 'pointer', fontSize: '0.875rem', borderRadius: '0.25rem', background: form.applicableProductIds.includes(o.id) ? '#fdf4ff' : 'transparent' }}>
-                                            <input type="checkbox" checked={form.applicableProductIds.includes(o.id)} onChange={() => toggle(o.id)} />
-                                            <span style={{ flex: 1 }}>{o.name}{o.inactive ? ' (inactive)' : ''}</span>
-                                            <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{o.kind}</span>
-                                        </label>
-                                    ))}
-                                </div>
-                                <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.5rem 0 0' }}>
-                                    The customer&apos;s cart must contain only these items. Discount: 100% · Shipping: Free · Uses: 1
-                                </p>
-                            </div>
-                        );
-                    })()}
                     {error && <p style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.5rem' }}>{error}</p>}
                     <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
                         <button
@@ -373,29 +276,15 @@ export default function CouponsPage() {
                         <tbody>
                             {coupons.map((c) => (
                                 <tr key={c.id}>
+                                    <td><strong>{c.code}</strong></td>
                                     <td>
-                                        <strong>{c.code}</strong>
-                                        {c.isInfluencer && (
-                                            <span style={{ display: 'block', fontSize: '0.7rem', color: '#a21caf', fontWeight: 600 }}>
-                                                Influencer{c.influencerName ? ` · ${c.influencerName}` : ''}
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td>
-                                        {c.isInfluencer
-                                            ? <>100% OFF + Free Shipping<span style={{ display: 'block', fontSize: '0.7rem', color: '#64748b' }}>{c.applicableProductIds?.length || 0} product(s)</span></>
-                                            : c.discountType === 'percentage'
-                                                ? `${c.discountValue}% OFF`
-                                                : `₹${c.discountValue} OFF`}
+                                        {c.discountType === 'percentage'
+                                            ? `${c.discountValue}% OFF`
+                                            : `₹${c.discountValue} OFF`}
                                     </td>
                                     <td>{c.minOrderValue > 0 ? `₹${c.minOrderValue}` : '—'}</td>
                                     <td>
                                         {c.usedCount}/{c.maxUses === 0 ? '∞' : c.maxUses}
-                                        {c.redeemedOrderNumber && (
-                                            <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748b' }}>
-                                                {c.redeemedOrderNumber}{c.redeemedBy ? ` · ${c.redeemedBy}` : ''}
-                                            </span>
-                                        )}
                                     </td>
                                     <td>
                                         <span

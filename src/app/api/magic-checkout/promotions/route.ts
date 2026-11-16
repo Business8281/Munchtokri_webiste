@@ -38,7 +38,6 @@ async function handlePromotions(req: NextRequest) {
 
     snapshot.forEach((doc) => {
       const data = doc.data();
-      if (data.isInfluencer) return; // influencer codes are never listed publicly
 
       // Check expiry
       if (data.expiryDate) {
