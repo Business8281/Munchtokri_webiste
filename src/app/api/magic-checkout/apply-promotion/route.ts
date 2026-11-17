@@ -69,6 +69,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Influencer codes are redeemed only on the site checkout page (₹0 order, no Razorpay)
+    if (couponData.isInfluencer) {
+      return NextResponse.json(
+        {
+          failure_code: 'INVALID_CODE',
+          failure_reason: 'Influencer codes must be applied on the Munch Tokri checkout page.',
+        },
+        {
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          },
+        }
+      );
+    }
+
     // 2. Status check
     if (couponData.status !== 'active') {
       return NextResponse.json(
